@@ -31,6 +31,7 @@ Todos ficam sob `/api/v1`.
 | `POST` | `/monitoring/alerts/:id/notes` | Registra observação de 2 a 500 caracteres |
 | `POST` | `/monitoring/alerts/:id/resolve` | Encerra apenas após a condição operacional ser normalizada |
 | `GET` | `/monitoring/events/stream` | Fluxo Server-Sent Events; aceita `Last-Event-ID` ou `?since=` |
+| `GET` | `/monitoring/demo/scenario/timeline` | Últimos eventos persistidos do recurso `DEMO-RAD-001` e dos alertas relacionados; somente em desenvolvimento |
 
 ### Eventos SSE
 
@@ -49,6 +50,7 @@ O `DemoScenarioModule` só é importado quando o processo da API inicia com `NOD
 | Método | Rota | Efeito |
 | --- | --- | --- |
 | `GET` | `/monitoring/demo/scenario` | Lê o cenário `radar-outage` e verifica o recurso de origem `demo` |
+| `GET` | `/monitoring/demo/scenario/timeline` | Lê em ordem cronológica a timeline persistida do recurso e de seus alertas |
 | `POST` | `/monitoring/demo/scenario/outage` | Marca `DEMO-RAD-001` com mau funcionamento e prioridade imediata |
 | `POST` | `/monitoring/demo/scenario/reset` | Restaura status operacional, prioridade normal e próxima revisão `2026-11-10` |
 

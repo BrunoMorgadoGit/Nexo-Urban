@@ -1,127 +1,136 @@
 # F.O.G.O. — Urban Intelligence Platform
 
-Central de Operações urbanas para o DSIN Challenge 2026, com inventário persistente, Mapa Vivo, alertas e eventos em tempo real. O conjunto de dados incluído é sintético e demonstrativo.
+Plataforma demonstrativa de inteligência urbana criada para o DSIN Challenge 2026. O F.O.G.O. conecta inventário, monitoramento operacional em tempo real e análise histórica explicável em um único fluxo de trabalho.
 
-## Stack
+Todos os cadastros `DEMO-*` e o histórico da cidade demonstrativa são sintéticos. A origem aparece nas telas e nos contratos da API.
 
-- Node.js 22.23.3 (`.nvmrc`) e npm workspaces.
-- Angular standalone, TypeScript e Signal Forms em `apps/web`.
-- NestJS, REST versionada e TypeORM em `apps/api`.
-- PostgreSQL 18.6 no Docker Compose local.
-- Contratos de transporte compartilhados em `packages/contracts`.
-- MapLibre GL JS 6.15.0 para o Mapa Vivo.
+## As três partes do desafio
 
-## Preparação inicial
+### 1. Inventário Inteligente
+
+- Cadastro, consulta, edição, filtros e paginação de equipamentos e agentes.
+- Tipos extensíveis e características JSONB validadas por tipo no backend.
+- Localização estruturada, posição conhecida, órgãos, regiões e histórico de manutenção.
+- Persistência PostgreSQL com migrations TypeORM.
+
+### 2. Central de Operações
+
+- Indicadores do banco, Mapa Vivo com MapLibre, recursos e agentes georreferenciados.
+- Alertas persistidos, reconhecimento, observações, histórico e resolução após normalização.
+- Atualizações por SSE, reconexão e recarga do snapshot REST.
+- Mission Control dentro do Centro de Comando: incidente determinístico, alerta, ação do operador e timeline persistida.
+
+### 3. Cidade Preditiva
+
+- Índice regional explicável de priorização (24 horas) e inspeções de manutenção prioritárias (7 dias).
+- Histórico sintético versionado de 90 dias, separado de registros operacionais.
+- Backtest temporal e baseline simples, com prevalência, matriz de confusão, distribuição de classes e precisão top-1.
+- O escore é um índice de prioridade, não uma probabilidade calibrada nem uma garantia de falha futura.
+
+## Arquitetura e tecnologias
+
+- Monorepo npm workspaces: `apps/web`, `apps/api` e `packages/contracts`.
+- Angular 22, TypeScript, componentes standalone, Signals e Vitest.
+- NestJS 12, REST `/api/v1`, DTOs validados, TypeORM e migrations.
+- PostgreSQL 18.6 via Docker Compose.
+- MapLibre GL JS para o mapa; SSE para atualizações operacionais.
+- Node.js 22.23.3, definido em `.nvmrc`.
+
+O frontend apresenta e envia comandos. A API valida regras e grava dados. O banco é a fonte de persistência. `synchronize` fica desativado; alterações de schema usam migrations aditivas.
+
+## Requisitos
+
+- Node.js 22.23.3 e npm 10.9.x. Com NVM, execute `nvm use` na raiz do repositório e confirme `node --version`.
+- Docker Engine e Docker Compose plugin.
+- Portas locais livres: `5437` (PostgreSQL), `3000` (API) e `4200` (Angular), ajustáveis em `.env`.
+- Acesso aos tiles do OpenStreetMap para carregar o mapa; a atribuição é exibida na interface.
+
+## Instalação limpa
+
+Em um clone novo, revise `.env.example` e crie `.env`. Se `.env` já existir, preserve-o e não o substitua.
 
 ```bash
 nvm use
-npm run setup
+node --version
+cp .env.example .env
+npm ci
 npm run db:up
 npm run db:migrate
 npm run db:seed
+npm run db:seed:intelligence
 ```
 
-`npm run setup` cria `.env` a partir de `.env.example` apenas quando necessário e instala dependências do lockfile. Revise valores locais; nunca versione `.env`. Se Node `22.23.3` não estiver instalado no NVM, instale-o antes de executar os comandos npm.
-
-O seed pode ser executado novamente sem duplicar equipamentos, agentes, regiões, órgãos ou tipos.
+O seed base é idempotente para os cadastros demonstrativos. O gerador de inteligência é versionado e não duplica eventos quando executado novamente. Nenhum comando de preparação apaga o volume do PostgreSQL.
 
 ## Executar
 
-Em terminais separados:
+Em terminais separados, na raiz do repositório:
 
 ```bash
+nvm use
 npm run dev:api
 ```
 
 ```bash
+nvm use
 npm run dev:web
 ```
 
-Abra `http://127.0.0.1:4200`. A API atende em `http://127.0.0.1:3000/api/v1`; tanto a API quanto o PostgreSQL ficam vinculados ao loopback para uso demonstrativo local.
+Abra <http://127.0.0.1:4200>. A API atende em `127.0.0.1:3000/api/v1`. O Docker Compose também publica o PostgreSQL somente no loopback. Não exponha esses serviços demonstrativos publicamente: não há autenticação de usuário nesta entrega.
 
-## Central de Operações e inventário
+Para parar a aplicação, use `Ctrl+C` nos processos Angular e NestJS. `npm run db:down` apenas para o container e preserva o volume. Não use `docker compose down -v` para o banco de desenvolvimento.
 
-- Central com indicadores obtidos do PostgreSQL, prioridade de alertas, resumo por região e manutenção próxima.
-- Mapa Vivo com camadas GeoJSON agrupadas, filtros por categoria, situação, órgão e região, seleção de recursos e indicação de posições antigas.
-- Alertas persistidos, sem duplicidade simultânea; reconhecimento, observações, histórico e encerramento condicionado à normalização.
-- Atualizações SSE com cursor persistido, reconexão e recarga de snapshot. O frontend mantém uma conexão por aplicação.
-- Cenário determinístico de indisponibilidade para `DEMO-RAD-001`, disponível somente com API iniciada por `npm run dev:api`.
-- Inteligência Preditiva com taxas normalizadas, histórico sintético versionado, fatores explicáveis, priorização de manutenção e backtest com corte temporal.
+## Roteiro de demonstração
 
-Detalhes das fórmulas, rotas, eventos, demo e tiles: [docs/monitoring.md](docs/monitoring.md).
-Método, fontes, limitações e endpoints de inteligência: [docs/intelligence.md](docs/intelligence.md).
+1. Abra **Central de Operações** e leia os indicadores calculados pela API.
+2. Examine o Mapa Vivo e selecione um recurso.
+3. No painel **Mission Control**, use **Simular mau funcionamento**.
+4. Aguarde a atualização SSE; confira o estado, a disponibilidade, o alerta e a linha do tempo sem recarregar.
+5. Reconheça o alerta e consulte o equipamento.
+6. Abra **Inteligência Preditiva**. Explique os fatores históricos e deixe claro que o incidente atual não foi previsto retrospectivamente.
+7. Volte ao Centro de Operações e use **Restaurar equipamento**. Confirme a resolução do alerta e os novos eventos na timeline.
 
-### Inventário implementado
-- Equipamentos: busca, filtros por tipo, situação, órgão e bairro, paginação, detalhe, edição e desativação preservando o histórico.
-- Tipos: radar, câmera, balança, veículo de fiscalização, cancela, transporte, totem, patinete, motocicleta e viatura. Cada tipo expõe campos técnicos; o backend valida cada objeto JSONB com um esquema estrito.
-- Localização: endereço e ponto fixo ou base em tabela própria; posição conhecida de recursos móveis fica separada.
-- Agentes: cadastro, busca, filtros, consulta, edição, disponibilidade e última posição conhecida.
-- Manutenções: prioridade imediata, agenda, vencimentos, histórico e transições de serviço.
-- Indicadores: resumo consultado pela interface na API.
+Os eventos operacionais permanecem no banco para auditoria. Restaurar o cenário retorna o equipamento ao estado demonstrativo operacional, mas não apaga o histórico. O roteiro completo está em [docs/demo-script.md](docs/demo-script.md).
 
-### Endpoints REST
-
-Todos estão sob `/api/v1`:
-
-| Recurso | Rotas |
-| --- | --- |
-| Saúde | `GET /health` |
-| Equipamentos | `GET, POST /equipments`; `GET, PUT, DELETE /equipments/:id`; `PATCH /equipments/:id/deactivate` |
-| Tipos | `GET /equipment-types` |
-| Agentes | `GET, POST /agents`; `GET, PUT /agents/:id` |
-| Órgãos e regiões | `GET /organizations`; `GET /regions` |
-| Inventário | `GET /inventory/summary` |
-| Manutenção | `GET, POST /maintenance`; `GET /maintenance/overview`; `PATCH /maintenance/:id/status` |
-| Monitoramento | Consulte [docs/monitoring.md](docs/monitoring.md) para overview, mapa, regiões, alertas e SSE |
-| Inteligência | `GET /intelligence/overview`; `/regions`; `/regions/:id`; `/maintenance-priorities`; `/trends`; `/validation` |
-
-`DELETE /equipments/:id` realiza desativação lógica; não remove o registro nem seu histórico. `GET /maintenance?overdueOnly=true` retorna serviços vencidos. A prioridade e a agenda de manutenção não alteram automaticamente a situação operacional.
-
-## Banco, seed e testes
+## Testes e manutenção
 
 ```bash
-npm run db:up
 npm run db:migrations:show
-npm run db:migrate
-npm run db:seed
-npm run db:seed:intelligence
 npm run build
 npm run lint
 npm test
 npm run test:e2e
+npm audit --audit-level=high
 ```
 
-O E2E da API requer PostgreSQL em execução, migrations aplicadas e seed inicial. Os testes integrados criam registros temporários e removem somente os próprios registros ao terminar.
+Os E2E usam PostgreSQL. `npm run test:e2e` define `NODE_ENV=development` para testar os endpoints de demonstração protegidos pela própria condição de ambiente; a inicialização normal de produção não registra esses endpoints.
 
-### Validação da Etapa 3 (23/10/2026)
+Na revisão final, a instalação limpa com `npm ci`, migrations, os dois seeds, build, lint, unitários e E2E foram executados em cópia temporária isolada. A auditoria npm encontrou 0 vulnerabilidades. O build Angular conclui sem erros, mas registra avisos não bloqueantes de orçamento CSS em alguns componentes; eles estão documentados no checklist de avaliação.
 
-- Build e lint dos contratos, Angular e NestJS; TypeScript verificado nos dois aplicativos.
-- 5 testes web e 17 testes unitários da API aprovados; 10 testes E2E aprovados no PostgreSQL.
-- Migration aplicada, seed idempotente e `npm audit --audit-level=high` sem vulnerabilidades.
-- Fluxos de equipamento, agente e manutenção exercitados no navegador após reiniciar os serviços. A interface foi verificada em 1440 px e 390 px, sem overflow horizontal.
-- O build do Angular ainda informa avisos de orçamento CSS em seis estilos de componentes; não impedem a compilação.
+## Rotas principais
 
-### Validação da Etapa 5 (23/10/2026)
+Todos os endpoints abaixo usam o prefixo `/api/v1`.
 
-- Migration preditiva aditiva aplicada ao PostgreSQL existente; nenhuma tabela ou volume foi recriado. O seed versionado `campinas-city-history-v1` foi executado duas vezes: a segunda execução inseriu zero eventos.
-- O conjunto demonstrativo contém 219 eventos (157 observações de estado e 32 falhas), todos marcados como sintéticos e limitados ao período de 90 dias. A auditoria encontrou zero eventos posteriores ao instante âncora e zero eventos sintéticos fora do dataset identificado.
-- Build e lint passaram; `npm test` passou com 7 testes web e 25 testes unitários da API; `npm run test:e2e` passou com 15 testes no PostgreSQL; `npm audit --audit-level=high` encontrou zero vulnerabilidades.
-- A tela foi exercitada no Chrome em desktop (1440 px) e mobile (390 px). A documentação e a UI identificam a origem dos dados, o horizonte, a suficiência e as limitações; o documento não apresenta o escore como probabilidade.
-- O build Angular mantém avisos não bloqueantes de orçamento CSS nos estilos de alguns componentes, incluindo dois componentes de inteligência. Não houve erro de compilação.
-- O backtest usa apenas histórico anterior ao corte e compara com um baseline simples. Os resultados atuais são experimentais sobre dados sintéticos, não uma comprovação de precisão para operação real.
+| Área | Rotas |
+| --- | --- |
+| Inventário | `GET/POST /equipments`, `GET/PUT/DELETE /equipments/:id`, `GET/POST /agents`, `GET/PUT /agents/:id` |
+| Domínio | `GET /equipment-types`, `/organizations`, `/regions`; `GET/POST /maintenance` |
+| Monitoramento | `GET /monitoring/overview`, `/map`, `/regions`, `/alerts`, `/alerts/:id`; ações de alerta em `/monitoring/alerts/:id/*` |
+| Eventos | `GET /monitoring/events/stream` (SSE); timeline da simulação em `GET /monitoring/demo/scenario/timeline` |
+| Mission Control | `GET /monitoring/demo/scenario`; `POST /monitoring/demo/scenario/outage` e `/reset` somente em desenvolvimento |
+| Inteligência | `GET /intelligence/overview`, `/regions`, `/regions/:id`, `/maintenance-priorities`, `/trends`, `/validation` |
 
-Para recriar apenas o histórico demonstrativo (sem apagar dados existentes), use `npm run db:seed:intelligence`. Fórmulas, pesos, critérios de suficiência, fontes e limitações estão em [docs/intelligence.md](docs/intelligence.md).
+Políticas operacionais e detalhes SSE: [docs/monitoring.md](docs/monitoring.md). Fórmulas, critérios de qualidade e backtest: [docs/intelligence.md](docs/intelligence.md). Decisões de arquitetura: [docs/architecture.md](docs/architecture.md).
 
-`synchronize` permanece desabilitado. Toda mudança de schema deve entrar em migration revisada. Para encerrar a API/web, use `Ctrl+C`; `npm run db:down` apenas para o container, sem remover o volume persistente.
+## Limitações conhecidas
 
-## Estrutura
+- A demonstração não possui autenticação/autorização de usuário; API e banco ficam limitados ao loopback e não são uma implantação pública.
+- Os dados da cidade e o backtest são sintéticos. Os resultados não validam desempenho em operação real; há poucas regiões e baixa prevalência de eventos.
+- O índice não é uma probabilidade. A validação retrospectiva usa cortes diários, eventos na janela seguinte de 24 horas e uma regra-base de falha prévia na região. A interface mostra matriz de confusão, prevalência, distribuição de classificações e ranking top-1.
+- A análise manual tem histórico temporal reduzido e pode indicar dados insuficientes.
+- O provedor padrão de tiles é OpenStreetMap, sujeito à disponibilidade e aos termos de uso; atribuição permanece visível.
+- Mission Control grava novos eventos a cada transição real do cenário. Repetir uma ação idempotente não duplica o evento enquanto o estado não mudar. A timeline é somente leitura; não há replay visual nesta entrega.
 
-```text
-apps/
-  api/src/{agents,common,database,equipment,equipment-types,intelligence,inventory,locations,maintenance,organizations,regions}/
-  web/src/app/{agents,core,equipment,intelligence,maintenance,shared}/
-packages/contracts/
-docs/
-```
+## Checklist de avaliação
 
-Decisões do domínio: [docs/inventory-domain.md](docs/inventory-domain.md). Roadmap: [docs/roadmap.md](docs/roadmap.md).
+Consulte [docs/evaluation-checklist.md](docs/evaluation-checklist.md). A matriz distingue funcionalidades concluídas e limitações e informa que o texto integral do edital não está versionado neste repositório.

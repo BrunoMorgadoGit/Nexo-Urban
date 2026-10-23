@@ -110,6 +110,9 @@ export class IntelligenceService {
     let baselineTruePositives = 0;
     let modelFlags = 0;
     let baselineFlags = 0;
+    let precisionAtOneTruePositives = 0;
+    let precisionAtOneCutoffs = 0;
+    const classificationDistribution = { low: 0, moderate: 0, elevated: 0, critical: 0 };
 
     for (let cutoff = firstCutoff; cutoff <= lastCutoff; cutoff = new Date(cutoff.getTime() + dayMs)) {
       const periodKey = cutoff.toISOString().slice(0, 7);
@@ -119,6 +122,7 @@ export class IntelligenceService {
         periods.set(periodKey, period);
       }
       period.end = cutoff;
+      const rankedWindows: Array<{ regionId: string; score: number; incident: boolean }> = [];
       for (const region of regionEntities) {
         const regionEvents = events.filter((event) => event.regionId === region.id);
         const pastEvents = regionEvents.filter((event) => event.occurredAt <= cutoff);
@@ -141,14 +145,26 @@ export class IntelligenceService {
         const prior30 = pastEvents.filter((event) => event.eventType === 'failure' && event.occurredAt > new Date(cutoff.getTime() - 30 * dayMs));
         const baseline = prior30.length > 0;
         const model = risk.riskScore !== null && risk.riskScore >= 50;
+        classificationDistribution[risk.classification]++;
         sampleWindows++;
         period.windows++;
         if (incident) { incidentWindows++; period.incidents++; }
         if (model) { modelFlags++; period.modelFlags++; if (incident) modelTruePositives++; }
         if (baseline) { baselineFlags++; period.baselineFlags++; if (incident) baselineTruePositives++; }
+        if (risk.riskScore !== null) rankedWindows.push({ regionId: region.id, score: risk.riskScore, incident });
+      }
+      rankedWindows.sort((left, right) => right.score - left.score || left.regionId.localeCompare(right.regionId));
+      const highestRanked = rankedWindows[0];
+      if (highestRanked) {
+        precisionAtOneCutoffs++;
+        if (highestRanked.incident) precisionAtOneTruePositives++;
       }
     }
     const sufficient = sampleWindows >= 30 && incidentWindows >= 5;
+    const modelFalsePositives = modelFlags - modelTruePositives;
+    const modelFalseNegatives = incidentWindows - modelTruePositives;
+    const baselineFalsePositives = baselineFlags - baselineTruePositives;
+    const baselineFalseNegatives = incidentWindows - baselineTruePositives;
     return {
       sourceScope,
       evaluatedAt: new Date().toISOString(),
@@ -159,12 +175,34 @@ export class IntelligenceService {
       sampleWindows,
       incidentWindows,
       excludedInsufficientWindows,
+      incidentPrevalence: sampleWindows ? incidentWindows / sampleWindows : null,
       modelThreshold: 50,
       baselineRule: 'Alerta se houve ao menos uma falha na mesma região nos 30 dias anteriores.',
       modelPrecision: sufficient && modelFlags ? modelTruePositives / modelFlags : null,
       modelRecall: sufficient ? modelTruePositives / incidentWindows : null,
       baselinePrecision: sufficient && baselineFlags ? baselineTruePositives / baselineFlags : null,
       baselineRecall: sufficient ? baselineTruePositives / incidentWindows : null,
+      modelConfusion: {
+        truePositives: modelTruePositives,
+        falsePositives: modelFalsePositives,
+        trueNegatives: sampleWindows - modelTruePositives - modelFalsePositives - modelFalseNegatives,
+        falseNegatives: modelFalseNegatives,
+      },
+      baselineConfusion: {
+        truePositives: baselineTruePositives,
+        falsePositives: baselineFalsePositives,
+        trueNegatives: sampleWindows - baselineTruePositives - baselineFalsePositives - baselineFalseNegatives,
+        falseNegatives: baselineFalseNegatives,
+      },
+      modelClassificationDistribution: classificationDistribution,
+      modelPredictionRate: sampleWindows ? modelFlags / sampleWindows : null,
+      baselinePredictionRate: sampleWindows ? baselineFlags / sampleWindows : null,
+      precisionAtOne: {
+        evaluatedCutoffs: precisionAtOneCutoffs,
+        truePositives: precisionAtOneTruePositives,
+        precision: sufficient && precisionAtOneCutoffs ? precisionAtOneTruePositives / precisionAtOneCutoffs : null,
+        recall: sufficient ? precisionAtOneTruePositives / incidentWindows : null,
+      },
       evaluationQuality: sufficient ? 'sufficient' : 'insufficient_sample',
       periods: [...periods].map(([, value]) => ({
         start: value.start.toISOString(), end: value.end.toISOString(), sampleWindows: value.windows,

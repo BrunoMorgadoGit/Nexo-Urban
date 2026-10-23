@@ -4,6 +4,8 @@ import type {
   AgentContract,
   AgentCategory,
   AgentAvailability,
+  DemoScenario,
+  DemoTimelineEntry,
   EquipmentContract,
   EquipmentStatus,
   EquipmentTypeContract,
@@ -226,16 +228,20 @@ export class InventoryApiService {
     return this.http.post<MonitoringAlert>(`${API_BASE}/monitoring/alerts/${id}/resolve`, {});
   }
 
-  getDemoScenario() {
-    return this.http.get<import('@fogo/contracts').DemoScenario>(`${API_BASE}/monitoring/demo/scenario`);
+  getDemoScenario(): Observable<DemoScenario> {
+    return this.http.get<DemoScenario>(`${API_BASE}/monitoring/demo/scenario`);
   }
 
-  triggerDemoOutage() {
-    return this.http.post<import('@fogo/contracts').DemoScenario>(`${API_BASE}/monitoring/demo/scenario/outage`, {});
+  getDemoTimeline(): Observable<DemoTimelineEntry[]> {
+    return this.http.get<DemoTimelineEntry[]>(`${API_BASE}/monitoring/demo/scenario/timeline`);
   }
 
-  resetDemoScenario() {
-    return this.http.post<import('@fogo/contracts').DemoScenario>(`${API_BASE}/monitoring/demo/scenario/reset`, {});
+  triggerDemoOutage(): Observable<DemoScenario> {
+    return this.http.post<DemoScenario>(`${API_BASE}/monitoring/demo/scenario/outage`, {});
+  }
+
+  resetDemoScenario(): Observable<DemoScenario> {
+    return this.http.post<DemoScenario>(`${API_BASE}/monitoring/demo/scenario/reset`, {});
   }
 
   listMaintenance(filters: MaintenanceFilters = {}): Observable<Page<MaintenanceContract>> {

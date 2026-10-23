@@ -1,0 +1,39 @@
+:host { display: block; min-width: 0; }
+.mission-control { display: grid; grid-template-columns: minmax(17rem, .8fr) minmax(0, 1.2fr); gap: var(--space-5); padding: var(--space-5); border: 1px solid rgb(143 206 179 / 24%); border-radius: var(--radius-md); background: var(--color-surface); }
+.mission-overview, .mission-timeline { min-width: 0; }
+.mission-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3); }
+.mission-heading .eyebrow { margin-bottom: .35rem; }
+.mission-heading h2 { margin: 0; font-size: 1.12rem; }
+.mission-mode { flex: 0 0 auto; padding: .3rem .45rem; border: 1px solid rgb(227 174 88 / 30%); border-radius: var(--radius-sm); color: var(--color-status-warning); font-size: .56rem; font-weight: 750; letter-spacing: .04em; }
+.mission-description { margin: var(--space-3) 0 var(--space-4); color: var(--color-text-secondary); font-size: .75rem; }
+.mission-asset { display: grid; gap: .2rem; padding: var(--space-3) 0; border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); }
+.mission-asset > strong { font-size: .9rem; font-variant-numeric: tabular-nums; }
+.mission-asset > span:last-child { color: var(--color-text-muted); font-size: .68rem; }
+.mission-state { display: inline-flex; align-items: center; gap: .4rem; color: var(--color-status-success); font-size: .67rem; font-weight: 700; }
+.mission-state i { width: .42rem; height: .42rem; border-radius: 50%; background: currentColor; }
+.mission-state--active { color: var(--color-status-danger); }
+.mission-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-top: var(--space-4); }
+.mission-action { min-height: 2.4rem; padding: .55rem .75rem; border: 1px solid rgb(143 206 179 / 38%); border-radius: var(--radius-sm); background: var(--color-accent-soft); color: var(--color-accent); font-size: .7rem; font-weight: 700; cursor: pointer; }
+.mission-action:hover:not(:disabled) { filter: brightness(1.12); }
+.mission-action:disabled { opacity: .55; cursor: wait; }
+.mission-actions a, .mission-intelligence-link { color: var(--color-accent); font-size: .68rem; text-decoration: none; }
+.mission-note { margin: var(--space-3) 0 0; color: var(--color-text-muted); font-size: .64rem; line-height: 1.45; }
+.mission-intelligence-link { display: inline-flex; gap: var(--space-2); margin-top: var(--space-3); }
+.mission-timeline .panel-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-2); }
+.mission-timeline .panel-heading .eyebrow { margin-bottom: .35rem; }
+.mission-timeline .panel-heading h3 { margin: 0; font-size: .88rem; }
+.mission-timeline .panel-heading > span { color: var(--color-text-muted); font-size: .7rem; }
+.mission-events { display: grid; max-height: 20rem; gap: 0; overflow-y: auto; margin: 0; padding: 0; list-style: none; scrollbar-color: var(--color-border-strong) transparent; }
+.mission-events li { display: grid; grid-template-columns: 5rem minmax(0, 1fr); gap: var(--space-3); padding: var(--space-3) 0; border-top: 1px solid var(--color-border); }
+.mission-events time { color: var(--color-text-muted); font-size: .62rem; font-variant-numeric: tabular-nums; }
+.mission-event-body { display: grid; min-width: 0; gap: .25rem; }
+.mission-event-body > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2); }
+.mission-event-body strong { color: var(--color-text-primary); font-size: .68rem; }
+.mission-event-body > div span { color: var(--color-status-warning); font-size: .61rem; }
+.mission-event-body p, .mission-event-body small { margin: 0; color: var(--color-text-muted); font-size: .62rem; }
+.mission-empty { display: grid; gap: .25rem; padding: var(--space-4) 0; border-top: 1px solid var(--color-border); }
+.mission-empty strong { color: var(--color-text-secondary); font-size: .72rem; }
+.mission-empty span { color: var(--color-text-muted); font-size: .65rem; line-height: 1.4; }
+.mission-control a:focus-visible, .mission-action:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+@media (max-width: 900px) { .mission-control { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); } }
+@media (max-width: 620px) { .mission-control { padding: var(--space-4); }.mission-events li { grid-template-columns: 4.2rem minmax(0, 1fr); gap: var(--space-2); } }

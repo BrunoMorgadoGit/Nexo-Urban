@@ -1,0 +1,44 @@
+<section id="mission-control" class="mission-control" aria-labelledby="mission-title">
+  <div class="mission-overview">
+    <header class="mission-heading">
+      <div><p class="eyebrow">Demonstração operacional</p><h2 id="mission-title">Mission Control</h2></div>
+      <span class="mission-mode">EVENTOS PERSISTIDOS</span>
+    </header>
+    <p class="mission-description">Acompanhe uma falha controlada atravessando o inventário, o mapa, o alerta e a resposta do operador.</p>
+    <div class="mission-asset">
+      <span class="mission-state" [class.mission-state--active]="scenario().active" role="status" aria-live="polite">
+        <i aria-hidden="true"></i>{{ statusLabel(scenario().status) }}
+      </span>
+      <strong>{{ scenario().serialNumber }}</strong>
+      <span>{{ scenario().label }}</span>
+    </div>
+    <div class="mission-actions">
+      <button type="button" class="mission-action" [disabled]="busy()" (click)="scenarioAction.emit()">
+        {{ busy() ? 'Atualizando cenário…' : scenario().active ? 'Restaurar equipamento' : 'Simular mau funcionamento' }}
+      </button>
+      <a [routerLink]="'/equipments/' + scenario().equipmentId">Consultar equipamento</a>
+    </div>
+    <p class="mission-note">A simulação demonstra a resposta após o incidente; não representa uma previsão antecipada desse evento.</p>
+    <a class="mission-intelligence-link" routerLink="/intelligence">Ver análise histórica e fatores de risco <span aria-hidden="true">→</span></a>
+  </div>
+
+  <div class="mission-timeline">
+    <header class="panel-heading"><div><p class="eyebrow">Registro persistido</p><h3>Linha do tempo</h3></div><span>{{ events().length }} eventos</span></header>
+    @if (events().length) {
+      <ol class="mission-events">
+        @for (event of events(); track event.id) {
+          <li>
+            <time [attr.datetime]="event.occurredAt">{{ event.occurredAt | date:'dd/MM HH:mm:ss' }}</time>
+            <div class="mission-event-body">
+              <div><strong>{{ eventLabel(event) }}</strong><span>{{ timelineStatusLabel(event.status) }}</span></div>
+              <p>{{ event.description }}</p>
+              <small>{{ event.serialNumber }} · {{ event.source === 'demo' ? 'Demonstração' : 'Operação' }}</small>
+            </div>
+          </li>
+        }
+      </ol>
+    } @else {
+      <div class="mission-empty"><strong>Nenhum evento desta demonstração</strong><span>Inicie a simulação para registrar a primeira mudança operacional.</span></div>
+    }
+  </div>
+</section>

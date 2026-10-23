@@ -292,6 +292,17 @@ export type DemoScenario = {
   active: boolean;
 };
 
+export type DemoTimelineEntry = {
+  id: string;
+  occurredAt: string;
+  serialNumber: string;
+  eventType: OperationalEventType;
+  source: 'api' | 'demo';
+  status: string;
+  description: string;
+  equipmentId: string;
+};
+
 export const intelligenceSourceScopes = ['demo', 'manual', 'all'] as const;
 export type IntelligenceSourceScope = (typeof intelligenceSourceScopes)[number];
 export type IntelligenceRiskClassification = 'low' | 'moderate' | 'elevated' | 'critical' | 'insufficient_data';
@@ -422,12 +433,19 @@ export type IntelligenceBacktest = {
   sampleWindows: number;
   incidentWindows: number;
   excludedInsufficientWindows: number;
+  incidentPrevalence: number | null;
   modelThreshold: number;
   baselineRule: string;
   modelPrecision: number | null;
   modelRecall: number | null;
   baselinePrecision: number | null;
   baselineRecall: number | null;
+  modelConfusion: { truePositives: number; falsePositives: number; trueNegatives: number; falseNegatives: number };
+  baselineConfusion: { truePositives: number; falsePositives: number; trueNegatives: number; falseNegatives: number };
+  modelClassificationDistribution: { low: number; moderate: number; elevated: number; critical: number };
+  modelPredictionRate: number | null;
+  baselinePredictionRate: number | null;
+  precisionAtOne: { evaluatedCutoffs: number; truePositives: number; precision: number | null; recall: number | null };
   evaluationQuality: 'sufficient' | 'insufficient_sample';
   periods: Array<{
     start: string;

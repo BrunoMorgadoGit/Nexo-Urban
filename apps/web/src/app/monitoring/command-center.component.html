@@ -29,6 +29,10 @@
       <p class="demo-banner"><span>DEMONSTRAÇÃO</span> Dados urbanos sintéticos de Campinas; as alterações do cenário são persistidas no banco local.</p>
     }
 
+    @if (data.overview.demoMode && data.demoScenario; as scenario) {
+      <app-mission-control [scenario]="scenario" [events]="data.demoTimeline" [busy]="busyScenario()" (scenarioAction)="toggleMissionControl()" />
+    }
+
     <section class="command-grid">
       <div class="map-column">
         <app-operational-map [compact]="true" />

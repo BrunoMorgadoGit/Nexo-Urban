@@ -50,6 +50,13 @@ describe('Predictive intelligence API (e2e, PostgreSQL)', () => {
     expect(trends.body.every((point: { regionId: string; regionName: string }) => point.regionId && point.regionName)).toBe(true);
     const validation = await request(app.getHttpServer()).get('/api/v1/intelligence/validation?sourceScope=demo').expect(200);
     expect(validation.body.sampleWindows).toBeGreaterThan(0);
+    expect(validation.body.incidentPrevalence).toBeGreaterThanOrEqual(0);
+    expect(validation.body.modelConfusion.truePositives + validation.body.modelConfusion.falsePositives
+      + validation.body.modelConfusion.trueNegatives + validation.body.modelConfusion.falseNegatives).toBe(validation.body.sampleWindows);
+    expect(validation.body.modelClassificationDistribution.low + validation.body.modelClassificationDistribution.moderate
+      + validation.body.modelClassificationDistribution.elevated + validation.body.modelClassificationDistribution.critical)
+      .toBe(validation.body.sampleWindows);
+    expect(validation.body.precisionAtOne.evaluatedCutoffs).toBeGreaterThan(0);
     expect(validation.body.limitations).toContain('Escores são índices de priorização e não probabilidades calibradas de incidentes.');
   });
 

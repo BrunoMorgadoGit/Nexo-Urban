@@ -49,7 +49,14 @@
     <section class="validation-section" aria-labelledby="validation-title">
       <div class="validation-copy"><p class="eyebrow">Teste retrospectivo</p><h2 id="validation-title">O que o histórico permite validar</h2><p>Em cada corte, o cálculo consulta apenas eventos anteriores. As 24 horas seguintes são usadas somente para medir se ocorreu uma falha.</p></div>
       <div class="validation-result"><strong>{{ data.validation.sampleWindows }}</strong><span>janelas avaliáveis</span><small>{{ data.validation.incidentWindows }} com falha posterior · {{ data.validation.excludedInsufficientWindows }} excluídas por histórico insuficiente</small>
-        @if (data.validation.evaluationQuality === 'sufficient') { <p>Índice: precisão {{ data.validation.modelPrecision | percent:'1.0-0' }} · recall {{ data.validation.modelRecall | percent:'1.0-0' }}</p><p class="validation-baseline">Baseline: precisão {{ data.validation.baselinePrecision | percent:'1.0-0' }} · recall {{ data.validation.baselineRecall | percent:'1.0-0' }}</p><small>{{ data.validation.baselineRule }}</small> } @else { <p class="validation-limited">Amostra insuficiente para afirmar desempenho preditivo confiável.</p> }
+        @if (data.validation.evaluationQuality === 'sufficient') {
+          <p class="validation-prevalence">Prevalência no horizonte: {{ data.validation.incidentPrevalence | percent:'1.0-1' }}</p>
+          <p>Limite ≥ {{ data.validation.modelThreshold }}: precisão {{ data.validation.modelPrecision | percent:'1.0-0' }} · recall {{ data.validation.modelRecall | percent:'1.0-0' }} · {{ data.validation.modelConfusion.falsePositives }} falsos positivos</p>
+          <p class="validation-baseline">Baseline: precisão {{ data.validation.baselinePrecision | percent:'1.0-0' }} · recall {{ data.validation.baselineRecall | percent:'1.0-0' }}</p>
+          <p class="validation-ranking">Ranking top-1 por corte: precisão {{ data.validation.precisionAtOne.precision | percent:'1.0-0' }} · {{ data.validation.precisionAtOne.evaluatedCutoffs }} cortes avaliados</p>
+          <details class="validation-distribution"><summary>Distribuição das classificações</summary><span>Baixo {{ data.validation.modelClassificationDistribution.low }} · Moderado {{ data.validation.modelClassificationDistribution.moderate }} · Elevado {{ data.validation.modelClassificationDistribution.elevated }} · Crítico {{ data.validation.modelClassificationDistribution.critical }}</span></details>
+          <small>{{ data.validation.baselineRule }}</small>
+        } @else { <p class="validation-limited">Amostra insuficiente para afirmar desempenho preditivo confiável.</p> }
       </div>
       <ul class="validation-limitations">@for (limitation of data.validation.limitations; track limitation) { <li>{{ limitation }}</li> }</ul>
     </section>

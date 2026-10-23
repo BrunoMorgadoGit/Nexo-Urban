@@ -33,6 +33,13 @@
 - [x] Integrar a tela de Inteligência Preditiva com dados reais da API, explicabilidade e origem dos registros.
 - [x] Validar PostgreSQL, builds, lint, testes unitários/E2E, dependências e layout desktop/mobile.
 
-## Etapa 6 — Próximas etapas
+## Encerramento para entrega
+
+- [x] Revisar o backtest e documentar prevalência, falsos positivos, baseline e precisão top-1 sem ajustar artificialmente o método.
+- [x] Integrar Mission Control ao Centro de Operações com simulação determinística, alerta persistente, ações do operador e timeline somente leitura.
+- [x] Preparar roteiro de apresentação e checklist de avaliação, declarando escopo e limitações.
+- [ ] Pacote reproduzível e auditoria limpa: confirmar na validação final desta entrega.
+
+## Fora do escopo desta entrega
 
 - [ ] Replay histórico e simulador avançado de crises.

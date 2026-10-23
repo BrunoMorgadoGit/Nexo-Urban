@@ -42,9 +42,15 @@ describe('IntelligenceComponent', () => {
     validation.flush({
       sourceScope: 'demo', evaluatedAt: '2026-10-23T12:00:00.000Z', methodVersion: 'risk-rules-v1', horizonHours: 24,
       evaluationStart: '2026-07-26T12:00:00.000Z', evaluationEnd: '2026-10-22T12:00:00.000Z', sampleWindows: 0,
-      incidentWindows: 0, excludedInsufficientWindows: 20, modelThreshold: 50,
+      incidentWindows: 0, excludedInsufficientWindows: 20, incidentPrevalence: null, modelThreshold: 50,
       baselineRule: 'Uma falha anterior por região.', modelPrecision: null, modelRecall: null,
-      baselinePrecision: null, baselineRecall: null, evaluationQuality: 'insufficient_sample', periods: [], limitations: ['Amostra insuficiente.'],
+      baselinePrecision: null, baselineRecall: null,
+      modelConfusion: { truePositives: 0, falsePositives: 0, trueNegatives: 0, falseNegatives: 0 },
+      baselineConfusion: { truePositives: 0, falsePositives: 0, trueNegatives: 0, falseNegatives: 0 },
+      modelClassificationDistribution: { low: 0, moderate: 0, elevated: 0, critical: 0 },
+      modelPredictionRate: null, baselinePredictionRate: null,
+      precisionAtOne: { evaluatedCutoffs: 0, truePositives: 0, precision: null, recall: null },
+      evaluationQuality: 'insufficient_sample', periods: [], limitations: ['Amostra insuficiente.'],
     });
     fixture.detectChanges();
     http.expectOne((request) => request.url.endsWith('/intelligence/regions/region-1')).flush({

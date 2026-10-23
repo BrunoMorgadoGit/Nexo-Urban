@@ -8,6 +8,9 @@ export class DemoScenarioController {
   @Get()
   get() { return this.scenarios.get(); }
 
+  @Get('timeline')
+  timeline() { return this.scenarios.timeline(); }
+
   @Post('outage')
   outage() { return this.scenarios.outage(); }
 

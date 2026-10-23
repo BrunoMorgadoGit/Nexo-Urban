@@ -56,9 +56,19 @@ A pontuação explicável soma: até 30 pontos por contagem de falhas de 90 dias
 
 ## Avaliação retrospectiva
 
-O backtest cria cortes diários ao longo do período disponível. Para cada corte, o cálculo recebe somente eventos com `occurred_at <= cutoff`; observações posteriores não são usadas para compor a pontuação nem o estado histórico. Uma falha em `(cutoff, cutoff + 24h]` é consultada somente como desfecho.
+O backtest cria cortes diários ao longo do período disponível. Para cada região e corte, o cálculo recebe somente eventos com `occurred_at <= cutoff`; observações posteriores não são usadas para compor a pontuação nem o estado histórico. A unidade positiva é uma janela de região com ao menos uma falha em `(cutoff, cutoff + 24h]`; falhas múltiplas na mesma janela continuam sendo um único positivo. Cortes sem histórico suficiente são excluídos e contados separadamente.
 
-Baseline: sinaliza a região se houve ao menos uma falha nela nos 30 dias anteriores. Precisão e recall só são retornados quando existem pelo menos 30 janelas avaliáveis e cinco janelas com incidente; do contrário, vêm como `null`, com `evaluationQuality=insufficient_sample`. O histórico é sintético e foi criado para demonstração, não é uma amostra independente nem valida desempenho real. Não use suas métricas para prometer acurácia operacional.
+No limiar atual `score >= 50` (classe elevada ou crítica), verdadeiro positivo significa região sinalizada com falha no horizonte; falso positivo, região sinalizada sem falha; falso negativo, falha sem sinalização; verdadeiro negativo, ausência de falha e de sinalização. A resposta também informa prevalência, matriz de confusão, taxa de sinalização e distribuição das quatro classes.
+
+Baseline: sinaliza a região se houve ao menos uma falha nela nos 30 dias anteriores. É uma regra de persistência simples e transparente, útil como referência mínima, mas não constitui comparação com um modelo estatístico treinado ou uma política operacional calibrada.
+
+Como avaliação de ranking, `precisionAtOne` escolhe a região com maior escore em cada corte diário que tenha ao menos uma região elegível. Empates são resolvidos pelo identificador da região. Sua precisão mede cortes em que essa primeira região teve falha no dia seguinte; o recall mede incidentes de região/dia capturados por essa escolha. Interprete como um cenário de capacidade de revisão de uma região por corte, não como política ótima nem como precisão em qualquer outra capacidade. Precisão e recall por limiar e ranking só são retornados quando existem pelo menos 30 janelas avaliáveis e cinco janelas com incidente; do contrário, vêm como `null`, com `evaluationQuality=insufficient_sample`.
+
+Na amostra demonstrativa auditada em 23/10/2026, houve 175 janelas avaliáveis, 11 positivas (prevalência de 6,3%) e 537 janelas excluídas por histórico insuficiente. A distribuição foi 26 baixas, 18 moderadas, 79 elevadas e 52 críticas. O limiar 50 sinalizou 131/175 janelas (74,9%) como elevadas ou críticas; a classe crítica isolada correspondeu a 52/175 (29,7%), portanto o método não classificou quase todas como críticas, mas sinalizou muitas como prioritárias. A matriz foi 11 verdadeiros positivos, 120 falsos positivos, 44 verdadeiros negativos e nenhum falso negativo. A baseline sinalizou 132 janelas, com 11 verdadeiros positivos, 121 falsos positivos, 43 verdadeiros negativos e nenhum falso negativo. As precisões por limiar foram 8,4% e 8,3%, respectivamente, com recall de 100% para ambas.
+
+No ranking top-1, foram avaliados 25 cortes: 3 tiveram falha na região de maior escore, resultando em precisão de 12,0% e recall de 27,3%. Esse resultado exploratório melhora a precisão observada sob a hipótese de revisar uma região por corte, mas cobre poucos cortes sintéticos e não mede uma vantagem validada sobre um baseline de ranking. Os números são do dataset e instante auditados; indicam que a regra por limiar se comporta de modo muito semelhante à baseline neste cenário, não demonstram capacidade preditiva. Não ajuste pesos, seed ou limiar para melhorar essas métricas.
+
+O histórico é sintético e foi criado para demonstração, não é uma amostra independente nem valida desempenho real. Não use suas métricas para prometer acurácia operacional.
 
 ## Atualização e persistência
 
