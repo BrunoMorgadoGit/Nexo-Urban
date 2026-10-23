@@ -1,0 +1,41 @@
+{
+  "name": "fogo-urban-intelligence-platform",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "npm@10.9.9",
+  "engines": {
+    "node": ">=22.22.3 <23",
+    "npm": ">=10.9.0 <11"
+  },
+  "workspaces": [
+    "apps/web",
+    "apps/api",
+    "packages/contracts"
+  ],
+  "overrides": {
+    "vite": "8.3.5",
+    "@angular/build": {
+      "vite": "8.3.5"
+    }
+  },
+  "scripts": {
+    "preinstall": "node scripts/check-node.mjs",
+    "setup": "npm run env:init && npm install",
+    "env:init": "node scripts/init-env.mjs",
+    "dev:web": "npm --workspace fogo-web run start",
+    "dev:api": "npm --workspace fogo-api run start:dev",
+    "build:contracts": "npm --workspace @fogo/contracts run build",
+    "build:web": "npm --workspace fogo-web run build",
+    "build:api": "npm run build:contracts && npm --workspace fogo-api run build",
+    "build": "npm run build:web && npm run build:api",
+    "lint": "npm --workspace fogo-web run lint && npm --workspace fogo-api run lint",
+    "test": "npm --workspace fogo-web run test && npm --workspace fogo-api run test",
+    "test:e2e": "npm run build:contracts && npm --workspace fogo-api run test:e2e",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose stop db",
+    "db:logs": "docker compose logs -f db",
+    "db:migration:generate": "npm run build:contracts && npm --workspace fogo-api run migration:generate --",
+    "db:migrate": "npm run build:contracts && npm --workspace fogo-api run migration:run",
+    "db:migrations:show": "npm run build:contracts && npm --workspace fogo-api run migration:show"
+  }
+}
