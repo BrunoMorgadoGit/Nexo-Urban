@@ -15,6 +15,10 @@ export const routes: Routes = [
     loadComponent: () => import('./monitoring/alerts.component').then((module) => module.AlertsComponent),
   },
   {
+    path: 'intelligence',
+    loadComponent: () => import('./intelligence/intelligence.component').then((module) => module.IntelligenceComponent),
+  },
+  {
     path: 'equipments',
     pathMatch: 'full',
     loadComponent: () => import('./equipment/equipment-list.component').then((module) => module.EquipmentListComponent),

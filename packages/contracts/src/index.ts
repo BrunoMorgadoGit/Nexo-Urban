@@ -291,3 +291,151 @@ export type DemoScenario = {
   initialStatus: 'operational';
   active: boolean;
 };
+
+export const intelligenceSourceScopes = ['demo', 'manual', 'all'] as const;
+export type IntelligenceSourceScope = (typeof intelligenceSourceScopes)[number];
+export type IntelligenceRiskClassification = 'low' | 'moderate' | 'elevated' | 'critical' | 'insufficient_data';
+export type IntelligenceDataQuality = 'sufficient' | 'limited' | 'insufficient';
+
+export type IntelligenceRiskFactor = {
+  code: string;
+  label: string;
+  observedValue: number;
+  normalizedValue: number;
+  weight: number;
+  contribution: number;
+  explanation: string;
+};
+
+export type IntelligenceSourceComposition = {
+  syntheticObservations: number;
+  syntheticIncidents: number;
+  manualIncidents: number;
+};
+
+export type RegionalRiskAssessment = {
+  regionId: string;
+  regionName: string;
+  zone: string;
+  city: string;
+  state: string;
+  riskScore: number | null;
+  classification: IntelligenceRiskClassification;
+  evaluatedAt: string;
+  referenceAt: string;
+  windowStart: string;
+  horizonHours: 24;
+  historyWindowDays: 90;
+  observationCount: number;
+  latestObservationAt: string | null;
+  failureCount: number;
+  eligibleEquipmentCount: number;
+  unavailableEquipmentCount: number;
+  dataQuality: IntelligenceDataQuality;
+  coverageDays: number;
+  sourceScope: IntelligenceSourceScope;
+  sourceComposition: IntelligenceSourceComposition;
+  methodVersion: string;
+  factors: IntelligenceRiskFactor[];
+  recommendations: string[];
+  /** Centro representativo calculado das coordenadas atuais dos equipamentos cadastrados; não é polígono regional. */
+  locationCenter?: { latitude: number; longitude: number; equipmentCount: number } | null;
+};
+
+export type IntelligenceTrendPoint = {
+  regionId: string;
+  regionName: string;
+  referenceAt: string;
+  riskScore: number | null;
+  classification: IntelligenceRiskClassification;
+  failuresInWindow: number;
+  failureRatePerTenEquipment: number;
+};
+
+export type RegionIntelligenceDetail = {
+  risk: RegionalRiskAssessment;
+  trend: IntelligenceTrendPoint[];
+};
+
+export type MaintenancePriorityReason = {
+  code: string;
+  label: string;
+  evidence: string;
+};
+
+export type PredictiveMaintenancePriority = {
+  equipmentId: string;
+  serialNumber: string;
+  label: string;
+  typeCode: string;
+  typeLabel: string;
+  status: EquipmentStatus;
+  organizationName: string;
+  regionId: string;
+  regionName: string;
+  regionZone: string;
+  dataOrigin: 'demo' | 'manual';
+  priorityScore: number;
+  recommendationType: 'corrective_urgent' | 'preventive_inspection' | 'monitor';
+  failureCount90d: number;
+  recentFailureCount30d: number;
+  previousFailureCount30d: number;
+  lastFailureAt: string | null;
+  lastMaintenanceAt: string | null;
+  nextMaintenanceDate: string | null;
+  overdueMaintenanceCount: number;
+  urgentMaintenanceCount: number;
+  reasons: MaintenancePriorityReason[];
+  detailPath: string;
+};
+
+export type IntelligenceOverview = {
+  sourceScope: IntelligenceSourceScope;
+  evaluatedAt: string;
+  referenceAt: string;
+  windowStart: string;
+  horizonHours: 24;
+  historyWindowDays: 90;
+  methodVersion: string;
+  dataQuality: IntelligenceDataQuality;
+  sourceComposition: IntelligenceSourceComposition;
+  regionCount: number;
+  insufficientRegionCount: number;
+  highestRiskRegions: RegionalRiskAssessment[];
+  maintenancePriorities: PredictiveMaintenancePriority[];
+  trendSummary: Array<{
+    regionId: string;
+    regionName: string;
+    recentRatePerTenEquipment: number;
+    previousRatePerTenEquipment: number;
+    direction: 'increasing' | 'stable' | 'decreasing' | 'insufficient_data';
+  }>;
+};
+
+export type IntelligenceBacktest = {
+  sourceScope: IntelligenceSourceScope;
+  evaluatedAt: string;
+  methodVersion: string;
+  horizonHours: 24;
+  evaluationStart: string;
+  evaluationEnd: string;
+  sampleWindows: number;
+  incidentWindows: number;
+  excludedInsufficientWindows: number;
+  modelThreshold: number;
+  baselineRule: string;
+  modelPrecision: number | null;
+  modelRecall: number | null;
+  baselinePrecision: number | null;
+  baselineRecall: number | null;
+  evaluationQuality: 'sufficient' | 'insufficient_sample';
+  periods: Array<{
+    start: string;
+    end: string;
+    sampleWindows: number;
+    incidentWindows: number;
+    modelFlags: number;
+    baselineFlags: number;
+  }>;
+  limitations: string[];
+};

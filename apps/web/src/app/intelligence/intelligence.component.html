@@ -1,0 +1,57 @@
+<section class="intelligence-page" aria-labelledby="intelligence-title">
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">Análise histórica · horizonte de 24 horas</p>
+      <h1 id="intelligence-title">Inteligência Preditiva</h1>
+      <p>Riscos e inspeções priorizados por evidências do inventário e do histórico.</p>
+    </div>
+    <label class="scope-control">
+      <span>Origem dos dados</span>
+      <select [value]="sourceScope()" (change)="changeScope($any($event.target).value)">
+        <option value="demo">Demonstração sintética</option>
+        <option value="manual">Registros operacionais</option>
+        <option value="all">Combinado, fontes separadas</option>
+      </select>
+    </label>
+  </header>
+
+  @if (error()) {
+    <div class="error-banner" role="alert"><span>{{ error() }}</span><button type="button" (click)="reload()">Tentar novamente</button></div>
+  }
+
+  @if (loading() && !snapshot()) {
+    <div class="loading-state" role="status">Calculando indicadores a partir do histórico…</div>
+  } @else if (snapshot(); as data) {
+    <section class="analysis-intro" aria-label="Escopo e método da análise">
+      <div class="analysis-intro__status"><span class="source-mark"></span><div><strong>{{ scopeLabel(data.overview.sourceScope) }}</strong><small>Atualizado em {{ data.overview.evaluatedAt | date:'dd/MM/yyyy HH:mm:ss' }}</small></div></div>
+      <div class="analysis-intro__context"><span>{{ data.overview.historyWindowDays }} dias observados</span><span>·</span><span>Método {{ data.overview.methodVersion }}</span><span>·</span><span>Qualidade {{ qualityLabel(data.overview.dataQuality) }}</span></div>
+      <p>O índice é uma pontuação de priorização, <strong>não uma probabilidade</strong>. Regiões com histórico curto são marcadas como insuficientes.</p>
+      <div class="source-counts"><span>{{ data.overview.sourceComposition.syntheticObservations }} observações sintéticas</span><span>{{ data.overview.sourceComposition.syntheticIncidents }} incidentes sintéticos</span><span>{{ data.overview.sourceComposition.manualIncidents }} incidentes operacionais</span></div>
+    </section>
+
+    <app-region-risk-panel [regions]="data.regions" [selectedRegionId]="selectedRegionId()" (regionSelected)="selectRegion($event)" />
+    @if (selectedDetail(); as detail) {
+      <app-region-risk-detail [detail]="detail" [loading]="loadingDetail()" [error]="detailError()" />
+    }
+
+    <section class="maintenance-section" aria-labelledby="maintenance-title">
+      <header class="section-heading"><div><p class="eyebrow">Próximos sete dias</p><h2 id="maintenance-title">Inspeções prioritárias</h2></div><span class="section-meta">{{ data.overview.maintenancePriorities.length }} recomendações</span></header>
+      @if (data.overview.maintenancePriorities.length) {
+        <div class="maintenance-table-wrap"><table class="maintenance-table"><thead><tr><th scope="col">Equipamento</th><th scope="col">Região</th><th scope="col">Prioridade</th><th scope="col">Evidência histórica</th><th scope="col">Última manutenção</th><th scope="col">Próxima</th></tr></thead><tbody>
+          @for (item of data.overview.maintenancePriorities; track item.equipmentId) {
+            <tr><th scope="row"><a [routerLink]="item.detailPath">{{ item.serialNumber }}</a><small>{{ item.typeLabel }} · {{ item.label }} · {{ item.dataOrigin === 'demo' ? 'sintético' : 'operacional' }}</small></th><td>{{ item.regionName }}</td><td><span [class]="'priority-badge priority-badge--' + item.recommendationType">{{ recommendationLabel(item.recommendationType) }}</span></td><td>{{ item.failureCount90d }} falhas em 90 dias@if (item.recentFailureCount30d > item.previousFailureCount30d) { <small>tendência crescente no mês recente</small> } @else { <small>sem aumento recente observado</small> }</td><td>{{ item.lastMaintenanceAt ? (item.lastMaintenanceAt | date:'dd/MM/yyyy') : 'Sem registro' }}</td><td>@if (item.overdueMaintenanceCount) { <span class="overdue-text">{{ item.overdueMaintenanceCount }} vencida(s)</span> } @else if (item.nextMaintenanceDate) { {{ item.nextMaintenanceDate | date:'dd/MM/yyyy' }} } @else { <span class="quiet-note">Sem data cadastrada</span> }</td></tr>
+          }
+        </tbody></table></div>
+      } @else { <p class="empty-copy">Nenhum equipamento atingiu os critérios de prioridade neste escopo.</p> }
+      <p class="quiet-note">A lista combina falhas observadas, estado atual e manutenção registrada. Não estima datas de falha.</p>
+    </section>
+
+    <section class="validation-section" aria-labelledby="validation-title">
+      <div class="validation-copy"><p class="eyebrow">Teste retrospectivo</p><h2 id="validation-title">O que o histórico permite validar</h2><p>Em cada corte, o cálculo consulta apenas eventos anteriores. As 24 horas seguintes são usadas somente para medir se ocorreu uma falha.</p></div>
+      <div class="validation-result"><strong>{{ data.validation.sampleWindows }}</strong><span>janelas avaliáveis</span><small>{{ data.validation.incidentWindows }} com falha posterior · {{ data.validation.excludedInsufficientWindows }} excluídas por histórico insuficiente</small>
+        @if (data.validation.evaluationQuality === 'sufficient') { <p>Índice: precisão {{ data.validation.modelPrecision | percent:'1.0-0' }} · recall {{ data.validation.modelRecall | percent:'1.0-0' }}</p><p class="validation-baseline">Baseline: precisão {{ data.validation.baselinePrecision | percent:'1.0-0' }} · recall {{ data.validation.baselineRecall | percent:'1.0-0' }}</p><small>{{ data.validation.baselineRule }}</small> } @else { <p class="validation-limited">Amostra insuficiente para afirmar desempenho preditivo confiável.</p> }
+      </div>
+      <ul class="validation-limitations">@for (limitation of data.validation.limitations; track limitation) { <li>{{ limitation }}</li> }</ul>
+    </section>
+  }
+</section>

@@ -25,7 +25,14 @@
 - [x] Adicionar cenário de indisponibilidade determinístico, isolado em desenvolvimento.
 - [x] Validar migrations, seed, builds, lint, testes HTTP/SSE no PostgreSQL e cenário no navegador desktop/mobile.
 
-## Etapas posteriores
+## Etapa 5 — Cidade Preditiva
 
-- Inteligência preditiva e análise de tendências.
-- Replay histórico e simulador avançado de crises.
+- [x] Definir e documentar índice regional explicável, critérios de suficiência e priorização preventiva de manutenção.
+- [x] Gerar histórico sintético versionado e idempotente, separado dos registros operacionais existentes.
+- [x] Persistir avaliações, expor overview, regiões, tendências, prioridades e backtest sem vazamento temporal.
+- [x] Integrar a tela de Inteligência Preditiva com dados reais da API, explicabilidade e origem dos registros.
+- [x] Validar PostgreSQL, builds, lint, testes unitários/E2E, dependências e layout desktop/mobile.
+
+## Etapa 6 — Próximas etapas
+
+- [ ] Replay histórico e simulador avançado de crises.

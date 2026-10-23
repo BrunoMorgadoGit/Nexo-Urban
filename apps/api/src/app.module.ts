@@ -12,6 +12,7 @@ import { RegionsModule } from './regions/regions.module.js';
 import { MonitoringModule } from './monitoring/monitoring.module.js';
 import { DemoScenarioModule } from './monitoring/demo-scenario.module.js';
 import { validateEnvironment } from './config/environment.js';
+import { IntelligenceModule } from './intelligence/intelligence.module.js';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { validateEnvironment } from './config/environment.js';
     AgentsModule,
     MaintenanceModule,
     InventoryModule,
+    IntelligenceModule,
     MonitoringModule,
     ...(process.env.NODE_ENV === 'development' ? [DemoScenarioModule] : []),
   ],

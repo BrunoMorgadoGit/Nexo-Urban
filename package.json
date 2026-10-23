@@ -37,6 +37,7 @@
     "db:migration:generate": "npm run build:contracts && npm --workspace fogo-api run migration:generate --",
     "db:migrate": "npm run build:contracts && npm --workspace fogo-api run migration:run",
     "db:migrations:show": "npm run build:contracts && npm --workspace fogo-api run migration:show",
-    "db:seed": "npm run build:contracts && npm --workspace fogo-api run seed"
+    "db:seed": "npm run build:contracts && npm --workspace fogo-api run seed",
+    "db:seed:intelligence": "npm run build:contracts && npm --workspace fogo-api run seed:intelligence"
   }
 }

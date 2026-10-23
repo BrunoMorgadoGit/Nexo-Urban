@@ -46,8 +46,10 @@ Abra `http://127.0.0.1:4200`. A API atende em `http://127.0.0.1:3000/api/v1`; ta
 - Alertas persistidos, sem duplicidade simultânea; reconhecimento, observações, histórico e encerramento condicionado à normalização.
 - Atualizações SSE com cursor persistido, reconexão e recarga de snapshot. O frontend mantém uma conexão por aplicação.
 - Cenário determinístico de indisponibilidade para `DEMO-RAD-001`, disponível somente com API iniciada por `npm run dev:api`.
+- Inteligência Preditiva com taxas normalizadas, histórico sintético versionado, fatores explicáveis, priorização de manutenção e backtest com corte temporal.
 
 Detalhes das fórmulas, rotas, eventos, demo e tiles: [docs/monitoring.md](docs/monitoring.md).
+Método, fontes, limitações e endpoints de inteligência: [docs/intelligence.md](docs/intelligence.md).
 
 ### Inventário implementado
 - Equipamentos: busca, filtros por tipo, situação, órgão e bairro, paginação, detalhe, edição e desativação preservando o histórico.
@@ -71,6 +73,7 @@ Todos estão sob `/api/v1`:
 | Inventário | `GET /inventory/summary` |
 | Manutenção | `GET, POST /maintenance`; `GET /maintenance/overview`; `PATCH /maintenance/:id/status` |
 | Monitoramento | Consulte [docs/monitoring.md](docs/monitoring.md) para overview, mapa, regiões, alertas e SSE |
+| Inteligência | `GET /intelligence/overview`; `/regions`; `/regions/:id`; `/maintenance-priorities`; `/trends`; `/validation` |
 
 `DELETE /equipments/:id` realiza desativação lógica; não remove o registro nem seu histórico. `GET /maintenance?overdueOnly=true` retorna serviços vencidos. A prioridade e a agenda de manutenção não alteram automaticamente a situação operacional.
 
@@ -81,6 +84,7 @@ npm run db:up
 npm run db:migrations:show
 npm run db:migrate
 npm run db:seed
+npm run db:seed:intelligence
 npm run build
 npm run lint
 npm test
@@ -97,14 +101,25 @@ O E2E da API requer PostgreSQL em execução, migrations aplicadas e seed inicia
 - Fluxos de equipamento, agente e manutenção exercitados no navegador após reiniciar os serviços. A interface foi verificada em 1440 px e 390 px, sem overflow horizontal.
 - O build do Angular ainda informa avisos de orçamento CSS em seis estilos de componentes; não impedem a compilação.
 
+### Validação da Etapa 5 (23/10/2026)
+
+- Migration preditiva aditiva aplicada ao PostgreSQL existente; nenhuma tabela ou volume foi recriado. O seed versionado `campinas-city-history-v1` foi executado duas vezes: a segunda execução inseriu zero eventos.
+- O conjunto demonstrativo contém 219 eventos (157 observações de estado e 32 falhas), todos marcados como sintéticos e limitados ao período de 90 dias. A auditoria encontrou zero eventos posteriores ao instante âncora e zero eventos sintéticos fora do dataset identificado.
+- Build e lint passaram; `npm test` passou com 7 testes web e 25 testes unitários da API; `npm run test:e2e` passou com 15 testes no PostgreSQL; `npm audit --audit-level=high` encontrou zero vulnerabilidades.
+- A tela foi exercitada no Chrome em desktop (1440 px) e mobile (390 px). A documentação e a UI identificam a origem dos dados, o horizonte, a suficiência e as limitações; o documento não apresenta o escore como probabilidade.
+- O build Angular mantém avisos não bloqueantes de orçamento CSS nos estilos de alguns componentes, incluindo dois componentes de inteligência. Não houve erro de compilação.
+- O backtest usa apenas histórico anterior ao corte e compara com um baseline simples. Os resultados atuais são experimentais sobre dados sintéticos, não uma comprovação de precisão para operação real.
+
+Para recriar apenas o histórico demonstrativo (sem apagar dados existentes), use `npm run db:seed:intelligence`. Fórmulas, pesos, critérios de suficiência, fontes e limitações estão em [docs/intelligence.md](docs/intelligence.md).
+
 `synchronize` permanece desabilitado. Toda mudança de schema deve entrar em migration revisada. Para encerrar a API/web, use `Ctrl+C`; `npm run db:down` apenas para o container, sem remover o volume persistente.
 
 ## Estrutura
 
 ```text
 apps/
-  api/src/{agents,common,database,equipment,equipment-types,inventory,locations,maintenance,organizations,regions}/
-  web/src/app/{agents,core,equipment,maintenance,shared}/
+  api/src/{agents,common,database,equipment,equipment-types,intelligence,inventory,locations,maintenance,organizations,regions}/
+  web/src/app/{agents,core,equipment,intelligence,maintenance,shared}/
 packages/contracts/
 docs/
 ```

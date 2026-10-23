@@ -20,6 +20,13 @@ import type {
   MonitoringOverview,
   MonitoringRegionSummary,
   MonitoringAlertSeverity,
+  IntelligenceBacktest,
+  IntelligenceOverview,
+  IntelligenceSourceScope,
+  IntelligenceTrendPoint,
+  PredictiveMaintenancePriority,
+  RegionIntelligenceDetail,
+  RegionalRiskAssessment,
 } from '@fogo/contracts';
 import { Observable } from 'rxjs';
 
@@ -173,6 +180,30 @@ export class InventoryApiService {
 
   getMonitoringRegions(): Observable<MonitoringRegionSummary[]> {
     return this.http.get<MonitoringRegionSummary[]>(`${API_BASE}/monitoring/regions`);
+  }
+
+  getIntelligenceOverview(sourceScope: IntelligenceSourceScope = 'demo'): Observable<IntelligenceOverview> {
+    return this.http.get<IntelligenceOverview>(`${API_BASE}/intelligence/overview`, { params: this.toParams({ sourceScope }) });
+  }
+
+  getIntelligenceRegions(sourceScope: IntelligenceSourceScope = 'demo'): Observable<RegionalRiskAssessment[]> {
+    return this.http.get<RegionalRiskAssessment[]>(`${API_BASE}/intelligence/regions`, { params: this.toParams({ sourceScope }) });
+  }
+
+  getIntelligenceRegion(id: string, sourceScope: IntelligenceSourceScope = 'demo'): Observable<RegionIntelligenceDetail> {
+    return this.http.get<RegionIntelligenceDetail>(`${API_BASE}/intelligence/regions/${id}`, { params: this.toParams({ sourceScope }) });
+  }
+
+  getMaintenancePriorities(sourceScope: IntelligenceSourceScope = 'demo'): Observable<PredictiveMaintenancePriority[]> {
+    return this.http.get<PredictiveMaintenancePriority[]>(`${API_BASE}/intelligence/maintenance-priorities`, { params: this.toParams({ sourceScope }) });
+  }
+
+  getIntelligenceTrends(sourceScope: IntelligenceSourceScope = 'demo'): Observable<IntelligenceTrendPoint[]> {
+    return this.http.get<IntelligenceTrendPoint[]>(`${API_BASE}/intelligence/trends`, { params: this.toParams({ sourceScope }) });
+  }
+
+  getIntelligenceValidation(sourceScope: IntelligenceSourceScope = 'demo'): Observable<IntelligenceBacktest> {
+    return this.http.get<IntelligenceBacktest>(`${API_BASE}/intelligence/validation`, { params: this.toParams({ sourceScope }) });
   }
 
   getMaintenanceAttention(): Observable<MaintenanceAttention[]> {

@@ -1,0 +1,15 @@
+<section class="region-detail" aria-labelledby="region-detail-title">
+  <header class="detail-heading"><div><p class="eyebrow">Análise selecionada</p><h3 id="region-detail-title">{{ detail().risk.regionName }} <span>{{ detail().risk.riskScore === null ? '—' : detail().risk.riskScore }}</span></h3><p>{{ detail().risk.city }} · {{ detail().risk.zone }} · janela de 90 dias</p><p>Última observação: {{ detail().risk.latestObservationAt ? (detail().risk.latestObservationAt | date:'dd/MM/yyyy HH:mm') : 'sem observações' }}</p></div><span [class]="'risk-badge risk-badge--' + detail().risk.classification">{{ riskLabel(detail().risk.classification) }}</span></header>
+  <div class="detail-grid">
+    <section class="trend-panel" aria-labelledby="trend-title"><div class="subheading"><h4 id="trend-title">Evolução do índice</h4><span>avaliações semanais</span></div>
+      @if (detail().risk.classification === 'insufficient_data') { <p class="empty-copy">O histórico disponível ainda não cobre os critérios mínimos para calcular uma série comparável.</p> }
+      @else { <svg class="trend-chart" viewBox="0 0 100 40" role="img" [attr.aria-label]="'Evolução semanal do índice de risco de ' + detail().risk.regionName"><line x1="4" y1="6" x2="96" y2="6" class="chart-gridline"/><line x1="4" y1="21" x2="96" y2="21" class="chart-gridline"/><line x1="4" y1="36" x2="96" y2="36" class="chart-gridline"/>@for (segment of trendSegments(); track $index) { <polyline [attr.points]="segment" class="trend-line"/> }</svg><div class="chart-axis"><span>{{ detail().trend[0]?.referenceAt | date:'dd/MM' }}</span><span>Índice de priorização · 0–100</span><span>{{ detail().trend.at(-1)?.referenceAt | date:'dd/MM' }}</span></div><p class="quiet-note">Janelas sem dados mínimos não recebem pontuação e não são conectadas no gráfico.</p> }
+    </section>
+    <section class="factor-panel" aria-labelledby="factor-title"><div class="subheading"><h4 id="factor-title">Fatores considerados</h4><span>{{ detail().risk.observationCount }} observações</span></div>
+      @for (factor of detail().risk.factors; track factor.code) { <div class="factor-row"><div class="factor-row__top"><strong>{{ factor.label }}</strong><span>{{ factor.contribution | number:'1.0-1' }} pts</span></div><div class="factor-track" aria-hidden="true"><i [style.width.%]="factor.normalizedValue"></i></div><p>{{ factor.explanation }}</p></div> }
+    </section>
+  </div>
+  @if (error()) { <p class="inline-error" role="alert">{{ error() }}</p> }
+  @if (loading()) { <p class="quiet-note" role="status">Atualizando detalhe…</p> }
+  <section class="recommendations" aria-labelledby="recommendation-title"><h4 id="recommendation-title">Ações recomendadas</h4><ul>@for (recommendation of detail().risk.recommendations; track recommendation) { <li>{{ recommendation }}</li> }</ul></section>
+</section>
