@@ -1,0 +1,45 @@
+<section class="page" aria-labelledby="page-title">
+  <header class="page-heading">
+    <div><p class="eyebrow">Equipe operacional</p><h1 id="page-title">Agentes</h1><p class="page-description">Cadastro demonstrativo de equipes e disponibilidade operacional.</p></div>
+    <a class="button button--primary" routerLink="/agents/new">Cadastrar agente</a>
+  </header>
+
+  @if (summary(); as metrics) {
+    <div class="metrics" aria-label="Resumo de agentes">
+      <article class="metric-card"><span>Agentes cadastrados</span><strong>{{ metrics.totalAgents }}</strong><small>identificações funcionais</small></article>
+      <article class="metric-card"><span>Disponíveis</span><strong>{{ metrics.availableAgents }}</strong><small>prontos para operação</small></article>
+    </div>
+  }
+
+  <section class="inventory-panel" aria-label="Lista de agentes">
+    <div class="toolbar">
+      <label class="search-field"><span class="visually-hidden">Buscar agentes</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.5 4.5" /></svg><input type="search" placeholder="Buscar por nome, matrícula ou órgão" [value]="search()" (input)="searchChanged($event)" /></label>
+      <div class="filters" aria-label="Filtros">
+        <label><span class="visually-hidden">Categoria profissional</span><select [value]="category()" (change)="filterChanged($event, 'category')"><option value="">Todas as categorias</option><option value="traffic_agent">Agente de trânsito</option><option value="municipal_guard">Guarda municipal</option><option value="police_officer">Policial</option></select></label>
+        <label><span class="visually-hidden">Disponibilidade</span><select [value]="availability()" (change)="filterChanged($event, 'availability')"><option value="">Todas as situações</option><option value="available">Disponível</option><option value="on_duty">Em serviço</option><option value="unavailable">Indisponível</option><option value="off_duty">Fora de serviço</option></select></label>
+        <label><span class="visually-hidden">Órgão responsável</span><select [value]="organizationId()" (change)="filterChanged($event, 'organizationId')"><option value="">Todos os órgãos</option>@for (organization of organizations(); track organization.id) { <option [value]="organization.id">{{ organization.name }}</option> }</select></label>
+      </div>
+    </div>
+    @if (error()) {
+      <div class="feedback feedback--error" role="alert"><p>{{ error() }}</p><button class="button button--secondary" type="button" (click)="load()">Tentar novamente</button></div>
+    } @else if (loading()) {
+      <div class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>Carregando agentes…</div>
+    } @else if (!page()?.items?.length) {
+      <div class="empty-state"><span class="empty-state__icon" aria-hidden="true">—</span><h2>Nenhum agente encontrado</h2><p>Ajuste os filtros ou cadastre uma equipe demonstrativa.</p><a class="button button--secondary" routerLink="/agents/new">Cadastrar agente</a></div>
+    } @else {
+      <div class="table-scroll"><table><thead><tr><th scope="col">Agente</th><th scope="col">Categoria</th><th scope="col">Órgão</th><th scope="col">Disponibilidade</th><th scope="col">Última posição</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead><tbody>
+        @for (agent of page()?.items ?? []; track agent.id) {
+          <tr>
+            <td data-label="Agente"><a class="agent-link" [routerLink]="['/agents', agent.id]"><strong>{{ agent.name }}</strong><small>{{ agent.identifier }}</small></a></td>
+            <td data-label="Categoria">{{ categoryLabel(agent.category) }}</td>
+            <td data-label="Órgão">{{ agent.organizationName }}</td>
+            <td data-label="Disponibilidade"><app-state-badge [status]="agent.availability" /></td>
+            <td data-label="Última posição">@if (agent.position) { <strong>{{ agent.position.latitude | number:'1.4-6' }}, {{ agent.position.longitude | number:'1.4-6' }}</strong><small>{{ agent.position.recordedAt | date:'dd/MM/yyyy HH:mm':'UTC' }}</small> } @else { <span>Não informada</span> }</td>
+            <td class="actions-cell" data-label="Ações"><a class="text-action" [routerLink]="['/agents', agent.id]">Ver</a><a class="text-action" [routerLink]="['/agents', agent.id, 'edit']">Editar</a></td>
+          </tr>
+        }
+      </tbody></table></div>
+      <footer class="pagination"><span>{{ page()?.total ?? 0 }} agentes</span><div><button class="button button--secondary button--small" type="button" [disabled]="(page()?.page ?? 1) <= 1" (click)="changePage(-1)">Anterior</button><span>Página {{ page()?.page ?? 1 }} de {{ page()?.totalPages ?? 1 }}</span><button class="button button--secondary button--small" type="button" [disabled]="(page()?.page ?? 1) >= (page()?.totalPages ?? 1)" (click)="changePage(1)">Próxima</button></div></footer>
+    }
+  </section>
+</section>

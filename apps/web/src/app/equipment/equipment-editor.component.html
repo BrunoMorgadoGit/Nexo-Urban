@@ -1,0 +1,105 @@
+<section class="page" aria-labelledby="page-title">
+  <header class="page-heading">
+    <div>
+      <a class="back-link" routerLink="/equipments">← Voltar ao inventário</a>
+      <p class="eyebrow">Inventário urbano</p>
+      <h1 id="page-title">{{ pageTitle }}</h1>
+      <p class="page-description">Identificação, localização, condição operacional e manutenção.</p>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>Carregando formulário…</div>
+  } @else if (loadError()) {
+    <div class="feedback feedback--error" role="alert">{{ error() }}</div>
+  } @else {
+    <form class="editor-form" (submit)="save(); $event.preventDefault()" novalidate>
+      <section class="form-section" aria-labelledby="identification-heading">
+        <div class="section-heading"><span>01</span><div><h2 id="identification-heading">Identificação</h2><p>Dados cadastrais usados para reconhecer o ativo.</p></div></div>
+        <div class="form-grid">
+          <label class="field"><span>Número de série <b aria-hidden="true">*</b></span><input autocomplete="off" [formField]="equipmentForm.serialNumber" />@if (equipmentForm.serialNumber().touched() && equipmentForm.serialNumber().invalid()) { <small class="field-error">{{ equipmentForm.serialNumber().errors()[0]?.message }}</small> }</label>
+          <label class="field"><span>Marca <b aria-hidden="true">*</b></span><input autocomplete="organization" [formField]="equipmentForm.brand" />@if (equipmentForm.brand().touched() && equipmentForm.brand().invalid()) { <small class="field-error">{{ equipmentForm.brand().errors()[0]?.message }}</small> }</label>
+          <label class="field"><span>Modelo <b aria-hidden="true">*</b></span><input autocomplete="off" [formField]="equipmentForm.model" />@if (equipmentForm.model().touched() && equipmentForm.model().invalid()) { <small class="field-error">{{ equipmentForm.model().errors()[0]?.message }}</small> }</label>
+          <label class="field"><span>Órgão responsável <b aria-hidden="true">*</b></span><select [formField]="equipmentForm.organizationId"><option value="">Selecione o órgão</option>@for (organization of organizations(); track organization.id) { <option [value]="organization.id">{{ organization.name }}</option> }</select>@if (equipmentForm.organizationId().touched() && equipmentForm.organizationId().invalid()) { <small class="field-error">{{ equipmentForm.organizationId().errors()[0]?.message }}</small> }</label>
+        </div>
+      </section>
+
+      <section class="form-section" aria-labelledby="type-heading">
+        <div class="section-heading"><span>02</span><div><h2 id="type-heading">Tipo e características</h2><p>Os campos técnicos mudam conforme a categoria selecionada.</p></div></div>
+        <div class="form-grid">
+          <label class="field"><span>Tipo de equipamento <b aria-hidden="true">*</b></span><select [formField]="equipmentForm.typeCode" (change)="typeChanged()"><option value="">Selecione o tipo</option>@for (type of types(); track type.code) { <option [value]="type.code">{{ type.label }}</option> }</select>@if (equipmentForm.typeCode().touched() && equipmentForm.typeCode().invalid()) { <small class="field-error">{{ equipmentForm.typeCode().errors()[0]?.message }}</small> }</label>
+        </div>
+        @if (selectedType(); as type) {
+          <div class="characteristics-panel">
+            <div class="characteristics-heading"><strong>{{ type.label }}</strong><span>{{ type.mobility === 'mobile' ? 'Recurso móvel' : 'Equipamento fixo' }}</span></div>
+            <div class="form-grid">
+              @for (field of type.characteristics; track field.key) {
+                <label class="field" [class.field--checkbox]="field.kind === 'boolean'">
+                  @if (field.kind === 'boolean') {
+                    <input type="checkbox" [formField]="booleanCharacteristicField(field.key)" />
+                    <span>{{ field.label }}</span>
+                  } @else {
+                    <span>{{ field.label }} @if (field.required) { <b aria-hidden="true">*</b> }</span>
+                    @if (field.kind === 'select') {
+                      <select [formField]="stringCharacteristicField(field.key)"><option value="">Selecione</option>@for (option of field.options ?? []; track option) { <option [value]="option">{{ characteristicOptionLabel(option) }}</option> }</select>
+                    } @else if (field.kind === 'number') {
+                      <input type="number" [step]="field.minimum && field.minimum < 1 ? 'any' : '1'" [formField]="numberCharacteristicField(field.key)" />
+                    } @else {
+                      <input type="text" [formField]="stringCharacteristicField(field.key)" />
+                    }
+                  }
+                  @if (characteristicInvalid(field.key)) { <small class="field-error">{{ characteristicError(field.key) }}</small> }
+                </label>
+              }
+            </div>
+          </div>
+        }
+      </section>
+
+      <section class="form-section" aria-labelledby="location-heading">
+        <div class="section-heading"><span>03</span><div><h2 id="location-heading">Localização</h2><p>Endereço base ou ponto fixo e coordenadas para integração geográfica.</p></div></div>
+        @if (selectedType(); as type) { <p class="location-mode">{{ type.mobility === 'mobile' ? 'Para recursos móveis, informe a base e a última posição conhecida separadamente.' : 'Para equipamentos fixos, o endereço e as coordenadas indicam o ponto de instalação.' }}</p> }
+        <div class="form-grid">
+          <label class="field"><span>CEP <b aria-hidden="true">*</b></span><input autocomplete="postal-code" inputmode="numeric" [formField]="equipmentForm.location.postalCode" />@if (equipmentForm.location.postalCode().touched() && equipmentForm.location.postalCode().invalid()) { <small class="field-error">{{ equipmentForm.location.postalCode().errors()[0]?.message }}</small> }</label>
+          <label class="field"><span>Rua ou via <b aria-hidden="true">*</b></span><input autocomplete="address-line1" [formField]="equipmentForm.location.street" />@if (equipmentForm.location.street().touched() && equipmentForm.location.street().invalid()) { <small class="field-error">{{ equipmentForm.location.street().errors()[0]?.message }}</small> }</label>
+          <label class="field"><span>Número ou referência <b aria-hidden="true">*</b></span><input autocomplete="address-line2" [formField]="equipmentForm.location.reference" />@if (equipmentForm.location.reference().touched() && equipmentForm.location.reference().invalid()) { <small class="field-error">{{ equipmentForm.location.reference().errors()[0]?.message }}</small> }</label>
+          <label class="field"><span>Bairro <b aria-hidden="true">*</b></span><select [formField]="equipmentForm.location.regionId"><option value="">Selecione o bairro</option>@for (region of regions(); track region.id) { <option [value]="region.id">{{ region.name }} · {{ region.zone }}</option> }</select>@if (equipmentForm.location.regionId().touched() && equipmentForm.location.regionId().invalid()) { <small class="field-error">{{ equipmentForm.location.regionId().errors()[0]?.message }}</small> }</label>
+          <div class="field"><span>Cidade e UF</span><output>{{ locationCity() || 'Selecione um bairro' }}{{ locationState() ? ', ' + locationState() : '' }}</output></div>
+          <label class="field"><span>Latitude <b aria-hidden="true">*</b></span><input type="number" step="any" [formField]="equipmentForm.location.latitude" />@if (equipmentForm.location.latitude().touched() && equipmentForm.location.latitude().invalid()) { <small class="field-error">Coordenada entre -90 e 90.</small> }</label>
+          <label class="field"><span>Longitude <b aria-hidden="true">*</b></span><input type="number" step="any" [formField]="equipmentForm.location.longitude" />@if (equipmentForm.location.longitude().touched() && equipmentForm.location.longitude().invalid()) { <small class="field-error">Coordenada entre -180 e 180.</small> }</label>
+        </div>
+        @if (selectedType()?.mobility === 'mobile') {
+          <div class="position-panel">
+            <div class="section-heading section-heading--sub"><span>GPS</span><div><h3>Última posição conhecida</h3><p>Registro sintético para o recurso móvel. Atualizações de telemetria entram em etapa posterior.</p></div></div>
+            <div class="form-grid">
+              <label class="field"><span>Latitude <b aria-hidden="true">*</b></span><input type="number" step="any" [formField]="equipmentForm.lastPosition.latitude" /></label>
+              <label class="field"><span>Longitude <b aria-hidden="true">*</b></span><input type="number" step="any" [formField]="equipmentForm.lastPosition.longitude" /></label>
+              <label class="field"><span>Atualizada em <b aria-hidden="true">*</b></span><input type="datetime-local" [formField]="equipmentForm.lastPosition.recordedAt" /></label>
+            </div>
+          </div>
+        }
+      </section>
+
+      <section class="form-section" aria-labelledby="state-heading">
+        <div class="section-heading"><span>04</span><div><h2 id="state-heading">Estado operacional</h2><p>A condição atual é independente da prioridade de manutenção.</p></div></div>
+        <div class="form-grid">
+          <label class="field"><span>Situação <b aria-hidden="true">*</b></span><select [formField]="equipmentForm.status"><option value="not_installed">Ainda não instalado</option><option value="operational">Operacional</option><option value="malfunctioning">Mau funcionamento</option><option value="maintenance">Em manutenção</option><option value="deactivated">Desativado</option><option value="stolen">Furtado</option></select></label>
+        </div>
+      </section>
+
+      <section class="form-section" aria-labelledby="maintenance-heading">
+        <div class="section-heading"><span>05</span><div><h2 id="maintenance-heading">Manutenção</h2><p>Prioridade e data prevista não alteram automaticamente o estado operacional.</p></div></div>
+        <div class="form-grid">
+          <label class="field"><span>Prioridade <b aria-hidden="true">*</b></span><select [formField]="equipmentForm.maintenancePriority"><option value="low">Baixa</option><option value="normal">Normal</option><option value="high">Alta</option><option value="immediate">Imediata</option></select></label>
+          <label class="field"><span>Próxima manutenção</span><input type="date" [formField]="equipmentForm.nextMaintenanceDate" /><small class="field-hint">Opcional; registros de histórico são gerenciados na área Manutenção.</small></label>
+        </div>
+      </section>
+
+      @if (error()) { <div class="feedback feedback--error" role="alert">{{ error() }}</div> }
+      <footer class="form-actions">
+        <a class="button button--secondary" routerLink="/equipments">Cancelar</a>
+        <button class="button button--primary" type="submit" [disabled]="saving()">{{ saving() ? 'Salvando…' : (id ? 'Salvar alterações' : 'Cadastrar equipamento') }}</button>
+      </footer>
+    </form>
+  }
+</section>

@@ -22,20 +22,21 @@
     "preinstall": "node scripts/check-node.mjs",
     "setup": "npm run env:init && npm install",
     "env:init": "node scripts/init-env.mjs",
-    "dev:web": "npm --workspace fogo-web run start",
-    "dev:api": "npm --workspace fogo-api run start:dev",
+    "dev:web": "npm run build:contracts && npm --workspace fogo-web run start",
+    "dev:api": "npm run build:contracts && npm --workspace fogo-api run start:dev",
     "build:contracts": "npm --workspace @fogo/contracts run build",
-    "build:web": "npm --workspace fogo-web run build",
+    "build:web": "npm run build:contracts && npm --workspace fogo-web run build",
     "build:api": "npm run build:contracts && npm --workspace fogo-api run build",
-    "build": "npm run build:web && npm run build:api",
-    "lint": "npm --workspace fogo-web run lint && npm --workspace fogo-api run lint",
-    "test": "npm --workspace fogo-web run test && npm --workspace fogo-api run test",
+    "build": "npm run build:contracts && npm --workspace fogo-web run build && npm --workspace fogo-api run build",
+    "lint": "npm run build:contracts && npm --workspace fogo-web run lint && npm --workspace fogo-api run lint",
+    "test": "npm run build:contracts && npm --workspace fogo-web run test && npm --workspace fogo-api run test",
     "test:e2e": "npm run build:contracts && npm --workspace fogo-api run test:e2e",
     "db:up": "docker compose up -d db",
     "db:down": "docker compose stop db",
     "db:logs": "docker compose logs -f db",
     "db:migration:generate": "npm run build:contracts && npm --workspace fogo-api run migration:generate --",
     "db:migrate": "npm run build:contracts && npm --workspace fogo-api run migration:run",
-    "db:migrations:show": "npm run build:contracts && npm --workspace fogo-api run migration:show"
+    "db:migrations:show": "npm run build:contracts && npm --workspace fogo-api run migration:show",
+    "db:seed": "npm run build:contracts && npm --workspace fogo-api run seed"
   }
 }

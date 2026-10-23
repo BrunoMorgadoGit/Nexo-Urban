@@ -1,0 +1,74 @@
+<section class="page" aria-labelledby="page-title">
+  @if (loading()) {
+    <div class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>Carregando equipamento…</div>
+  } @else if (error() && !equipment()) {
+    <div class="feedback feedback--error" role="alert"><p>{{ error() }}</p><a class="button button--secondary" routerLink="/equipments">Voltar ao inventário</a></div>
+  } @else if (equipment(); as item) {
+    <header class="page-heading">
+      <div>
+        <a class="back-link" routerLink="/equipments">← Voltar ao inventário</a>
+        <p class="eyebrow">{{ item.typeLabel }}</p>
+        <h1 id="page-title">{{ item.brand }} {{ item.model }}</h1>
+        <p class="page-description">Série {{ item.serialNumber }} · {{ item.organizationName }}</p>
+      </div>
+      <div class="heading-actions">
+        <a class="button button--secondary" [routerLink]="['/equipments', item.id, 'edit']">Editar</a>
+        @if (item.status !== 'deactivated') { <button class="button button--danger-outline" type="button" [disabled]="deactivating()" (click)="deactivate()">{{ deactivating() ? 'Desativando…' : 'Desativar' }}</button> }
+      </div>
+    </header>
+
+    @if (notice()) { <div class="feedback feedback--success" role="status">{{ notice() }}</div> }
+    @if (error()) { <div class="feedback feedback--error" role="alert">{{ error() }}</div> }
+
+    <div class="status-overview">
+      <article><span>Situação operacional</span><app-state-badge [status]="item.status" /></article>
+      <article><span>Prioridade de manutenção</span><app-state-badge [status]="item.maintenancePriority" /></article>
+      <article><span>Próxima manutenção</span><strong>{{ item.nextMaintenanceDate ? (item.nextMaintenanceDate | date:'dd/MM/yyyy':'UTC') : 'Sem data prevista' }}</strong></article>
+      <article><span>Atualizado em</span><strong>{{ item.updatedAt | date:'dd/MM/yyyy HH:mm':'UTC' }}</strong></article>
+    </div>
+
+    <div class="details-grid">
+      <section class="detail-card" aria-labelledby="location-title">
+        <header class="card-heading"><div><p class="eyebrow">Endereço e GPS</p><h2 id="location-title">Localização</h2></div><span class="location-kind">{{ item.location.role === 'base' ? 'Base operacional' : 'Ponto fixo' }}</span></header>
+        <dl class="detail-list">
+          <div><dt>Endereço</dt><dd>{{ item.location.street }}, {{ item.location.reference }}</dd></div>
+          <div><dt>CEP</dt><dd>{{ item.location.postalCode }}</dd></div>
+          <div><dt>Bairro</dt><dd>{{ item.location.regionName }}</dd></div>
+          <div><dt>Cidade e UF</dt><dd>{{ item.location.city }} · {{ item.location.state }}</dd></div>
+          <div><dt>Coordenadas da localização</dt><dd>{{ item.location.latitude | number:'1.4-6' }}, {{ item.location.longitude | number:'1.4-6' }}</dd></div>
+          @if (item.lastPosition) {
+            <div><dt>Última posição conhecida</dt><dd>{{ item.lastPosition.latitude | number:'1.4-6' }}, {{ item.lastPosition.longitude | number:'1.4-6' }}</dd></div>
+            <div><dt>Atualização GPS</dt><dd>{{ item.lastPosition.recordedAt | date:'dd/MM/yyyy HH:mm':'UTC' }}</dd></div>
+          }
+        </dl>
+      </section>
+
+      <section class="detail-card" aria-labelledby="characteristics-title">
+        <header class="card-heading"><div><p class="eyebrow">Especificação técnica</p><h2 id="characteristics-title">Características</h2></div></header>
+        <dl class="detail-list">
+          @for (entry of (item.characteristics | keyvalue); track entry.key) {
+            <div><dt>{{ characteristicLabel(entry.key) }}</dt><dd>{{ entry.value }}</dd></div>
+          }
+        </dl>
+      </section>
+
+      <section class="detail-card detail-card--wide" aria-labelledby="maintenance-title">
+        <header class="card-heading"><div><p class="eyebrow">Planejamento e histórico</p><h2 id="maintenance-title">Manutenções</h2></div><a class="text-link" routerLink="/maintenance">Abrir gestão</a></header>
+        @if (!maintenances().length) {
+          <p class="empty-inline">Nenhum registro de manutenção disponível para este equipamento.</p>
+        } @else {
+          <div class="maintenance-list">
+            @for (maintenance of maintenances(); track maintenance.id) {
+              <article class="maintenance-row">
+                <div><strong>{{ maintenance.description }}</strong><small>{{ maintenance.kind === 'immediate' ? 'Imediata' : maintenance.kind === 'periodic' ? 'Periódica' : 'Agendada' }} · {{ maintenance.scheduledDate | date:'dd/MM/yyyy':'UTC' }}</small></div>
+                <div class="maintenance-state">@if (maintenance.overdue) { <span class="overdue-label">Vencida</span> }<app-state-badge [status]="maintenance.status" /></div>
+              </article>
+            }
+          </div>
+        }
+      </section>
+    </div>
+
+    <footer class="record-footer"><span>Cadastro criado em {{ item.createdAt | date:'dd/MM/yyyy HH:mm':'UTC' }}</span><span>Identificador {{ item.id }}</span></footer>
+  }
+</section>

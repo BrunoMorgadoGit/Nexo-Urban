@@ -1,17 +1,85 @@
-<main class="foundation" aria-labelledby="product-title">
-  <header class="identity" aria-label="Identidade do projeto">
-    <span class="identity__mark" aria-hidden="true">F</span>
-    <span class="identity__name">F.O.G.O.</span>
-  </header>
+<div class="app-shell">
+  @if (menuOpen()) {
+    <button
+      class="mobile-scrim"
+      type="button"
+      aria-label="Fechar navegação"
+      (click)="closeMenu()"
+    ></button>
+  }
 
-  <section class="intro">
-    <p class="intro__eyebrow">DSIN Challenge 2026</p>
-    <h1 id="product-title">Urban Intelligence Platform</h1>
-    <p class="intro__description">Fundação técnica do projeto</p>
-  </section>
+  <aside class="sidebar" [class.sidebar--open]="menuOpen()" aria-label="Navegação principal">
+    <a class="brand" routerLink="/equipments" (click)="closeMenu()">
+      <span class="brand__mark" aria-hidden="true">F</span>
+      <span class="brand__text">
+        <strong>F.O.G.O.</strong>
+        <small>Urban Intelligence</small>
+      </span>
+    </a>
 
-  <footer class="foundation__footer">
-    <span class="status-indicator" aria-hidden="true"></span>
-    <span>Etapa 2 · Ambiente preparado</span>
-  </footer>
-</main>
+    <p class="nav-caption">Operação urbana</p>
+    <nav #mainNavigation id="main-navigation" class="nav-list">
+      <a
+        class="nav-link"
+        routerLink="/equipments"
+        routerLinkActive="nav-link--active"
+        ariaCurrentWhenActive="page"
+        (click)="closeMenu()"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h7v6H4zM14 5h6v6h-6zM4 14h7v5H4zM14 14h6v5h-6z" /></svg>
+        <span>Equipamentos</span>
+      </a>
+      <a
+        class="nav-link"
+        routerLink="/agents"
+        routerLinkActive="nav-link--active"
+        ariaCurrentWhenActive="page"
+        (click)="closeMenu()"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3" /><path d="M3 19v-1a6 6 0 0 1 12 0v1zM16 5.5a3 3 0 0 1 0 5.8M18 14a5 5 0 0 1 3 4v1" /></svg>
+        <span>Agentes</span>
+      </a>
+      <a
+        class="nav-link"
+        routerLink="/maintenance"
+        routerLinkActive="nav-link--active"
+        ariaCurrentWhenActive="page"
+        (click)="closeMenu()"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 6.5a4 4 0 0 0-5.4 5.4L4 16.5 7.5 20l4.6-4.6A4 4 0 0 0 17.5 10l-2.4 2.4-3.5-3.5z" /><path d="m15 5 4-2 2 2-2 4" /></svg>
+        <span>Manutenção</span>
+      </a>
+    </nav>
+
+    <div class="sidebar__footer">
+      <span class="demo-dot" aria-hidden="true"></span>
+      <span>Ambiente demonstrativo</span>
+    </div>
+  </aside>
+
+  <div class="workspace">
+    <header class="topbar">
+      <button
+        #menuToggle
+        class="menu-toggle"
+        type="button"
+        [attr.aria-expanded]="menuOpen()"
+        aria-controls="main-navigation"
+        [attr.aria-label]="menuOpen() ? 'Fechar navegação' : 'Abrir navegação'"
+        (click)="toggleMenu()"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+      </button>
+      <div class="topbar__context">
+        <span>DSIN Challenge 2026</span>
+        <span class="context-separator" aria-hidden="true">/</span>
+        <strong>Inventário inteligente</strong>
+      </div>
+      <span class="topbar__badge"><span></span> Demonstração</span>
+    </header>
+
+    <main id="main-content" class="main-content">
+      <router-outlet />
+    </main>
+  </div>
+</div>

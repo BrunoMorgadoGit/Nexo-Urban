@@ -1,0 +1,129 @@
+<section class="page" aria-labelledby="page-title">
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">Inventário urbano</p>
+      <h1 id="page-title">Equipamentos</h1>
+      <p class="page-description">Ativos, localização e condição operacional da cidade.</p>
+    </div>
+    <a class="button button--primary" routerLink="/equipments/new">Cadastrar equipamento</a>
+  </header>
+
+  @if (summary(); as metrics) {
+    <div class="metrics" aria-label="Resumo do inventário">
+      <article class="metric-card"><span>Total de equipamentos</span><strong>{{ metrics.totalEquipment }}</strong><small>ativos cadastrados</small></article>
+      <article class="metric-card"><span>Operacionais</span><strong>{{ metrics.operationalEquipment }}</strong><small>em serviço</small></article>
+      <article class="metric-card metric-card--warning"><span>Precisam de atenção</span><strong>{{ metrics.attentionEquipment }}</strong><small>mau funcionamento</small></article>
+      <article class="metric-card metric-card--danger"><span>Manutenção imediata</span><strong>{{ metrics.immediateMaintenance }}</strong><small>{{ metrics.overdueMaintenance }} vencidas</small></article>
+      <article class="metric-card"><span>Próximas manutenções</span><strong>{{ metrics.upcomingMaintenance }}</strong><small>nos próximos 14 dias</small></article>
+    </div>
+  }
+
+  <section class="inventory-panel" aria-label="Lista de equipamentos">
+    <div class="toolbar">
+      <label class="search-field">
+        <span class="visually-hidden">Buscar equipamentos</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.5 4.5" /></svg>
+        <input type="search" placeholder="Buscar por série, marca, modelo ou bairro" [value]="search()" (input)="searchChanged($event)" />
+      </label>
+      <div class="filters" aria-label="Filtros">
+        <label>
+          <span class="visually-hidden">Tipo de equipamento</span>
+          <select [value]="typeCode()" (change)="filterChanged($event, 'typeCode')">
+            <option value="">Todos os tipos</option>
+            @for (type of types(); track type.code) { <option [value]="type.code">{{ type.label }}</option> }
+          </select>
+        </label>
+        <label>
+          <span class="visually-hidden">Situação operacional</span>
+          <select [value]="status()" (change)="filterChanged($event, 'status')">
+            <option value="">Todas as situações</option>
+            <option value="not_installed">Não instalado</option>
+            <option value="operational">Operacional</option>
+            <option value="malfunctioning">Mau funcionamento</option>
+            <option value="maintenance">Em manutenção</option>
+            <option value="deactivated">Desativado</option>
+            <option value="stolen">Furtado</option>
+          </select>
+        </label>
+        <label>
+          <span class="visually-hidden">Órgão responsável</span>
+          <select [value]="organizationId()" (change)="filterChanged($event, 'organizationId')">
+            <option value="">Todos os órgãos</option>
+            @for (organization of organizations(); track organization.id) { <option [value]="organization.id">{{ organization.name }}</option> }
+          </select>
+        </label>
+        <label>
+          <span class="visually-hidden">Bairro</span>
+          <select [value]="regionId()" (change)="filterChanged($event, 'regionId')">
+            <option value="">Todos os bairros</option>
+            @for (region of regions(); track region.id) { <option [value]="region.id">{{ region.name }}</option> }
+          </select>
+        </label>
+      </div>
+    </div>
+
+    @if (error()) {
+      <div class="feedback feedback--error" role="alert">
+        <p>{{ error() }}</p>
+        <button class="button button--secondary" type="button" (click)="load()">Tentar novamente</button>
+      </div>
+    } @else if (loading()) {
+      <div class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>Carregando equipamentos…</div>
+    } @else if (!page()?.items?.length) {
+      <div class="empty-state">
+        <span class="empty-state__icon" aria-hidden="true">—</span>
+        <h2>Nenhum equipamento encontrado</h2>
+        <p>Ajuste os filtros ou cadastre um ativo para iniciar o inventário.</p>
+        <a class="button button--secondary" routerLink="/equipments/new">Cadastrar equipamento</a>
+      </div>
+    } @else {
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th scope="col">Equipamento</th><th scope="col">Tipo</th><th scope="col">Localização</th><th scope="col">Órgão</th><th scope="col">Situação</th><th scope="col">Manutenção</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr>
+          </thead>
+          <tbody>
+            @for (item of page()?.items ?? []; track item.id) {
+              <tr>
+                <td data-label="Equipamento"><a class="asset-link" [routerLink]="['/equipments', item.id]"><strong>{{ item.brand }} {{ item.model }}</strong><small>{{ item.serialNumber }}</small></a></td>
+                <td data-label="Tipo">{{ item.typeLabel }}</td>
+                <td data-label="Localização"><strong>{{ item.location.regionName }}</strong><small>{{ item.location.street }}, {{ item.location.reference }} · {{ item.location.city }}, {{ item.location.state }}</small><small>{{ item.location.role === 'base' ? 'Base operacional' : 'Local fixo' }}</small></td>
+                <td data-label="Órgão">{{ item.organizationName }}</td>
+                <td data-label="Situação"><app-state-badge [status]="item.status" /></td>
+                <td data-label="Manutenção"><app-state-badge [status]="item.maintenancePriority" />@if (item.nextMaintenanceDate) { <small>{{ item.nextMaintenanceDate | date:'dd/MM/yyyy':'UTC' }}</small> }</td>
+                <td class="actions-cell" data-label="Ações">
+                  <a class="icon-action" [routerLink]="['/equipments', item.id]" [attr.aria-label]="'Ver ' + item.serialNumber">Ver</a>
+                  <a class="icon-action" [routerLink]="['/equipments', item.id, 'edit']" [attr.aria-label]="'Editar ' + item.serialNumber">Editar</a>
+                  @if (item.status !== 'deactivated') { <button class="icon-action icon-action--danger" type="button" [attr.aria-label]="'Desativar ' + item.serialNumber" (click)="requestDeactivation(item)">Desativar</button> }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <footer class="pagination">
+        <span>{{ page()?.total ?? 0 }} equipamentos</span>
+        <div>
+          <button class="button button--secondary button--small" type="button" [disabled]="(page()?.page ?? 1) <= 1" (click)="changePage(-1)">Anterior</button>
+          <span>Página {{ page()?.page ?? 1 }} de {{ page()?.totalPages ?? 1 }}</span>
+          <button class="button button--secondary button--small" type="button" [disabled]="(page()?.page ?? 1) >= (page()?.totalPages ?? 1)" (click)="changePage(1)">Próxima</button>
+        </div>
+      </footer>
+    }
+  </section>
+</section>
+
+@if (pendingDeactivation(); as item) {
+  <div class="modal-scrim" (click)="cancelDeactivation()">
+    <section class="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="deactivate-title" aria-describedby="deactivate-description" (click)="$event.stopPropagation()">
+      <p class="eyebrow">Alteração de situação</p>
+      <h2 id="deactivate-title">Desativar equipamento?</h2>
+      <p id="deactivate-description">{{ item.serialNumber }} será marcado como desativado. O histórico e os registros de manutenção serão preservados.</p>
+      @if (error()) { <p class="dialog-error" role="alert">{{ error() }}</p> }
+      <div class="dialog-actions">
+        <button class="button button--secondary" type="button" [disabled]="deactivating()" (click)="cancelDeactivation()">Cancelar</button>
+        <button class="button button--danger" type="button" [disabled]="deactivating()" (click)="deactivate()">{{ deactivating() ? 'Desativando…' : 'Desativar' }}</button>
+      </div>
+    </section>
+  </div>
+}

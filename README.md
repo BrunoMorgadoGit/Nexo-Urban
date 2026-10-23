@@ -1,62 +1,101 @@
 # F.O.G.O. — Urban Intelligence Platform
 
-Fundação técnica para o DSIN Challenge 2026. Este repositório está na Etapa 2: monorepo, base Angular/NestJS, PostgreSQL local, contratos e tokens visuais. As funcionalidades do desafio serão implementadas em etapas verificáveis.
+Inventário inteligente de ativos e equipes urbanas para o DSIN Challenge 2026. O conjunto de dados incluído é sintético e demonstrativo.
 
-## Requisitos locais
+## Stack
 
-- Node.js `22.23.3` (use `nvm use` se NVM estiver instalado) e npm `10.9.x`.
-- Docker Engine com Docker Compose.
+- Node.js 22.23.3 (`.nvmrc`) e npm workspaces.
+- Angular standalone, TypeScript e Signal Forms em `apps/web`.
+- NestJS, REST versionada e TypeORM em `apps/api`.
+- PostgreSQL 18.6 no Docker Compose local.
+- Contratos de transporte compartilhados em `packages/contracts`.
 
-Angular 22 e o CLI NestJS 12 exigem uma versão compatível de Node. Em uma máquina sem gerenciador de versões, instale Node `22.23.3` antes de usar os comandos npm. O `.nvmrc` registra a versão escolhida.
+## Preparação inicial
 
-## Preparar
-
-```sh
-nvm install
+```bash
 nvm use
 npm run setup
+npm run db:up
+npm run db:migrate
+npm run db:seed
 ```
 
-`nvm` usa a versão registrada em `.nvmrc`; se ainda não estiver instalado, instale/ative Node.js `22.23.3` por um gerenciador de versões ou pelo pacote oficial antes de continuar. Esta estação tinha Node `22.12.0`, abaixo do mínimo, então usei uma cópia temporária oficial `22.23.3` para as validações e não alterei o Node global. A checagem `preinstall` bloqueia versões incompatíveis.
+`npm run setup` cria `.env` a partir de `.env.example` apenas quando necessário e instala dependências do lockfile. Revise valores locais; nunca versione `.env`. Se Node `22.23.3` não estiver instalado no NVM, instale-o antes de executar os comandos npm.
 
-`setup` cria `.env` somente se o arquivo não existir e instala os workspaces. Revise os valores locais antes de iniciar serviços; `.env` é ignorado pelo Git.
+O seed pode ser executado novamente sem duplicar equipamentos, agentes, regiões, órgãos ou tipos.
 
 ## Executar
 
 Em terminais separados:
 
-```sh
-npm run db:up
+```bash
 npm run dev:api
+```
+
+```bash
 npm run dev:web
 ```
 
-- Web: <http://127.0.0.1:4200>
-- Health da API: <http://127.0.0.1:3000/api/v1/health>
-- PostgreSQL: `127.0.0.1:5437` (porta ajustada para não conflitar com outro serviço local).
+Abra `http://127.0.0.1:4200`. A API atende em `http://127.0.0.1:3000/api/v1`; tanto a API quanto o PostgreSQL ficam vinculados ao loopback para uso demonstrativo local.
 
-O health check consulta `SELECT 1`; retorna indisponibilidade segura se não conseguir conectar ao banco.
+## Inventário implementado
 
-## Qualidade e persistência
+- Equipamentos: busca, filtros por tipo, situação, órgão e bairro, paginação, detalhe, edição e desativação preservando o histórico.
+- Tipos: radar, câmera, balança, veículo de fiscalização, cancela, transporte, totem, patinete, motocicleta e viatura. Cada tipo expõe campos técnicos; o backend valida cada objeto JSONB com um esquema estrito.
+- Localização: endereço e ponto fixo ou base em tabela própria; posição conhecida de recursos móveis fica separada.
+- Agentes: cadastro, busca, filtros, consulta, edição, disponibilidade e última posição conhecida.
+- Manutenções: prioridade imediata, agenda, vencimentos, histórico e transições de serviço.
+- Indicadores: resumo consultado pela interface na API.
 
-```sh
+### Endpoints REST
+
+Todos estão sob `/api/v1`:
+
+| Recurso | Rotas |
+| --- | --- |
+| Saúde | `GET /health` |
+| Equipamentos | `GET, POST /equipments`; `GET, PUT, DELETE /equipments/:id`; `PATCH /equipments/:id/deactivate` |
+| Tipos | `GET /equipment-types` |
+| Agentes | `GET, POST /agents`; `GET, PUT /agents/:id` |
+| Órgãos e regiões | `GET /organizations`; `GET /regions` |
+| Inventário | `GET /inventory/summary` |
+| Manutenção | `GET, POST /maintenance`; `GET /maintenance/overview`; `PATCH /maintenance/:id/status` |
+
+`DELETE /equipments/:id` realiza desativação lógica; não remove o registro nem seu histórico. `GET /maintenance?overdueOnly=true` retorna serviços vencidos. A prioridade e a agenda de manutenção não alteram automaticamente a situação operacional.
+
+## Banco, seed e testes
+
+```bash
+npm run db:up
+npm run db:migrations:show
+npm run db:migrate
+npm run db:seed
 npm run build
 npm run lint
 npm test
 npm run test:e2e
-npm run db:migrations:show
-npm run db:migrate
 ```
 
-`db:migrate` executa migrations compiladas com TypeORM. A infraestrutura está configurada, mas o primeiro schema de domínio ainda não foi criado: será definido junto ao levantamento do inventário na próxima etapa.
+O E2E da API requer PostgreSQL em execução, migrations aplicadas e seed inicial. Os testes integrados criam registros temporários e removem somente os próprios registros ao terminar.
 
-Depois de criar entidades e validar o modelo, gere uma migration com `npm run db:migration:generate -- src/database/migrations/NomeDaMigration` e revise o arquivo gerado antes de executá-lo.
+### Validação da Etapa 3 (23/10/2026)
 
-## Workspaces
+- Build e lint dos contratos, Angular e NestJS; TypeScript verificado nos dois aplicativos.
+- 5 testes web e 17 testes unitários da API aprovados; 10 testes E2E aprovados no PostgreSQL.
+- Migration aplicada, seed idempotente e `npm audit --audit-level=high` sem vulnerabilidades.
+- Fluxos de equipamento, agente e manutenção exercitados no navegador após reiniciar os serviços. A interface foi verificada em 1440 px e 390 px, sem overflow horizontal.
+- O build do Angular ainda informa avisos de orçamento CSS em seis estilos de componentes; não impedem a compilação.
 
-- `apps/web`: Angular standalone, TypeScript, SCSS, Vitest.
-- `apps/api`: NestJS, REST versionada, TypeORM, PostgreSQL, Vitest/Supertest.
-- `packages/contracts`: tipos de transporte compartilhados e enxutos.
-- `docs`: arquitetura e roadmap.
+`synchronize` permanece desabilitado. Toda mudança de schema deve entrar em migration revisada. Para encerrar a API/web, use `Ctrl+C`; `npm run db:down` apenas para o container, sem remover o volume persistente.
 
-Consulte [a arquitetura](docs/architecture.md), [o roadmap](docs/roadmap.md) e [as instruções locais](AGENTS.md). MapLibre, SSE e as telas do desafio serão introduzidos quando houver casos de uso definidos.
+## Estrutura
+
+```text
+apps/
+  api/src/{agents,common,database,equipment,equipment-types,inventory,locations,maintenance,organizations,regions}/
+  web/src/app/{agents,core,equipment,maintenance,shared}/
+packages/contracts/
+docs/
+```
+
+Decisões do domínio: [docs/inventory-domain.md](docs/inventory-domain.md). Roadmap: [docs/roadmap.md](docs/roadmap.md).

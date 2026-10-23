@@ -1,21 +1,24 @@
-# Roadmap — fundação ao inventário inteligente
+# Roadmap — F.O.G.O.
 
 ## Etapa 2 — Fundação técnica
 
 - [x] Monorepo npm, Angular standalone e NestJS.
 - [x] PostgreSQL local por Docker Compose e infraestrutura TypeORM para migrations.
-- [x] Contrato de saúde compartilhado e shell visual mínimo.
+- [x] Contrato de saúde compartilhado e tokens visuais.
 - [x] Skill oficial Angular local ao repositório.
+- [x] Commit inicial da fundação (`5fc4593`).
 
-## Próxima etapa — descoberta e inventário
+## Etapa 3 — Inventário inteligente
 
-1. Confirmar fontes de dados, atores, permissões, campos e critérios de qualidade do inventário urbano.
-2. Definir modelo de ativos, identificadores, geometrias, histórico e proveniência antes de escrever a migration de domínio inicial.
-3. Validar contratos da API e fluxos de cadastro/consulta com os responsáveis pelo desafio.
-4. Implementar primeiro fluxo vertical de inventário com migration, DTOs, autorização, interface e testes integrados.
+- [x] Modelar equipamentos, tipos extensíveis, órgãos, regiões, localizações, agentes e manutenções.
+- [x] Criar migration com constraints e índices.
+- [x] Validar características JSONB por tipo e criar seed sintético idempotente.
+- [x] Criar APIs REST para inventário, agentes, organizações, regiões, tipos e manutenções.
+- [x] Integrar telas de equipamentos, agentes e manutenções com a API real.
+- [x] Executar build, lint, testes unitários/E2E, migration/seed no PostgreSQL e revisar navegação desktop/mobile.
 
 ## Etapas posteriores
 
-- MapLibre e visualização geoespacial após o modelo de dados.
-- Atualizações SSE após definir os eventos e consumidores.
+- MapLibre e visualização geoespacial após validar os dados do inventário.
+- Atualizações SSE e histórico de telemetria após definir contratos de eventos e retenção.
 - Dashboard, motor preditivo e simulador em etapas separadas, com fontes, métricas e critérios de validação acordados.

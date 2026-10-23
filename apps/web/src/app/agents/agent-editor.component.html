@@ -1,0 +1,38 @@
+<section class="page" aria-labelledby="page-title">
+  <header class="page-heading">
+    <div><a class="back-link" routerLink="/agents">← Voltar aos agentes</a><p class="eyebrow">Equipe operacional</p><h1 id="page-title">{{ pageTitle }}</h1><p class="page-description">Use dados fictícios ou demonstrativos. Não informe dados pessoais desnecessários.</p></div>
+  </header>
+  @if (loading()) {
+    <div class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>Carregando cadastro…</div>
+  } @else if (loadError()) {
+    <div class="feedback feedback--error" role="alert">{{ error() }} <a routerLink="/agents">Voltar aos agentes</a></div>
+  } @else {
+    <form class="editor-form" (submit)="save(); $event.preventDefault()" novalidate>
+      <section class="form-section" aria-labelledby="identity-title">
+        <div class="section-heading"><span>01</span><div><h2 id="identity-title">Identificação profissional</h2><p>Dados funcionais necessários para a operação demonstrativa.</p></div></div>
+        <div class="form-grid">
+          <label class="field"><span>Nome demonstrativo <b aria-hidden="true">*</b></span><input autocomplete="off" [formField]="agentForm.name" />@if (agentForm.name().touched() && agentForm.name().invalid()) { <small class="field-error">{{ agentForm.name().errors()[0]?.message }}</small> }</label>
+          <label class="field"><span>Matrícula ou identificação <b aria-hidden="true">*</b></span><input autocomplete="off" [formField]="agentForm.identifier" />@if (agentForm.identifier().touched() && agentForm.identifier().invalid()) { <small class="field-error">{{ agentForm.identifier().errors()[0]?.message }}</small> }</label>
+          <label class="field"><span>Categoria profissional <b aria-hidden="true">*</b></span><select [formField]="agentForm.category"><option value="traffic_agent">Agente de trânsito</option><option value="municipal_guard">Guarda municipal</option><option value="police_officer">Policial</option></select></label>
+          <label class="field"><span>Órgão responsável <b aria-hidden="true">*</b></span><select [formField]="agentForm.organizationId"><option value="">Selecione o órgão</option>@for (organization of organizations(); track organization.id) { <option [value]="organization.id">{{ organization.name }}</option> }</select>@if (agentForm.organizationId().touched() && agentForm.organizationId().invalid()) { <small class="field-error">{{ agentForm.organizationId().errors()[0]?.message }}</small> }</label>
+          <label class="field"><span>Disponibilidade <b aria-hidden="true">*</b></span><select [formField]="agentForm.availability"><option value="available">Disponível</option><option value="on_duty">Em serviço</option><option value="unavailable">Indisponível</option><option value="off_duty">Fora de serviço</option></select></label>
+        </div>
+      </section>
+
+      <section class="form-section" aria-labelledby="position-title">
+        <div class="section-heading"><span>02</span><div><h2 id="position-title">Localização conhecida</h2><p>Posição demonstrativa opcional. Acompanhamento em tempo real fica para etapa posterior.</p></div></div>
+        <label class="position-toggle"><input type="checkbox" [formField]="agentForm.includePosition" /><span>Registrar posição conhecida</span></label>
+        @if (model().includePosition) {
+          <div class="form-grid">
+            <label class="field"><span>Latitude <b aria-hidden="true">*</b></span><input type="number" step="any" [formField]="agentForm.position.latitude" />@if (agentForm.position.latitude().touched() && agentForm.position.latitude().invalid()) { <small class="field-error">Coordenada entre -90 e 90.</small> }</label>
+            <label class="field"><span>Longitude <b aria-hidden="true">*</b></span><input type="number" step="any" [formField]="agentForm.position.longitude" />@if (agentForm.position.longitude().touched() && agentForm.position.longitude().invalid()) { <small class="field-error">Coordenada entre -180 e 180.</small> }</label>
+            <label class="field"><span>Atualizada em <b aria-hidden="true">*</b></span><input type="datetime-local" [formField]="agentForm.position.recordedAt" /></label>
+          </div>
+        }
+      </section>
+
+      @if (error()) { <div class="feedback feedback--error" role="alert">{{ error() }}</div> }
+      <footer class="form-actions"><a class="button button--secondary" routerLink="/agents">Cancelar</a><button class="button button--primary" type="submit" [disabled]="saving()">{{ saving() ? 'Salvando…' : (id ? 'Salvar alterações' : 'Cadastrar agente') }}</button></footer>
+    </form>
+  }
+</section>

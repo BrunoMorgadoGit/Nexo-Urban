@@ -1,20 +1,22 @@
-# Arquitetura inicial
+# Arquitetura F.O.G.O.
 
 ## Workspaces
 
-- `apps/web`: aplicação Angular standalone, acessível e responsiva.
-- `apps/api`: API REST NestJS, validação de configuração e integração PostgreSQL por TypeORM.
-- `packages/contracts`: tipos de transporte usados em mais de um workspace; não contém regras de negócio nem entidades ORM.
-- `docs`: decisões, arquitetura e roadmap.
+- `apps/web`: Angular standalone, acessível e responsivo.
+- `apps/api`: módulos NestJS REST versionados, validação HTTP e persistência PostgreSQL/TypeORM.
+- `packages/contracts`: tipos de transporte usados por mais de um workspace; sem regras de negócio ou entidades ORM.
+- `docs`: decisões do domínio e roadmap.
 
 ## Fluxo
 
-O Angular consome a API REST versionada em `/api/v1`. A API valida entrada e permissões, executa casos de uso e persiste no PostgreSQL. SSE pode ser adicionado como canal de atualização em tempo real quando o primeiro caso de uso justificar. MapLibre será integrado junto às funcionalidades geoespaciais, não como dependência vazia da fundação.
+O Angular consome a API REST sob `/api/v1`. A API é a autoridade para validação, regras operacionais e persistência. Nesta demonstração ela atende somente no loopback; autenticação e autorização serão definidas quando os requisitos de acesso estiverem claros. SSE e MapLibre entram quando houver um caso de uso que os justifique.
 
-## Persistência
+## Persistência e domínio
 
-TypeORM usa migrations explícitas e `synchronize: false`. A infraestrutura de CLI já está preparada. O schema de domínio inicial será criado após levantamento e aprovação do inventário de ativos, sem antecipar entidades não definidas.
+TypeORM usa migrations explícitas e `synchronize: false`. A migration `CreateInventoryDomain` cria órgãos, regiões, tipos, equipamentos, endereços, posições conhecidas, agentes e manutenções. Campos técnicos variáveis ficam em JSONB, descritos pela API e validados por schemas Zod estritos por tipo. Equipamentos móveis guardam endereço de base separado da posição GPS conhecida. O histórico de manutenção não muda automaticamente a situação operacional do ativo.
+
+As entidades ORM ficam no backend. Os contratos compartilhados descrevem somente payloads de transporte. Novos tipos são cadastrados sem mudança estrutural no PostgreSQL; cada novo tipo precisa de descritores e um validador de características no código.
 
 ## Ambiente local
 
-Node `22.23.3`, npm workspaces e Docker Compose com PostgreSQL 18.6. O serviço PostgreSQL publica somente em loopback e mantém dados em volume nomeado.
+Node `22.23.3` via `.nvmrc`, npm workspaces e Docker Compose com PostgreSQL 18.6. O banco publica apenas em loopback e mantém dados em volume nomeado. A API também atende em `127.0.0.1` e limita CORS à origem web configurada.

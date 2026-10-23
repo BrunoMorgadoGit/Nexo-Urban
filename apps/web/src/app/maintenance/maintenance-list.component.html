@@ -1,0 +1,53 @@
+<section class="page" aria-labelledby="page-title">
+  <header class="page-heading">
+    <div><p class="eyebrow">Confiabilidade dos ativos</p><h1 id="page-title">Manutenção</h1><p class="page-description">Acompanhe serviços imediatos, agenda e histórico sem confundir manutenção com situação operacional.</p></div>
+    <button class="button button--primary" type="button" (click)="openCreateForm()">Agendar manutenção</button>
+  </header>
+
+  <section class="maintenance-panel" aria-label="Agenda de manutenção">
+    <div class="toolbar">
+      <label class="filter-control"><span>Exibição</span><select [value]="overdueOnly() ? 'overdue' : 'all'" (change)="overdueFilterChanged($event)"><option value="all">Todos os registros</option><option value="overdue">Somente vencidas</option></select></label>
+      <label class="filter-control"><span>Situação do serviço</span><select [value]="status()" (change)="statusFilterChanged($event)"><option value="">Todas</option><option value="scheduled">Agendada</option><option value="in_progress">Em andamento</option><option value="completed">Concluída</option><option value="cancelled">Cancelada</option></select></label>
+    </div>
+
+    @if (success()) { <div class="feedback feedback--success" role="status">{{ success() }}</div> }
+    @if (error()) { <div class="feedback feedback--error" role="alert"><p>{{ error() }}</p><button class="button button--secondary" type="button" (click)="load()">Tentar novamente</button></div> }
+    @else if (loading()) { <div class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>Carregando manutenções…</div> }
+    @else if (!page()?.items?.length) { <div class="empty-state"><span class="empty-state__icon" aria-hidden="true">—</span><h2>Nenhuma manutenção nesta lista</h2><p>Agende um serviço para acompanhar os próximos vencimentos e o histórico do inventário.</p><button class="button button--secondary" type="button" (click)="openCreateForm()">Agendar manutenção</button></div> }
+    @else {
+      <div class="table-scroll"><table><thead><tr><th scope="col">Equipamento</th><th scope="col">Serviço</th><th scope="col">Prioridade</th><th scope="col">Data prevista</th><th scope="col">Situação</th><th scope="col"><span class="visually-hidden">Ação</span></th></tr></thead><tbody>
+        @for (item of page()?.items ?? []; track item.id) {
+          <tr [class.row--overdue]="item.overdue">
+            <td data-label="Equipamento"><a class="asset-link" [routerLink]="['/equipments', item.equipmentId]"><strong>{{ item.typeLabel }}</strong><small>{{ item.serialNumber }}</small></a></td>
+            <td data-label="Serviço"><strong>{{ item.description }}</strong><small>{{ item.kind === 'immediate' ? 'Imediata' : item.kind === 'periodic' ? 'Periódica' : 'Agendada' }} @if (item.overdue) { <span class="overdue-label">· vencida</span> }</small></td>
+            <td data-label="Prioridade"><app-state-badge [status]="item.priority" /></td>
+            <td data-label="Data prevista">{{ item.scheduledDate | date:'dd/MM/yyyy':'UTC' }}</td>
+            <td data-label="Situação"><app-state-badge [status]="item.status" /></td>
+            <td class="actions-cell" data-label="Ação">@if (item.status === 'scheduled') { <button class="text-action" type="button" (click)="advance(item)">Iniciar serviço</button> } @else if (item.status === 'in_progress') { <button class="text-action" type="button" (click)="advance(item)">Marcar concluída</button> }</td>
+          </tr>
+        }
+      </tbody></table></div>
+      <footer class="list-footer">Exibindo {{ page()?.items?.length ?? 0 }} de {{ page()?.total ?? 0 }} registros de manutenção.</footer>
+    }
+  </section>
+</section>
+
+@if (showCreateForm()) {
+  <div class="modal-scrim">
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+      <header class="dialog-heading"><div><p class="eyebrow">Nova programação</p><h2 id="dialog-title">Agendar manutenção</h2></div><button class="close-button" type="button" aria-label="Fechar" [disabled]="saving()" (click)="closeCreateForm()">×</button></header>
+      <p class="dialog-description">O registro de manutenção permanece separado do estado operacional do equipamento.</p>
+      <form class="create-form" (submit)="save(); $event.preventDefault()" novalidate>
+        <label class="field"><span>Equipamento <b aria-hidden="true">*</b></span><select [formField]="maintenanceForm.equipmentId"><option value="">Selecione um equipamento</option>@for (item of equipment(); track item.id) { <option [value]="item.id">{{ item.serialNumber }} · {{ item.typeLabel }}</option> }</select>@if (maintenanceForm.equipmentId().touched() && maintenanceForm.equipmentId().invalid()) { <small class="field-error">{{ maintenanceForm.equipmentId().errors()[0]?.message }}</small> }</label>
+        <div class="form-grid">
+          <label class="field"><span>Tipo de serviço <b aria-hidden="true">*</b></span><select [formField]="maintenanceForm.kind"><option value="immediate">Imediata</option><option value="scheduled">Agendada</option><option value="periodic">Periódica</option></select></label>
+          <label class="field"><span>Prioridade <b aria-hidden="true">*</b></span><select [formField]="maintenanceForm.priority"><option value="low">Baixa</option><option value="normal">Normal</option><option value="high">Alta</option><option value="immediate">Imediata</option></select></label>
+        </div>
+        <label class="field"><span>Descrição do serviço <b aria-hidden="true">*</b></span><textarea rows="3" [formField]="maintenanceForm.description"></textarea>@if (maintenanceForm.description().touched() && maintenanceForm.description().invalid()) { <small class="field-error">{{ maintenanceForm.description().errors()[0]?.message }}</small> }</label>
+        <label class="field"><span>Data prevista <b aria-hidden="true">*</b></span><input type="date" [formField]="maintenanceForm.scheduledDate" />@if (maintenanceForm.scheduledDate().touched() && maintenanceForm.scheduledDate().invalid()) { <small class="field-error">{{ maintenanceForm.scheduledDate().errors()[0]?.message }}</small> }</label>
+        @if (error()) { <div class="feedback feedback--error" role="alert">{{ error() }}</div> }
+        <footer class="dialog-actions"><button class="button button--secondary" type="button" [disabled]="saving()" (click)="closeCreateForm()">Cancelar</button><button class="button button--primary" type="submit" [disabled]="saving()">{{ saving() ? 'Salvando…' : 'Salvar manutenção' }}</button></footer>
+      </form>
+    </section>
+  </div>
+}
