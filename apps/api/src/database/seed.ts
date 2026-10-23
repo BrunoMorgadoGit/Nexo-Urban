@@ -196,6 +196,7 @@ async function seed(): Promise<void> {
             brand: item.brand,
             model: item.model,
             organizationId,
+            dataOrigin: 'demo',
             status: item.status,
             maintenancePriority: item.maintenancePriority,
             nextMaintenanceDate: item.nextMaintenanceDate,
@@ -251,6 +252,7 @@ async function seed(): Promise<void> {
             category: agent.category,
             organizationId,
             availability: agent.availability,
+            dataOrigin: 'demo',
           },
           ['identifier'],
         );
@@ -258,6 +260,7 @@ async function seed(): Promise<void> {
         await agentPositionRepository.upsert(
           {
             agentId: persisted.id,
+            regionId,
             latitude: region.latitude + index * 0.00015,
             longitude: region.longitude - index * 0.0001,
             recordedAt: new Date(Date.now() - (index + 1) * 5 * 60_000),

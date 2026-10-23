@@ -61,6 +61,9 @@ export class EquipmentEntity {
   @Column({ type: 'jsonb' })
   characteristics!: Record<string, string | number | boolean>;
 
+  @Column({ name: 'data_origin', type: 'varchar', length: 12, default: 'manual' })
+  dataOrigin!: 'manual' | 'demo';
+
   @OneToOne(() => EquipmentLocationEntity, (location) => location.equipment)
   location!: Relation<EquipmentLocationEntity>;
 

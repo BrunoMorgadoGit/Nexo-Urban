@@ -1,7 +1,19 @@
 import { Routes } from '@angular/router';
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'equipments' },
+  { path: '', pathMatch: 'full', redirectTo: 'command' },
+  {
+    path: 'command',
+    loadComponent: () => import('./monitoring/command-center.component').then((module) => module.CommandCenterComponent),
+  },
+  {
+    path: 'live-map',
+    loadComponent: () => import('./monitoring/operational-map.component').then((module) => module.OperationalMapComponent),
+  },
+  {
+    path: 'alerts',
+    loadComponent: () => import('./monitoring/alerts.component').then((module) => module.AlertsComponent),
+  },
   {
     path: 'equipments',
     pathMatch: 'full',

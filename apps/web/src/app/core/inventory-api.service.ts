@@ -14,6 +14,12 @@ import type {
   Page,
   RegionContract,
   StructuredLocation,
+  MaintenanceAttention,
+  MonitoringAlert,
+  MonitoringMapSnapshot,
+  MonitoringOverview,
+  MonitoringRegionSummary,
+  MonitoringAlertSeverity,
 } from '@fogo/contracts';
 import { Observable } from 'rxjs';
 
@@ -37,7 +43,27 @@ export type AgentWriteInput = {
   category: AgentCategory;
   organizationId: string;
   availability: AgentAvailability;
-  position?: { latitude: number; longitude: number; recordedAt: string };
+  position?: { latitude: number; longitude: number; recordedAt: string; regionId?: string | null };
+};
+
+export type MonitoringMapFilters = {
+  resourceType?: 'all' | 'equipment' | 'agent';
+  typeCode?: string;
+  status?: string;
+  organizationId?: string;
+  regionId?: string;
+  regionZone?: string;
+  west?: number;
+  south?: number;
+  east?: number;
+  north?: number;
+};
+
+export type MonitoringAlertFilters = {
+  page?: number;
+  pageSize?: number;
+  severity?: MonitoringAlertSeverity;
+  status?: string;
 };
 
 export type EquipmentFilters = {
@@ -135,6 +161,50 @@ export class InventoryApiService {
 
   getSummary(): Observable<InventorySummary> {
     return this.http.get<InventorySummary>(`${API_BASE}/inventory/summary`);
+  }
+
+  getMonitoringOverview(): Observable<MonitoringOverview> {
+    return this.http.get<MonitoringOverview>(`${API_BASE}/monitoring/overview`);
+  }
+
+  getMonitoringMap(filters: MonitoringMapFilters = {}): Observable<MonitoringMapSnapshot> {
+    return this.http.get<MonitoringMapSnapshot>(`${API_BASE}/monitoring/map`, { params: this.toParams(filters) });
+  }
+
+  getMonitoringRegions(): Observable<MonitoringRegionSummary[]> {
+    return this.http.get<MonitoringRegionSummary[]>(`${API_BASE}/monitoring/regions`);
+  }
+
+  getMaintenanceAttention(): Observable<MaintenanceAttention[]> {
+    return this.http.get<MaintenanceAttention[]>(`${API_BASE}/monitoring/maintenance-alerts`);
+  }
+
+  listMonitoringAlerts(filters: MonitoringAlertFilters = {}): Observable<Page<MonitoringAlert>> {
+    return this.http.get<Page<MonitoringAlert>>(`${API_BASE}/monitoring/alerts`, { params: this.toParams(filters) });
+  }
+
+  acknowledgeAlert(id: string): Observable<MonitoringAlert> {
+    return this.http.post<MonitoringAlert>(`${API_BASE}/monitoring/alerts/${id}/acknowledge`, {});
+  }
+
+  addAlertNote(id: string, note: string): Observable<MonitoringAlert> {
+    return this.http.post<MonitoringAlert>(`${API_BASE}/monitoring/alerts/${id}/notes`, { note });
+  }
+
+  resolveAlert(id: string): Observable<MonitoringAlert> {
+    return this.http.post<MonitoringAlert>(`${API_BASE}/monitoring/alerts/${id}/resolve`, {});
+  }
+
+  getDemoScenario() {
+    return this.http.get<import('@fogo/contracts').DemoScenario>(`${API_BASE}/monitoring/demo/scenario`);
+  }
+
+  triggerDemoOutage() {
+    return this.http.post<import('@fogo/contracts').DemoScenario>(`${API_BASE}/monitoring/demo/scenario/outage`, {});
+  }
+
+  resetDemoScenario() {
+    return this.http.post<import('@fogo/contracts').DemoScenario>(`${API_BASE}/monitoring/demo/scenario/reset`, {});
   }
 
   listMaintenance(filters: MaintenanceFilters = {}): Observable<Page<MaintenanceContract>> {

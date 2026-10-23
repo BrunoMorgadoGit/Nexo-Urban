@@ -16,6 +16,7 @@ import { RegionEntity } from '../regions/region.entity.js';
 import { CreateEquipmentDto } from './dto/create-equipment.dto.js';
 import { ListEquipmentDto } from './dto/list-equipment.dto.js';
 import { EquipmentEntity } from './equipment.entity.js';
+import { MonitoringWriteService } from '../monitoring/monitoring-write.service.js';
 
 @Injectable()
 export class EquipmentService {
@@ -33,6 +34,7 @@ export class EquipmentService {
     private readonly organizations: Repository<OrganizationEntity>,
     @InjectRepository(RegionEntity)
     private readonly regions: Repository<RegionEntity>,
+    private readonly monitoringWrite: MonitoringWriteService,
   ) {}
 
   async create(input: CreateEquipmentDto): Promise<EquipmentContract> {
@@ -87,6 +89,7 @@ export class EquipmentService {
       }
       return equipment.id;
     });
+    await this.monitoringWrite.equipmentChanged(result, null);
     return this.get(result);
   }
 
@@ -204,14 +207,17 @@ export class EquipmentService {
         await positionRepository.remove(position);
       }
     });
+    await this.monitoringWrite.equipmentChanged(id, current.status);
     return this.get(id);
   }
 
   async deactivate(id: string): Promise<EquipmentContract> {
     const equipment = await this.equipment.findOne({ where: { id } });
     if (!equipment) throw new NotFoundException('Equipamento não encontrado.');
+    const previousStatus = equipment.status;
     equipment.status = 'deactivated';
     await this.equipment.save(equipment);
+    await this.monitoringWrite.equipmentChanged(id, previousStatus);
     return this.get(id);
   }
 
@@ -269,6 +275,7 @@ export class EquipmentService {
       organizationName: record.organization.name,
       status: record.status,
       maintenancePriority: record.maintenancePriority,
+      dataOrigin: record.dataOrigin,
       nextMaintenanceDate: record.nextMaintenanceDate,
       characteristics: record.characteristics,
       location,

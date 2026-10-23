@@ -40,6 +40,9 @@ export class AgentEntity {
   @Column({ type: 'varchar', length: 20 })
   availability!: AgentAvailability;
 
+  @Column({ name: 'data_origin', type: 'varchar', length: 12, default: 'manual' })
+  dataOrigin!: 'manual' | 'demo';
+
   @OneToOne(() => AgentPositionEntity, (position) => position.agent)
   position!: Relation<AgentPositionEntity> | null;
 

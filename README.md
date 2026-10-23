@@ -1,6 +1,6 @@
 # F.O.G.O. — Urban Intelligence Platform
 
-Inventário inteligente de ativos e equipes urbanas para o DSIN Challenge 2026. O conjunto de dados incluído é sintético e demonstrativo.
+Central de Operações urbanas para o DSIN Challenge 2026, com inventário persistente, Mapa Vivo, alertas e eventos em tempo real. O conjunto de dados incluído é sintético e demonstrativo.
 
 ## Stack
 
@@ -9,6 +9,7 @@ Inventário inteligente de ativos e equipes urbanas para o DSIN Challenge 2026. 
 - NestJS, REST versionada e TypeORM em `apps/api`.
 - PostgreSQL 18.6 no Docker Compose local.
 - Contratos de transporte compartilhados em `packages/contracts`.
+- MapLibre GL JS 6.15.0 para o Mapa Vivo.
 
 ## Preparação inicial
 
@@ -38,8 +39,17 @@ npm run dev:web
 
 Abra `http://127.0.0.1:4200`. A API atende em `http://127.0.0.1:3000/api/v1`; tanto a API quanto o PostgreSQL ficam vinculados ao loopback para uso demonstrativo local.
 
-## Inventário implementado
+## Central de Operações e inventário
 
+- Central com indicadores obtidos do PostgreSQL, prioridade de alertas, resumo por região e manutenção próxima.
+- Mapa Vivo com camadas GeoJSON agrupadas, filtros por categoria, situação, órgão e região, seleção de recursos e indicação de posições antigas.
+- Alertas persistidos, sem duplicidade simultânea; reconhecimento, observações, histórico e encerramento condicionado à normalização.
+- Atualizações SSE com cursor persistido, reconexão e recarga de snapshot. O frontend mantém uma conexão por aplicação.
+- Cenário determinístico de indisponibilidade para `DEMO-RAD-001`, disponível somente com API iniciada por `npm run dev:api`.
+
+Detalhes das fórmulas, rotas, eventos, demo e tiles: [docs/monitoring.md](docs/monitoring.md).
+
+### Inventário implementado
 - Equipamentos: busca, filtros por tipo, situação, órgão e bairro, paginação, detalhe, edição e desativação preservando o histórico.
 - Tipos: radar, câmera, balança, veículo de fiscalização, cancela, transporte, totem, patinete, motocicleta e viatura. Cada tipo expõe campos técnicos; o backend valida cada objeto JSONB com um esquema estrito.
 - Localização: endereço e ponto fixo ou base em tabela própria; posição conhecida de recursos móveis fica separada.
@@ -60,6 +70,7 @@ Todos estão sob `/api/v1`:
 | Órgãos e regiões | `GET /organizations`; `GET /regions` |
 | Inventário | `GET /inventory/summary` |
 | Manutenção | `GET, POST /maintenance`; `GET /maintenance/overview`; `PATCH /maintenance/:id/status` |
+| Monitoramento | Consulte [docs/monitoring.md](docs/monitoring.md) para overview, mapa, regiões, alertas e SSE |
 
 `DELETE /equipments/:id` realiza desativação lógica; não remove o registro nem seu histórico. `GET /maintenance?overdueOnly=true` retorna serviços vencidos. A prioridade e a agenda de manutenção não alteram automaticamente a situação operacional.
 

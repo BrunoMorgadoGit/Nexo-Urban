@@ -16,6 +16,7 @@
         @if (item.position) {
           <div><dt>Última posição conhecida</dt><dd>{{ item.position.latitude | number:'1.4-6' }}, {{ item.position.longitude | number:'1.4-6' }}</dd></div>
           <div><dt>Atualizada em</dt><dd>{{ item.position.recordedAt | date:'dd/MM/yyyy HH:mm':'UTC' }}</dd></div>
+          <div><dt>Bairro / região</dt><dd>{{ item.position.regionName ?? 'Não informado' }}</dd></div>
         } @else { <div><dt>Localização</dt><dd>Não informada</dd></div> }
         <div><dt>Cadastro criado em</dt><dd>{{ item.createdAt | date:'dd/MM/yyyy HH:mm':'UTC' }}</dd></div>
         <div><dt>Atualizado em</dt><dd>{{ item.updatedAt | date:'dd/MM/yyyy HH:mm':'UTC' }}</dd></div>

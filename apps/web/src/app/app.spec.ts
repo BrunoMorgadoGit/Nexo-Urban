@@ -22,6 +22,6 @@ describe('App', () => {
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('.brand__text strong')?.textContent).toContain('F.O.G.O.');
-    expect(compiled.textContent).toContain('Inventário inteligente');
+    expect(compiled.textContent).toContain('Central de Operações');
   });
 });

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
+import { In } from 'typeorm';
 import request from 'supertest';
 import type { App } from 'supertest/types.js';
 import { AgentEntity } from '../src/agents/agent.entity.js';
@@ -11,6 +12,9 @@ import { EquipmentEntity } from '../src/equipment/equipment.entity.js';
 import { MaintenanceEntity } from '../src/maintenance/maintenance.entity.js';
 import { OrganizationEntity } from '../src/organizations/organization.entity.js';
 import { RegionEntity } from '../src/regions/region.entity.js';
+import { OperationalAlertEntity } from '../src/monitoring/operational-alert.entity.js';
+import { OperationalEventEntity } from '../src/monitoring/operational-event.entity.js';
+import { MonitoringWriteService } from '../src/monitoring/monitoring-write.service.js';
 
 describe('Inventory API (e2e, PostgreSQL)', () => {
   let app: INestApplication<App>;
@@ -22,6 +26,8 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
   let equipmentId: string;
   let mobileEquipmentId: string;
   let agentId: string;
+  let unlocatedAgentId: string;
+  const maintenanceIds: string[] = [];
 
   beforeAll(async () => {
     const moduleFixture = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -29,7 +35,7 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
     app.setGlobalPrefix('api/v1');
     app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true }));
     app.useGlobalFilters(new ApiExceptionFilter());
-    await app.init();
+    await app.listen(0, '127.0.0.1');
     dataSource = app.get(DataSource);
     const organization = await dataSource.getRepository(OrganizationEntity).findOneByOrFail({ code: 'mobilidade-demo' });
     const region = await dataSource.getRepository(RegionEntity).findOneByOrFail({ code: 'centro' });
@@ -45,7 +51,19 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
         await dataSource.getRepository(MaintenanceEntity).delete({ equipmentId: id });
         await dataSource.getRepository(EquipmentEntity).delete({ id });
       }
+      for (const id of maintenanceIds) await dataSource.getRepository(MaintenanceEntity).delete({ id });
+      const resourceIds = [equipmentId, mobileEquipmentId, agentId, unlocatedAgentId, ...maintenanceIds]
+        .filter((value): value is string => Boolean(value));
+      const relatedAlerts = resourceIds.length
+        ? await dataSource.getRepository(OperationalAlertEntity).find({ where: { resourceId: In(resourceIds) } })
+        : [];
+      const eventResourceIds = [...resourceIds, ...relatedAlerts.map(({ id }) => id)];
+      if (eventResourceIds.length) {
+        await dataSource.getRepository(OperationalEventEntity).delete({ resourceId: In(eventResourceIds) });
+        await dataSource.getRepository(OperationalAlertEntity).delete({ resourceId: In(resourceIds) });
+      }
       if (agentId) await dataSource.getRepository(AgentEntity).delete({ id: agentId });
+      if (unlocatedAgentId) await dataSource.getRepository(AgentEntity).delete({ id: unlocatedAgentId });
     }
     await app?.close();
   });
@@ -118,11 +136,16 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
     await request(app.getHttpServer()).post('/api/v1/equipments').send(input).expect(400);
     const response = await request(app.getHttpServer())
       .post('/api/v1/equipments')
-      .send({ ...input, lastPosition: { latitude: -22.906, longitude: -47.061, recordedAt: new Date().toISOString() } })
+      .send({ ...input, lastPosition: { latitude: -22.906, longitude: -47.061, recordedAt: new Date(Date.now() - 90 * 60_000).toISOString() } })
       .expect(201);
     mobileEquipmentId = response.body.id as string;
     expect(response.body.location.role).toBe('base');
     expect(response.body.lastPosition.latitude).toBeCloseTo(-22.906);
+    const map = await request(app.getHttpServer())
+      .get('/api/v1/monitoring/map')
+      .query({ resourceType: 'equipment', typeCode: 'scooter', regionId })
+      .expect(200);
+    expect(map.body.items.find((item: { id: string }) => item.id === mobileEquipmentId).positionStale).toBe(true);
   });
 
   it('supports detail, filters, pagination and operational state updates', async () => {
@@ -142,6 +165,90 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
         expect(body.status).toBe('malfunctioning');
         expect(body.maintenancePriority).toBe('high');
       });
+  });
+
+  it('creates one persisted alert per active condition, keeps acknowledgement visible, then resolves on normalization', async () => {
+    const alerts = dataSource.getRepository(OperationalAlertEntity);
+    const activeResponse = await request(app.getHttpServer())
+      .get('/api/v1/monitoring/alerts')
+      .query({ resourceId: equipmentId, status: 'active' })
+      .expect(200);
+    const alert = activeResponse.body.items.find((item: { code: string }) => item.code === 'equipment_malfunctioning') as { id: string; actions: Array<{ type: string }> } | undefined;
+    expect(alert).toBeTruthy();
+    expect(activeResponse.body.items.filter((item: { code: string }) => item.code === 'equipment_malfunctioning')).toHaveLength(1);
+    expect(await alerts.findOneByOrFail({ id: alert!.id })).toMatchObject({ status: 'open', severity: 'critical' });
+
+    await request(app.getHttpServer()).post(`/api/v1/monitoring/alerts/${alert!.id}/acknowledge`).expect(201);
+    await request(app.getHttpServer())
+      .get('/api/v1/monitoring/alerts')
+      .query({ resourceId: equipmentId, status: 'active' })
+      .expect(200)
+      .expect(({ body }) => expect(body.items.some((item: { id: string; status: string }) => item.id === alert!.id && item.status === 'acknowledged')).toBe(true));
+    await request(app.getHttpServer())
+      .post(`/api/v1/monitoring/alerts/${alert!.id}/notes`)
+      .send({ note: 'Equipe avisada e condição confirmada no local.' })
+      .expect(201)
+      .expect(({ body }) => expect(body.actions.some((action: { type: string; note: string }) => action.type === 'note' && action.note.includes('Equipe'))).toBe(true));
+    await request(app.getHttpServer()).post(`/api/v1/monitoring/alerts/${alert!.id}/resolve`).expect(409);
+
+    const cursor = await dataSource.getRepository(OperationalEventEntity)
+      .createQueryBuilder('event').orderBy('event.id', 'DESC').getOne();
+    const events: string[] = [];
+    const subscription = app.get(MonitoringWriteService).events$.subscribe((event) => events.push(event.type));
+    await request(app.getHttpServer())
+      .put(`/api/v1/equipments/${equipmentId}`)
+      .send({ ...equipmentInput(), status: 'operational', maintenancePriority: 'normal' })
+      .expect(200);
+    subscription.unsubscribe();
+    expect(events).toContain('alert.resolved');
+    const resolved = await request(app.getHttpServer())
+      .get('/api/v1/monitoring/alerts')
+      .query({ resourceId: equipmentId, status: 'resolved' })
+      .expect(200);
+    expect(resolved.body.items.find((item: { id: string }) => item.id === alert!.id)?.actions.map((action: { type: string }) => action.type))
+      .toEqual(['created', 'acknowledged', 'note', 'resolved']);
+
+    if (cursor) {
+      const address = app.getHttpServer().address() as { port: number };
+      const abort = new AbortController();
+      try {
+        const response = await fetch(`http://127.0.0.1:${address.port}/api/v1/monitoring/events/stream?since=${cursor.id}`, { signal: abort.signal });
+        expect(response.status).toBe(200);
+        const reader = response.body?.getReader();
+        expect(reader).toBeDefined();
+        let content = '';
+        const deadline = Date.now() + 5000;
+        while (!content.includes('event: alert.resolved') && Date.now() < deadline) {
+          const result = await reader!.read();
+          if (result.done) break;
+          content += new TextDecoder().decode(result.value);
+        }
+        expect(content).toContain('event: alert.resolved');
+        expect(content).toContain('source');
+        await reader?.cancel();
+      } finally {
+        abort.abort();
+      }
+    }
+  });
+
+  it('serves database-backed monitoring indicators and filters map resources by neighborhood and region', async () => {
+    const [overview, map, regions] = await Promise.all([
+      request(app.getHttpServer()).get('/api/v1/monitoring/overview').expect(200),
+      request(app.getHttpServer()).get('/api/v1/monitoring/map').query({ resourceType: 'equipment', typeCode: 'speed_radar', regionId }).expect(200),
+      request(app.getHttpServer()).get('/api/v1/monitoring/regions').expect(200),
+    ]);
+    expect(overview.body.totalEquipment).toBeGreaterThanOrEqual(1);
+    expect(overview.body.eligibleEquipment).toBeLessThanOrEqual(overview.body.totalEquipment);
+    expect(map.body.items.some((item: { id: string }) => item.id === equipmentId)).toBe(true);
+    const neighborhood = regions.body.find((region: { id: string }) => region.id === regionId);
+    expect(neighborhood.registeredEquipment).toBeGreaterThanOrEqual(1);
+    const regionalMap = await request(app.getHttpServer())
+      .get('/api/v1/monitoring/map')
+      .query({ resourceType: 'equipment', typeCode: 'speed_radar', regionZone: neighborhood.zone })
+      .expect(200);
+    expect(regionalMap.body.items.some((item: { id: string }) => item.id === equipmentId)).toBe(true);
+    expect(regionalMap.body.items.every((item: { regionZone: string }) => item.regionZone === neighborhood.zone)).toBe(true);
   });
 
   it('lists the registered type schemas and summary counters', async () => {
@@ -164,17 +271,27 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
         category: 'traffic_agent',
         organizationId,
         availability: 'available',
-        position: { latitude: -22.9056, longitude: -47.0608, recordedAt: new Date().toISOString() },
+        position: { latitude: -22.9056, longitude: -47.0608, recordedAt: new Date().toISOString(), regionId },
       })
       .expect(201);
     agentId = response.body.id as string;
     expect(response.body.identifier).toBe(agentIdentifier);
     expect(response.body.position.latitude).toBeCloseTo(-22.9056);
+    expect(response.body.position.regionName).toBe('Centro');
     const page = await request(app.getHttpServer())
       .get('/api/v1/agents')
       .query({ search: agentIdentifier, page: 1, pageSize: 10 })
       .expect(200);
     expect(page.body.items[0].id).toBe(agentId);
+
+    const noPosition = await request(app.getHttpServer())
+      .post('/api/v1/agents')
+      .send({ name: 'Agente sem posição de teste', identifier: `${agentIdentifier}-NP`, category: 'municipal_guard', organizationId, availability: 'available' })
+      .expect(201);
+    unlocatedAgentId = noPosition.body.id as string;
+    const map = await request(app.getHttpServer()).get('/api/v1/monitoring/map').query({ resourceType: 'agent' }).expect(200);
+    expect(map.body.items.some((item: { id: string }) => item.id === unlocatedAgentId)).toBe(false);
+    expect(map.body.withoutPosition).toBeGreaterThanOrEqual(1);
     await request(app.getHttpServer())
       .post('/api/v1/agents')
       .send({
@@ -199,6 +316,7 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
         scheduledDate: yesterday,
       })
       .expect(201);
+    maintenanceIds.push(response.body.id as string);
     expect(response.body.overdue).toBe(true);
     await request(app.getHttpServer())
       .get('/api/v1/maintenance')
@@ -214,6 +332,9 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
       .send({ status: 'completed' })
       .expect(200)
       .expect(({ body }) => expect(body.completedAt).toBeTruthy());
+    const maintenanceAlerts = await request(app.getHttpServer()).get('/api/v1/monitoring/alerts')
+      .query({ resourceId: response.body.id, status: 'resolved' }).expect(200);
+    expect(maintenanceAlerts.body.items.some((alert: { code: string }) => alert.code === 'maintenance_immediate')).toBe(true);
     const overview = await request(app.getHttpServer()).get('/api/v1/maintenance/overview').expect(200);
     expect(overview.body.upcoming).toBeGreaterThanOrEqual(1);
     await request(app.getHttpServer())

@@ -7,6 +7,8 @@ import { OrganizationEntity } from '../organizations/organization.entity.js';
 import { AgentEntity } from './agent.entity.js';
 import { CreateAgentDto } from './dto/create-agent.dto.js';
 import { ListAgentsDto } from './dto/list-agents.dto.js';
+import { MonitoringWriteService } from '../monitoring/monitoring-write.service.js';
+import { RegionEntity } from '../regions/region.entity.js';
 
 @Injectable()
 export class AgentsService {
@@ -18,6 +20,7 @@ export class AgentsService {
     private readonly positions: Repository<AgentPositionEntity>,
     @InjectRepository(OrganizationEntity)
     private readonly organizations: Repository<OrganizationEntity>,
+    private readonly monitoringWrite: MonitoringWriteService,
   ) {}
 
   async create(input: CreateAgentDto): Promise<AgentContract> {
@@ -26,6 +29,10 @@ export class AgentsService {
       where: { id: input.organizationId, isActive: true },
     });
     if (!organization) throw new BadRequestException('Órgão responsável inválido ou inativo.');
+    const region = input.position?.regionId
+      ? await this.dataSource.getRepository(RegionEntity).findOne({ where: { id: input.position.regionId } })
+      : null;
+    if (input.position?.regionId && !region) throw new BadRequestException('Região da posição inválida.');
     if (await this.agents.exists({ where: { identifier } })) {
       throw new ConflictException('Identificação funcional já cadastrada.');
     }
@@ -47,11 +54,13 @@ export class AgentsService {
           agent,
           latitude: input.position.latitude,
           longitude: input.position.longitude,
+          regionId: region?.id ?? null,
           recordedAt: new Date(input.position.recordedAt),
         });
       }
       return agent.id;
     });
+    await this.monitoringWrite.agentChanged(id);
     return this.get(id);
   }
 
@@ -61,7 +70,8 @@ export class AgentsService {
     const builder = this.agents
       .createQueryBuilder('agent')
       .leftJoinAndSelect('agent.organization', 'organization')
-      .leftJoinAndSelect('agent.position', 'position');
+      .leftJoinAndSelect('agent.position', 'position')
+      .leftJoinAndSelect('position.region', 'positionRegion');
     if (query.search) {
       builder.andWhere(
         '(agent.name ILIKE :search OR agent.identifier ILIKE :search OR organization.name ILIKE :search)',
@@ -95,6 +105,7 @@ export class AgentsService {
       .createQueryBuilder('agent')
       .leftJoinAndSelect('agent.organization', 'organization')
       .leftJoinAndSelect('agent.position', 'position')
+      .leftJoinAndSelect('position.region', 'positionRegion')
       .where('agent.id = :id', { id })
       .getOne();
     if (!record) throw new NotFoundException('Agente não encontrado.');
@@ -108,6 +119,10 @@ export class AgentsService {
       where: { id: input.organizationId, isActive: true },
     });
     if (!organization) throw new BadRequestException('Órgão responsável inválido ou inativo.');
+    const region = input.position?.regionId
+      ? await this.dataSource.getRepository(RegionEntity).findOne({ where: { id: input.position.regionId } })
+      : null;
+    if (input.position?.regionId && !region) throw new BadRequestException('Região da posição inválida.');
     const normalizedIdentifier = input.identifier.trim().toUpperCase();
     const duplicate = await this.agents
       .createQueryBuilder('agent')
@@ -133,12 +148,14 @@ export class AgentsService {
           agentId: id,
           latitude: input.position.latitude,
           longitude: input.position.longitude,
+          regionId: region?.id ?? null,
           recordedAt: new Date(input.position.recordedAt),
         });
       } else if (position) {
         await positionRepository.remove(position);
       }
     });
+    await this.monitoringWrite.agentChanged(id);
     return this.get(id);
   }
 
@@ -152,11 +169,14 @@ export class AgentsService {
       organizationId: record.organizationId,
       organizationName: record.organization.name,
       availability: record.availability,
+      dataOrigin: record.dataOrigin,
       position: record.position
         ? {
             latitude: record.position.latitude,
             longitude: record.position.longitude,
             recordedAt: record.position.recordedAt.toISOString(),
+            regionId: record.position.regionId,
+            regionName: record.position.region?.name ?? null,
           }
         : null,
       createdAt: record.createdAt.toISOString(),

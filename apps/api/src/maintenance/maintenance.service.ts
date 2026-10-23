@@ -11,6 +11,7 @@ import { EquipmentEntity } from '../equipment/equipment.entity.js';
 import { CreateMaintenanceDto } from './dto/create-maintenance.dto.js';
 import { ListMaintenanceDto } from './dto/list-maintenance.dto.js';
 import { MaintenanceEntity, MaintenanceStatus } from './maintenance.entity.js';
+import { MonitoringWriteService } from '../monitoring/monitoring-write.service.js';
 
 @Injectable()
 export class MaintenanceService {
@@ -20,6 +21,7 @@ export class MaintenanceService {
     private readonly maintenances: Repository<MaintenanceEntity>,
     @InjectRepository(EquipmentEntity)
     private readonly equipment: Repository<EquipmentEntity>,
+    private readonly monitoringWrite: MonitoringWriteService,
   ) {}
 
   async create(input: CreateMaintenanceDto): Promise<MaintenanceContract> {
@@ -47,6 +49,11 @@ export class MaintenanceService {
           completedAt: null,
         }),
       );
+    });
+    await this.monitoringWrite.maintenanceChanged(record.id, 'maintenance.created', {
+      status: record.status,
+      priority: record.priority,
+      scheduledDate: record.scheduledDate,
     });
     return this.getContract(record.id);
   }
@@ -121,6 +128,11 @@ export class MaintenanceService {
     record.status = nextStatus;
     record.completedAt = nextStatus === 'completed' ? new Date() : null;
     await this.maintenances.save(record);
+    await this.monitoringWrite.maintenanceChanged(id, 'maintenance.updated', {
+      status: record.status,
+      priority: record.priority,
+      scheduledDate: record.scheduledDate,
+    });
     return this.getContract(id);
   }
 

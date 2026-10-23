@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormField, applyWhen, form, max, maxLength, min, minLength, required, submit } from '@angular/forms/signals';
-import type { AgentAvailability, AgentCategory, AgentContract, OrganizationContract } from '@fogo/contracts';
+import type { AgentAvailability, AgentCategory, AgentContract, OrganizationContract, RegionContract } from '@fogo/contracts';
 import { InventoryApiService, apiErrorMessage, type AgentWriteInput } from '../core/inventory-api.service';
 import { dateTimeToLocalInputValue, localDateTimeInputValue } from '../core/date-time';
 import { firstValueFrom, forkJoin, of } from 'rxjs';
@@ -14,7 +14,7 @@ type AgentEditorModel = {
   organizationId: string;
   availability: AgentAvailability;
   includePosition: boolean;
-  position: { latitude: number; longitude: number; recordedAt: string };
+  position: { latitude: number; longitude: number; recordedAt: string; regionId: string };
 };
 
 function initialModel(): AgentEditorModel {
@@ -25,7 +25,7 @@ function initialModel(): AgentEditorModel {
     organizationId: '',
     availability: 'available',
     includePosition: false,
-    position: { latitude: 91, longitude: 181, recordedAt: localDateTimeInputValue() },
+    position: { latitude: 91, longitude: 181, recordedAt: localDateTimeInputValue(), regionId: '' },
   };
 }
 
@@ -61,6 +61,7 @@ export class AgentEditorComponent {
     });
   });
   protected readonly organizations = signal<OrganizationContract[]>([]);
+  protected readonly regions = signal<RegionContract[]>([]);
   protected readonly loading = signal(true);
   protected readonly loadError = signal(false);
   protected readonly saving = signal(false);
@@ -70,10 +71,12 @@ export class AgentEditorComponent {
   constructor() {
     forkJoin({
       organizations: this.api.getOrganizations(),
+    regions: this.api.getRegions(),
       agent: this.id ? this.api.getAgent(this.id) : of(null),
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: ({ organizations, agent }) => {
+      next: ({ organizations, regions, agent }) => {
         this.organizations.set(organizations);
+        this.regions.set(regions);
         if (agent) this.populate(agent);
         this.loading.set(false);
       },
@@ -105,6 +108,7 @@ export class AgentEditorComponent {
           latitude: current.position.latitude,
           longitude: current.position.longitude,
           recordedAt: new Date(current.position.recordedAt).toISOString(),
+          ...(current.position.regionId ? { regionId: current.position.regionId } : {}),
         };
       }
       this.saving.set(true);
@@ -130,7 +134,7 @@ export class AgentEditorComponent {
       availability: agent.availability,
       includePosition: agent.position !== null,
       position: agent.position
-        ? { ...agent.position, recordedAt: dateTimeToLocalInputValue(agent.position.recordedAt) }
+        ? { ...agent.position, regionId: agent.position.regionId ?? '', recordedAt: dateTimeToLocalInputValue(agent.position.recordedAt) }
         : initialModel().position,
     });
   }

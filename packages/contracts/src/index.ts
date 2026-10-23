@@ -96,6 +96,7 @@ export type EquipmentContract = {
   organizationName: string;
   status: EquipmentStatus;
   maintenancePriority: MaintenancePriority;
+  dataOrigin: 'manual' | 'demo';
   nextMaintenanceDate: string | null;
   characteristics: Record<string, string | number | boolean>;
   location: EquipmentLocationContract;
@@ -112,7 +113,8 @@ export type AgentContract = {
   organizationId: string;
   organizationName: string;
   availability: AgentAvailability;
-  position: LastKnownPosition | null;
+  position: (LastKnownPosition & { regionId: string | null; regionName: string | null }) | null;
+  dataOrigin: 'manual' | 'demo';
   createdAt: string;
   updatedAt: string;
 };
@@ -149,4 +151,143 @@ export type MaintenanceContract = {
   completedAt: string | null;
   overdue: boolean;
   createdAt: string;
+};
+
+export type MonitoringOverview = {
+  demoMode: boolean;
+  totalEquipment: number;
+  eligibleEquipment: number;
+  operationalEquipment: number;
+  unavailableEquipment: number;
+  availabilityPercent: number;
+  agentsOnDuty: number;
+  activeCriticalAlerts: number;
+  overdueMaintenance: number;
+  calculatedAt: string;
+};
+
+export type MapResourceContract = {
+  id: string;
+  kind: 'equipment' | 'agent';
+  label: string;
+  identifier: string;
+  status: EquipmentStatus | AgentAvailability;
+  typeCode: string | null;
+  typeLabel: string;
+  organizationId: string;
+  organizationName: string;
+  regionId: string | null;
+  regionName: string | null;
+  regionZone: string | null;
+  locationDescription: string | null;
+  latitude: number;
+  longitude: number;
+  positionRecordedAt: string;
+  positionSource: 'fixed_location' | 'operational_base' | 'last_known';
+  positionStale: boolean;
+  dataOrigin: 'manual' | 'demo';
+  maintenancePriority: MaintenancePriority | null;
+  nextMaintenanceDate: string | null;
+  detailPath: string;
+};
+
+export type MonitoringMapSnapshot = {
+  demoMode: boolean;
+  items: MapResourceContract[];
+  withoutPosition: number;
+  generatedAt: string;
+};
+
+export type MonitoringRegionSummary = {
+  id: string;
+  code: string;
+  name: string;
+  zone: string;
+  city: string;
+  state: string;
+  registeredEquipment: number;
+  eligibleEquipment: number;
+  operationalEquipment: number;
+  unavailableEquipment: number;
+  stolenEquipment: number;
+  agentsOnDuty: number;
+  availabilityPercent: number;
+};
+
+export const monitoringAlertSeverities = ['critical', 'high', 'medium', 'low'] as const;
+export type MonitoringAlertSeverity = (typeof monitoringAlertSeverities)[number];
+export const monitoringAlertStatuses = ['open', 'acknowledged', 'resolved'] as const;
+export type MonitoringAlertStatus = (typeof monitoringAlertStatuses)[number];
+export const monitoringAlertCodes = [
+  'equipment_malfunctioning',
+  'equipment_unavailable',
+  'equipment_stolen',
+  'maintenance_immediate',
+  'maintenance_overdue',
+] as const;
+export type MonitoringAlertCode = (typeof monitoringAlertCodes)[number];
+export type MonitoringAlertResourceType = 'equipment' | 'maintenance';
+export type MonitoringAlertActionType = 'created' | 'acknowledged' | 'note' | 'resolved';
+
+export type MonitoringAlertAction = {
+  id: string;
+  type: MonitoringAlertActionType;
+  note: string | null;
+  actor: string;
+  createdAt: string;
+};
+
+export type MonitoringAlert = {
+  id: string;
+  code: MonitoringAlertCode;
+  severity: MonitoringAlertSeverity;
+  status: MonitoringAlertStatus;
+  title: string;
+  description: string;
+  resourceType: MonitoringAlertResourceType;
+  resourceId: string;
+  resourceLabel: string;
+  organizationName: string;
+  createdAt: string;
+  updatedAt: string;
+  acknowledgedAt: string | null;
+  resolvedAt: string | null;
+  actions: MonitoringAlertAction[];
+  detailPath: string;
+};
+
+export type MaintenanceAttention = {
+  maintenance: MaintenanceContract;
+  urgency: 'overdue' | 'immediate' | 'upcoming';
+};
+
+export type OperationalEventType =
+  | 'equipment.updated'
+  | 'agent.updated'
+  | 'maintenance.created'
+  | 'maintenance.updated'
+  | 'alert.created'
+  | 'alert.updated'
+  | 'alert.resolved'
+  | 'demo.scenario.changed';
+
+export type OperationalEvent = {
+  id: string;
+  type: OperationalEventType;
+  source: 'api' | 'demo';
+  resourceType: 'equipment' | 'agent' | 'maintenance' | 'alert' | 'demo_scenario';
+  resourceId: string;
+  payload: Record<string, unknown>;
+  occurredAt: string;
+};
+
+export type DemoScenario = {
+  mode: 'DEMONSTRATION';
+  code: 'radar-outage';
+  label: string;
+  equipmentId: string;
+  serialNumber: string;
+  status: EquipmentStatus;
+  initialStatus: 'operational';
+  active: boolean;
 };

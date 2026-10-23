@@ -9,6 +9,8 @@ import { InventoryModule } from './inventory/inventory.module.js';
 import { MaintenanceModule } from './maintenance/maintenance.module.js';
 import { OrganizationsModule } from './organizations/organizations.module.js';
 import { RegionsModule } from './regions/regions.module.js';
+import { MonitoringModule } from './monitoring/monitoring.module.js';
+import { DemoScenarioModule } from './monitoring/demo-scenario.module.js';
 import { validateEnvironment } from './config/environment.js';
 
 @Module({
@@ -36,6 +38,8 @@ import { validateEnvironment } from './config/environment.js';
     AgentsModule,
     MaintenanceModule,
     InventoryModule,
+    MonitoringModule,
+    ...(process.env.NODE_ENV === 'development' ? [DemoScenarioModule] : []),
   ],
 })
 export class AppModule {}

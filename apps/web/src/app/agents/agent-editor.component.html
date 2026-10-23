@@ -27,6 +27,7 @@
             <label class="field"><span>Latitude <b aria-hidden="true">*</b></span><input type="number" step="any" [formField]="agentForm.position.latitude" />@if (agentForm.position.latitude().touched() && agentForm.position.latitude().invalid()) { <small class="field-error">Coordenada entre -90 e 90.</small> }</label>
             <label class="field"><span>Longitude <b aria-hidden="true">*</b></span><input type="number" step="any" [formField]="agentForm.position.longitude" />@if (agentForm.position.longitude().touched() && agentForm.position.longitude().invalid()) { <small class="field-error">Coordenada entre -180 e 180.</small> }</label>
             <label class="field"><span>Atualizada em <b aria-hidden="true">*</b></span><input type="datetime-local" [formField]="agentForm.position.recordedAt" /></label>
+            <label class="field"><span>Bairro / região</span><select [formField]="agentForm.position.regionId"><option value="">Não informado</option>@for (region of regions(); track region.id) { <option [value]="region.id">{{ region.name }}</option> }</select></label>
           </div>
         }
       </section>

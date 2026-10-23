@@ -7,6 +7,7 @@ import { RegionsModule } from '../regions/regions.module.js';
 import { EquipmentController } from './equipment.controller.js';
 import { EquipmentEntity } from './equipment.entity.js';
 import { EquipmentService } from './equipment.service.js';
+import { MonitoringModule } from '../monitoring/monitoring.module.js';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { EquipmentService } from './equipment.service.js';
     LocationsModule,
     OrganizationsModule,
     RegionsModule,
+    MonitoringModule,
   ],
   controllers: [EquipmentController],
   providers: [EquipmentService],

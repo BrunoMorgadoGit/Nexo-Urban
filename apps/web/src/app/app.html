@@ -1,4 +1,4 @@
-<div class="app-shell">
+<div class="app-shell" [class.app-shell--collapsed]="sidebarCollapsed()">
   @if (menuOpen()) {
     <button
       class="mobile-scrim"
@@ -9,7 +9,7 @@
   }
 
   <aside class="sidebar" [class.sidebar--open]="menuOpen()" aria-label="Navegação principal">
-    <a class="brand" routerLink="/equipments" (click)="closeMenu()">
+    <a class="brand" routerLink="/command" (click)="closeMenu()" title="F.O.G.O. Urban Intelligence">
       <span class="brand__mark" aria-hidden="true">F</span>
       <span class="brand__text">
         <strong>F.O.G.O.</strong>
@@ -19,12 +19,28 @@
 
     <p class="nav-caption">Operação urbana</p>
     <nav #mainNavigation id="main-navigation" class="nav-list">
+      <a class="nav-link" routerLink="/command" routerLinkActive="nav-link--active" ariaCurrentWhenActive="page" (click)="closeMenu()" aria-label="Central de Operações" title="Central de Operações">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4zM14 20h6v-7h-6zM14 10h6V4h-6zM4 20h6v-3H4z" /></svg>
+        <span>Central de Operações</span>
+      </a>
+      <a class="nav-link" routerLink="/live-map" routerLinkActive="nav-link--active" ariaCurrentWhenActive="page" (click)="closeMenu()" aria-label="Mapa Vivo" title="Mapa Vivo">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15m6-12v15" /><circle cx="15" cy="10" r="2" /></svg>
+        <span>Mapa Vivo</span>
+      </a>
+      <a class="nav-link" routerLink="/alerts" routerLinkActive="nav-link--active" ariaCurrentWhenActive="page" (click)="closeMenu()" aria-label="Alertas e incidentes" title="Alertas e incidentes">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /><path d="M12 5v5m0 3h.01" /></svg>
+        <span>Alertas e incidentes</span>
+      </a>
+      <span class="nav-divider" aria-hidden="true"></span>
+      <p class="nav-caption nav-caption--secondary">Inventário</p>
       <a
         class="nav-link"
         routerLink="/equipments"
         routerLinkActive="nav-link--active"
         ariaCurrentWhenActive="page"
         (click)="closeMenu()"
+        aria-label="Equipamentos"
+        title="Equipamentos"
       >
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h7v6H4zM14 5h6v6h-6zM4 14h7v5H4zM14 14h6v5h-6z" /></svg>
         <span>Equipamentos</span>
@@ -35,6 +51,8 @@
         routerLinkActive="nav-link--active"
         ariaCurrentWhenActive="page"
         (click)="closeMenu()"
+        aria-label="Agentes"
+        title="Agentes"
       >
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3" /><path d="M3 19v-1a6 6 0 0 1 12 0v1zM16 5.5a3 3 0 0 1 0 5.8M18 14a5 5 0 0 1 3 4v1" /></svg>
         <span>Agentes</span>
@@ -45,6 +63,8 @@
         routerLinkActive="nav-link--active"
         ariaCurrentWhenActive="page"
         (click)="closeMenu()"
+        aria-label="Manutenção"
+        title="Manutenção"
       >
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 6.5a4 4 0 0 0-5.4 5.4L4 16.5 7.5 20l4.6-4.6A4 4 0 0 0 17.5 10l-2.4 2.4-3.5-3.5z" /><path d="m15 5 4-2 2 2-2 4" /></svg>
         <span>Manutenção</span>
@@ -70,12 +90,15 @@
       >
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
       </button>
+      <button class="sidebar-toggle" type="button" (click)="toggleSidebar()" [attr.aria-expanded]="!sidebarCollapsed()" [attr.aria-label]="sidebarCollapsed() ? 'Expandir menu lateral' : 'Recolher menu lateral'" [title]="sidebarCollapsed() ? 'Expandir menu' : 'Recolher menu'">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM10 5v14M15 9l-2 3 2 3" /></svg>
+      </button>
       <div class="topbar__context">
         <span>DSIN Challenge 2026</span>
         <span class="context-separator" aria-hidden="true">/</span>
-        <strong>Inventário inteligente</strong>
+        <strong>Central de Operações</strong>
       </div>
-      <span class="topbar__badge"><span></span> Demonstração</span>
+      <span class="topbar__badge" [class.topbar__badge--connected]="connectionState() === 'connected'" role="status" aria-live="polite"><span></span> {{ connectionLabel() }}</span>
     </header>
 
     <main id="main-content" class="main-content">

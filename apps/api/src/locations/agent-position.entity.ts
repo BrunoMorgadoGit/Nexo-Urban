@@ -4,11 +4,13 @@ import {
   Entity,
   Index,
   JoinColumn,
+  ManyToOne,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import type { Relation } from 'typeorm';
 import { AgentEntity } from '../agents/agent.entity.js';
+import { RegionEntity } from '../regions/region.entity.js';
 
 @Entity({ name: 'agent_positions' })
 @Index('uq_agent_positions_agent', ['agentId'], { unique: true })
@@ -28,6 +30,13 @@ export class AgentPositionEntity {
 
   @Column({ type: 'double precision' })
   longitude!: number;
+
+  @Column({ name: 'region_id', type: 'uuid', nullable: true })
+  regionId!: string | null;
+
+  @ManyToOne(() => RegionEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'region_id' })
+  region!: Relation<RegionEntity> | null;
 
   @Column({ name: 'recorded_at', type: 'timestamptz' })
   recordedAt!: Date;

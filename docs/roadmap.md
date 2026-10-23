@@ -17,8 +17,15 @@
 - [x] Integrar telas de equipamentos, agentes e manutenções com a API real.
 - [x] Executar build, lint, testes unitários/E2E, migration/seed no PostgreSQL e revisar navegação desktop/mobile.
 
+## Etapa 4 — Central de Operações
+
+- [x] Criar snapshots REST de disponibilidade, mapa, regiões e manutenção com políticas documentadas.
+- [x] Integrar MapLibre e navegação de operações, inventário e alertas.
+- [x] Persistir alertas, ações e eventos; servir SSE com cursor e snapshot de recuperação.
+- [x] Adicionar cenário de indisponibilidade determinístico, isolado em desenvolvimento.
+- [x] Validar migrations, seed, builds, lint, testes HTTP/SSE no PostgreSQL e cenário no navegador desktop/mobile.
+
 ## Etapas posteriores
 
-- MapLibre e visualização geoespacial após validar os dados do inventário.
-- Atualizações SSE e histórico de telemetria após definir contratos de eventos e retenção.
-- Dashboard, motor preditivo e simulador em etapas separadas, com fontes, métricas e critérios de validação acordados.
+- Inteligência preditiva e análise de tendências.
+- Replay histórico e simulador avançado de crises.

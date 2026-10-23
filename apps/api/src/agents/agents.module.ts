@@ -5,12 +5,14 @@ import { OrganizationsModule } from '../organizations/organizations.module.js';
 import { AgentEntity } from './agent.entity.js';
 import { AgentsController } from './agents.controller.js';
 import { AgentsService } from './agents.service.js';
+import { MonitoringModule } from '../monitoring/monitoring.module.js';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([AgentEntity]),
     LocationsModule,
     OrganizationsModule,
+    MonitoringModule,
   ],
   controllers: [AgentsController],
   providers: [AgentsService],

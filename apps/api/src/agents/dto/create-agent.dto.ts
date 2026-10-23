@@ -14,6 +14,10 @@ class AgentPositionDto {
 
   @IsDateString()
   recordedAt!: string;
+
+  @IsOptional()
+  @IsUUID()
+  regionId?: string | null;
 }
 
 export class CreateAgentDto {

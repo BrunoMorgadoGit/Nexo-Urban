@@ -1,0 +1,56 @@
+<section class="alerts-page" aria-labelledby="alerts-title">
+  <header class="alerts-heading">
+    <div><p class="eyebrow">Resposta operacional</p><h1 id="alerts-title">Alertas e incidentes</h1><p>Acompanhe as ocorrências ativas e o histórico das ações registradas.</p></div>
+    <span class="realtime-indicator" [class.realtime-indicator--online]="realtime.state() === 'connected'" role="status">{{ realtime.state() === 'connected' ? 'Atualização ao vivo' : 'Reconectando fluxo' }}</span>
+  </header>
+
+  @if (error()) { <div class="alerts-error" role="alert"><span>{{ error() }}</span><button type="button" (click)="reload()">Recarregar</button></div> }
+
+  <div class="alert-filters">
+    <label>Gravidade
+      <select [ngModel]="severity()" (ngModelChange)="setSeverity($event)">
+        <option value="">Todas</option><option value="critical">Crítico</option><option value="high">Alto</option><option value="medium">Médio</option><option value="low">Baixo</option>
+      </select>
+    </label>
+    <label>Atendimento
+      <select [ngModel]="status()" (ngModelChange)="setStatus($event)">
+        <option value="active">Ativos</option><option value="open">Abertos</option><option value="acknowledged">Reconhecidos</option><option value="resolved">Resolvidos</option>
+      </select>
+    </label>
+    @if (page(); as result) { <span class="result-count">{{ result.total }} ocorrência(s)</span> }
+  </div>
+
+  @if (loading() && !page()) { <div class="alerts-loading" role="status">Carregando ocorrências…</div> }
+  @else if (page(); as result) {
+    @if (result.items.length) {
+      <div class="alert-records">
+        @for (alert of result.items; track alert.id) {
+          <article class="alert-record" [class.alert-record--critical]="alert.severity === 'critical'">
+            <div class="alert-record__main">
+              <div class="alert-markers"><span [class]="'severity-pill severity-pill--' + alert.severity">{{ severityLabel(alert.severity) }}</span><span [class]="'status-pill status-pill--' + alert.status">{{ statusLabel(alert.status) }}</span></div>
+              <h2>{{ alert.title }}</h2><p>{{ alert.description }}</p>
+              <dl><div><dt>Recurso</dt><dd><a [routerLink]="alert.detailPath">{{ alert.resourceLabel }} <span aria-hidden="true">↗</span></a></dd></div><div><dt>Órgão</dt><dd>{{ alert.organizationName }}</dd></div><div><dt>Aberto</dt><dd>{{ alert.createdAt | date:'dd/MM/yyyy HH:mm' }}</dd></div></dl>
+              @if (alert.status !== 'resolved') {
+                <div class="alert-actions">
+                  @if (alert.status === 'open') { <button type="button" class="action-button" [disabled]="busyAlertId() === alert.id" (click)="acknowledge(alert.id)">Reconhecer alerta</button> }
+                  <button type="button" class="action-button action-button--resolve" [disabled]="busyAlertId() === alert.id" (click)="resolve(alert.id)">Encerrar após normalização</button>
+                </div>
+                <div class="note-editor">
+                  <label [for]="'note-' + alert.id">Registrar observação</label>
+                  <div><input [id]="'note-' + alert.id" type="text" maxlength="500" minlength="2" [ngModel]="notes()[alert.id] ?? ''" (ngModelChange)="setNote(alert.id, $event)" [ngModelOptions]="{standalone: true}" placeholder="Descreva a ação ou verificação realizada"><button type="button" [disabled]="busyAlertId() === alert.id" (click)="addNote(alert)">Salvar</button></div>
+                </div>
+              }
+              <section class="action-history" [attr.aria-label]="'Histórico de ' + alert.title">
+                <h3>Histórico de atendimento</h3>
+                @for (action of alert.actions; track action.id) {
+                  <div class="history-item"><span>{{ actionLabel(action.type) }}</span><small>{{ action.actor }} · {{ action.createdAt | date:'dd/MM/yyyy HH:mm' }}</small>@if (action.note) { <p>{{ action.note }}</p> }</div>
+                }
+              </section>
+            </div>
+          </article>
+        }
+      </div>
+      <nav class="pagination" aria-label="Paginação de alertas"><button type="button" [disabled]="result.page <= 1" (click)="prev()">Anterior</button><span>Página {{ result.page }} de {{ result.totalPages || 1 }}</span><button type="button" [disabled]="result.page >= result.totalPages" (click)="next()">Próxima</button></nav>
+    } @else { <div class="alerts-empty"><strong>Nenhuma ocorrência neste filtro</strong><span>Alertas reconhecidos continuam ativos até que a condição seja normalizada.</span></div> }
+  }
+</section>
