@@ -47,7 +47,7 @@ O frontend apresenta e envia comandos. A API valida regras e grava dados. O banc
 
 ## Instalação limpa
 
-Em um clone novo, revise `.env.example` e crie `.env`. Se `.env` já existir, preserve-o e não o substitua.
+Em um clone novo, copie `.env.example` para `.env`. O modelo deixa senha e URL do banco vazias para não distribuir credenciais. Antes de iniciar o PostgreSQL, defina `POSTGRES_PASSWORD` com uma senha local e preencha `DATABASE_URL` usando a mesma senha. Se `.env` já existir, preserve-o e não o substitua.
 
 ```bash
 nvm use
