@@ -5,7 +5,9 @@ import { validateE2eConfiguration } from '../../../scripts/e2e-database-guard.mj
 
 export default async function verifyDedicatedE2eDatabase(): Promise<void> {
   loadEnvironment({ path: fileURLToPath(new URL('../../../.env', import.meta.url)) });
-  const target = validateE2eConfiguration(process.env);
+  // The Vitest config already compared the E2E URL with the normal URL before
+  // switching DATABASE_URL to the dedicated test database.
+  const target = validateE2eConfiguration({ ...process.env, DATABASE_URL: undefined });
   const client = new Client({
     connectionString: process.env.E2E_DATABASE_URL,
     connectionTimeoutMillis: 3000,

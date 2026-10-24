@@ -32,3 +32,4 @@ npm --workspace fogo-api run test:e2e
 ```
 
 Os testes E2E exigem `E2E_DATABASE_URL` e `E2E_DATABASE_NAME` apontando para um banco local dedicado cujo nome contenha `e2e` ou `test`. A identidade conectada é consultada antes da suíte. Aplique migrations e seeds apenas nesse banco; os testes alteram registros demonstrativos do próprio banco E2E.
+O comando `npm --workspace fogo-api run test:cov` exige pelo menos 98% de cobertura de linhas.

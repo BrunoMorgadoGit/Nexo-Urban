@@ -26,4 +26,11 @@ Os componentes são standalone e lazy-loaded. Estado local usa Signals; formulá
 npm --workspace fogo-web run build
 npm --workspace fogo-web run lint
 npm --workspace fogo-web run test
+npm --workspace fogo-web run test:coverage
+npm run test:web:e2e
 ```
+
+Os specs ficam ao lado dos componentes e serviços. Fixtures compartilhadas de contratos ficam em `test-helpers/`.
+O relatório de cobertura mede os arquivos TypeScript de `src/app` e exige pelo menos 98% de cobertura de linhas; templates são verificados pelos testes de renderização e pelos E2E do navegador.
+Os E2E do frontend usam Playwright com Chrome e simulam as respostas HTTP na borda do navegador; eles não dependem de banco.
+Os E2E da API são uma suíte separada e exigem o banco local dedicado documentado em [apps/api/README.md](../api/README.md).

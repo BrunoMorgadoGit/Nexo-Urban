@@ -17,6 +17,10 @@ class FakeEventSource {
     this.listeners.set(type, current);
   }
 
+  deliver(type: string, event: Event): void {
+    for (const listener of this.listeners.get(type) ?? []) listener(event);
+  }
+
   close(): void { this.closed = true; }
 
   emit(type: string, id: string): void {
@@ -47,7 +51,7 @@ describe('MonitoringRealtimeService', () => {
   it('recovers a fresh snapshot after connect and reconnect and ignores duplicate event identifiers', () => {
     const service = TestBed.inject(MonitoringRealtimeService);
     let destroy: (() => void) | undefined;
-    service.acquire({ onDestroy: (callback: () => void) => { destroy = callback; } } as DestroyRef);
+    service.acquire({ destroyed: false, onDestroy: (callback: () => void) => { destroy = callback; return () => undefined; } } as DestroyRef);
     const source = FakeEventSource.instances[0];
 
     expect(source.url).toBe('/api/v1/monitoring/events/stream');
@@ -67,6 +71,41 @@ describe('MonitoringRealtimeService', () => {
 
     destroy?.();
     expect(source.closed).toBe(true);
+    expect(service.state()).toBe('disconnected');
+  });
+
+  it('keeps one shared stream until every consumer releases it', () => {
+    const service = TestBed.inject(MonitoringRealtimeService);
+    const destroyCallbacks: Array<() => void> = [];
+    const destroyRef = {
+      destroyed: false,
+      onDestroy: (callback: () => void) => { destroyCallbacks.push(callback); return () => undefined; },
+    } as DestroyRef;
+    service.acquire(destroyRef);
+    service.acquire(destroyRef);
+
+    expect(FakeEventSource.instances).toHaveLength(1);
+    destroyCallbacks[0]();
+    expect(FakeEventSource.instances[0].closed).toBe(false);
+    destroyCallbacks[1]();
+    expect(FakeEventSource.instances[0].closed).toBe(true);
+  });
+
+  it('ignores empty and malformed events without refreshing snapshots', () => {
+    const service = TestBed.inject(MonitoringRealtimeService);
+    service.acquire({ destroyed: false, onDestroy: () => () => undefined } as DestroyRef);
+    const source = FakeEventSource.instances[0];
+    source.deliver('equipment.updated', new MessageEvent('equipment.updated', { data: '' }));
+    source.deliver('equipment.updated', new MessageEvent('equipment.updated', { data: '{invalid' }));
+    expect(service.refreshVersion()).toBe(0);
+  });
+
+  it('reports a disconnected state when the browser does not expose EventSource', () => {
+    Object.defineProperty(globalThis, 'EventSource', { configurable: true, value: undefined });
+    const service = TestBed.inject(MonitoringRealtimeService);
+
+    service.acquire({ destroyed: false, onDestroy: () => () => undefined } as DestroyRef);
+
     expect(service.state()).toBe('disconnected');
   });
 });

@@ -15,7 +15,7 @@ describe('App', () => {
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [
-        provideRouter([{ path: 'alerts', component: TestRouteComponent }]),
+        provideRouter([{ path: 'alerts', component: TestRouteComponent }, { path: '**', component: TestRouteComponent }]),
         { provide: MonitoringRealtimeService, useValue: { state: realtimeState, acquire: () => undefined } },
       ],
     })
@@ -49,7 +49,6 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     await TestBed.inject(Router).navigateByUrl('/alerts');
     await fixture.whenStable();
-    fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelectorAll('h1')).toHaveLength(1);
@@ -58,12 +57,107 @@ describe('App', () => {
     expect(compiled.querySelector('.topbar__badge')?.textContent).toContain('Conectando');
 
     realtimeState.set('connected');
-    fixture.detectChanges();
+    await fixture.whenStable();
     expect(compiled.querySelector('.topbar__badge')?.textContent).toContain('Conectado');
     expect(compiled.querySelector('.topbar__badge')?.classList.contains('topbar__badge--connected')).toBe(true);
 
     realtimeState.set('disconnected');
-    fixture.detectChanges();
+    await fixture.whenStable();
     expect(compiled.querySelector('.topbar__badge')?.textContent).toContain('Sem conexão');
+  });
+
+  it('updates the shared heading for every primary route', async () => {
+    const fixture = TestBed.createComponent(App);
+    const router = TestBed.inject(Router);
+    const routes = [
+      ['/intelligence', 'Análise Preventiva', 'Riscos pelo histórico.'],
+      ['/live-map', 'Mapa Vivo', 'Localização dos recursos.'],
+      ['/equipments/asset-1', 'Equipamentos', 'Situação dos ativos.'],
+      ['/agents/agent-1', 'Agentes', 'Equipes em atividade.'],
+      ['/maintenance', 'Manutenção', 'Agenda e serviços.'],
+      ['/command', 'Central de Operações', 'Situação e prioridades.'],
+    ] as const;
+
+    for (const [url, title, subtitle] of routes) {
+      await router.navigateByUrl(url);
+      await fixture.whenStable();
+      const root = fixture.nativeElement as HTMLElement;
+      expect(root.querySelector('.topbar__title')?.textContent?.trim()).toBe(title);
+      expect(root.querySelector('.topbar__subtitle')?.textContent?.trim()).toBe(subtitle);
+    }
+  });
+
+  it('persists theme changes and exposes sidebar collapse state accessibly', async () => {
+    localStorage.removeItem('fogo-color-theme');
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const root = fixture.nativeElement as HTMLElement;
+
+    root.querySelector<HTMLButtonElement>('.theme-toggle')?.click();
+    root.querySelector<HTMLButtonElement>('.sidebar-toggle')?.click();
+    await fixture.whenStable();
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+    expect(localStorage.getItem('fogo-color-theme')).toBe('light');
+    expect(root.querySelector<HTMLButtonElement>('.sidebar-toggle')?.getAttribute('aria-expanded')).toBe('false');
+    expect(root.querySelector('.app-shell')?.classList.contains('app-shell--collapsed')).toBe(true);
+  });
+
+  it('opens mobile navigation and closes it when Escape is pressed', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const root = fixture.nativeElement as HTMLElement;
+    const toggle = root.querySelector<HTMLButtonElement>('.menu-toggle');
+
+    toggle?.click();
+    await fixture.whenStable();
+    expect(toggle?.getAttribute('aria-expanded')).toBe('true');
+    expect(root.querySelector('.sidebar')?.classList.contains('sidebar--open')).toBe(true);
+    const firstLink = root.querySelector<HTMLAnchorElement>('.sidebar nav a');
+    const linkFocus = firstLink ? vi.spyOn(firstLink, 'focus') : null;
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(linkFocus).toHaveBeenCalled();
+
+    const toggleFocus = toggle ? vi.spyOn(toggle, 'focus') : null;
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(toggle?.getAttribute('aria-expanded')).toBe('false');
+    expect(toggleFocus).toHaveBeenCalled();
+
+    const app = fixture.componentInstance as unknown as {
+      menuOpen: { set(value: boolean): void };
+      closeMenu(): void;
+    };
+    app.menuOpen.set(true);
+    app.closeMenu();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(toggleFocus).toHaveBeenCalledTimes(2);
+  });
+
+  it('closes mobile navigation when its toggle is pressed again', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const toggle = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('.menu-toggle');
+
+    toggle?.click();
+    await fixture.whenStable();
+    toggle?.click();
+    await fixture.whenStable();
+
+    expect(toggle?.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('keeps the dark theme usable when browser storage is unavailable', async () => {
+    const getItem = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('storage blocked'); });
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('storage blocked'); });
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+
+    getItem.mockRestore();
+    setItem.mockRestore();
   });
 });

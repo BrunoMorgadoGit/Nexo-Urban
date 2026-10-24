@@ -32,7 +32,6 @@ const child = spawn(process.execPath, [vitestCli, 'run', '--config', './vitest.c
   stdio: 'inherit',
   env: {
     ...process.env,
-    DATABASE_URL: process.env.E2E_DATABASE_URL,
     NODE_ENV: 'development',
     DEMO_SCENARIO_ENABLED: 'true',
   },
