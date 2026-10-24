@@ -74,6 +74,8 @@ export type MonitoringAlertFilters = {
   pageSize?: number;
   severity?: MonitoringAlertSeverity;
   status?: string;
+  code?: MonitoringAlert['code'];
+  resourceId?: string;
 };
 
 export type EquipmentFilters = {
@@ -181,6 +183,10 @@ export class InventoryApiService {
 
   getMonitoringRegions(): Observable<MonitoringRegionSummary[]> {
     return this.http.get<MonitoringRegionSummary[]>(`${API_BASE_PATH}/monitoring/regions`);
+  }
+
+  getMonitoringAlert(id: string): Observable<MonitoringAlert> {
+    return this.http.get<MonitoringAlert>(`${API_BASE_PATH}/monitoring/alerts/${id}`);
   }
 
   getIntelligenceOverview(sourceScope: IntelligenceSourceScope = 'demo'): Observable<IntelligenceOverview> {

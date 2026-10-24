@@ -260,14 +260,26 @@ export class OperationalMapComponent implements AfterViewInit, OnDestroy {
       cluster: true,
       clusterMaxZoom: 14,
       clusterRadius: 44,
+      clusterProperties: {
+        problem_count: ['+', ['case', ['boolean', ['get', 'problemSignal'], false], 1, 0]],
+      },
     });
     map.addLayer({
       id: 'resource-clusters', type: 'circle', source: 'resources', filter: ['has', 'point_count'],
-      paint: { 'circle-color': '#b67c39', 'circle-radius': ['step', ['get', 'point_count'], 17, 12, 21, 40, 26], 'circle-stroke-color': '#e4bd83', 'circle-stroke-width': 1.5 },
+      paint: {
+        'circle-color': ['case', ['>', ['get', 'problem_count'], 0], '#b95858', '#b67c39'],
+        'circle-radius': ['step', ['get', 'point_count'], 17, 12, 21, 40, 26],
+        'circle-stroke-color': ['case', ['>', ['get', 'problem_count'], 0], '#f0aaaa', '#e4bd83'],
+        'circle-stroke-width': 1.5,
+      },
     });
     map.addLayer({
       id: 'resource-cluster-count', type: 'symbol', source: 'resources', filter: ['has', 'point_count'],
-      layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-size': 12, 'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'] },
+      layout: {
+        'text-field': ['concat', ['get', 'point_count_abbreviated'], ['case', ['>', ['get', 'problem_count'], 0], ' !', '']],
+        'text-size': 12,
+        'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+      },
       paint: { 'text-color': '#16191d' },
     });
     map.addLayer({
@@ -276,7 +288,7 @@ export class OperationalMapComponent implements AfterViewInit, OnDestroy {
         'circle-color': ['case', ['==', ['get', 'kind'], 'agent'], '#7eb6e8', ['==', ['get', 'status'], 'stolen'], '#f07878', ['==', ['get', 'status'], 'malfunctioning'], '#ef8f52', ['==', ['get', 'status'], 'maintenance'], '#ef8f52', ['==', ['get', 'status'], 'deactivated'], '#89939c', ['==', ['get', 'status'], 'not_installed'], '#89939c', ['in', ['get', 'maintenancePriority'], ['literal', ['high', 'immediate']]], '#e3ae58', ['==', ['get', 'status'], 'operational'], '#56c48e', '#89939c'],
         'circle-radius': ['case', ['boolean', ['get', 'selected'], false], 10, 7],
         'circle-opacity': ['case', ['boolean', ['get', 'stale'], false], 0.52, 0.96],
-        'circle-stroke-color': ['case', ['boolean', ['get', 'selected'], false], '#ffffff', '#15191e'],
+        'circle-stroke-color': ['case', ['boolean', ['get', 'selected'], false], '#ffffff', ['boolean', ['get', 'problemSignal'], false], '#b95858', '#15191e'],
         'circle-stroke-width': ['case', ['boolean', ['get', 'selected'], false], 2.5, 1.5],
       },
     });
@@ -306,6 +318,7 @@ export class OperationalMapComponent implements AfterViewInit, OnDestroy {
           status: item.status,
           maintenancePriority: item.maintenancePriority,
           stale: item.positionStale,
+          problemSignal: item.kind === 'equipment' && (item.status === 'malfunctioning' || item.status === 'stolen'),
           selected: item.id === selectedId,
           glyph: item.kind === 'agent' ? 'AG' : item.typeCode?.slice(0, 2).toUpperCase() ?? 'EQ',
           identifier: item.identifier,

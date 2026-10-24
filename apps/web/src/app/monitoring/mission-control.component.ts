@@ -1,5 +1,5 @@
-import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { CommonModule, DOCUMENT } from '@angular/common';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, inject, input, output, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import type { DemoScenario, DemoTimelineEntry } from '@fogo/contracts';
 
@@ -16,6 +16,38 @@ export class MissionControlComponent {
   readonly events = input.required<DemoTimelineEntry[]>();
   readonly busy = input(false);
   readonly scenarioAction = output<void>();
+  private readonly actionButton = viewChild<ElementRef<HTMLButtonElement>>('scenarioActionButton');
+  private readonly document = inject(DOCUMENT);
+  private readonly destroyRef = inject(DestroyRef);
+  private highlightTimeout: ReturnType<typeof setTimeout> | undefined;
+
+  constructor() {
+    this.destroyRef.onDestroy(() => this.clearGuidedHighlight());
+  }
+
+  focusScenarioAction(action: 'outage' | 'restore'): boolean {
+    if (this.busy() || (action === 'outage' && this.scenario().active) || (action === 'restore' && !this.scenario().active)) {
+      return false;
+    }
+    const button = this.actionButton()?.nativeElement;
+    if (!button) return false;
+
+    const reduceMotion = this.document.defaultView?.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    button.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
+    button.focus({ preventScroll: true });
+    this.clearGuidedHighlight();
+    button.classList.add('mission-action--guided-focus');
+    this.highlightTimeout = setTimeout(() => {
+      button.classList.remove('mission-action--guided-focus');
+      this.highlightTimeout = undefined;
+    }, 2600);
+    return true;
+  }
+
+  protected activateScenarioAction(): void {
+    this.clearGuidedHighlight();
+    this.scenarioAction.emit();
+  }
 
   protected statusLabel(status: DemoScenario['status']): string {
     return status === 'malfunctioning' ? 'Mau funcionamento'
@@ -46,5 +78,12 @@ export class MissionControlComponent {
       open: 'Aberto', acknowledged: 'Reconhecido', resolved: 'Resolvido', recorded: 'Registrado',
     };
     return labels[status] ?? status;
+  }
+
+  private clearGuidedHighlight(): void {
+    if (this.highlightTimeout === undefined) return;
+    clearTimeout(this.highlightTimeout);
+    this.highlightTimeout = undefined;
+    this.actionButton()?.nativeElement.classList.remove('mission-action--guided-focus');
   }
 }

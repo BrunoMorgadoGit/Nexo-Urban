@@ -42,9 +42,18 @@ export class MonitoringReadService {
     ]);
 
     const byStatus = Object.fromEntries(statusRows.map(({ status, count }) => [status, Number(count)]));
+    const equipmentStatusCounts = Object.fromEntries(
+      equipmentStatuses.map((status) => [status, byStatus[status] ?? 0]),
+    ) as Record<(typeof equipmentStatuses)[number], number>;
     const availability = calculateAvailability(byStatus);
+    const unclassifiedEquipment = Math.max(
+      0,
+      availability.totalEquipment - Object.values(equipmentStatusCounts).reduce((total, count) => total + count, 0),
+    );
     return {
       demoMode: process.env.NODE_ENV === 'development',
+      equipmentStatusCounts,
+      unclassifiedEquipment,
       ...availability,
       agentsOnDuty,
       activeCriticalAlerts,

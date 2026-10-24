@@ -24,6 +24,7 @@ export class App {
   private readonly realtime = inject(MonitoringRealtimeService);
   private readonly destroyRef = inject(DestroyRef);
   protected readonly pageTitle = signal(this.titleFor(this.router.url));
+  protected readonly pageSubtitle = signal(this.subtitleFor(this.router.url));
   protected readonly connectionState = this.realtime.state;
   @ViewChild('mainNavigation') private navigation?: ElementRef<HTMLElement>;
   @ViewChild('menuToggle') private menuToggle?: ElementRef<HTMLButtonElement>;
@@ -34,7 +35,10 @@ export class App {
     this.router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),
       takeUntilDestroyed(this.destroyRef),
-    ).subscribe((event) => this.pageTitle.set(this.titleFor(event.urlAfterRedirects)));
+    ).subscribe((event) => {
+      this.pageTitle.set(this.titleFor(event.urlAfterRedirects));
+      this.pageSubtitle.set(this.subtitleFor(event.urlAfterRedirects));
+    });
   }
 
   private readTheme(): ColorTheme {
@@ -62,13 +66,24 @@ export class App {
 
   private titleFor(url: string): string {
     const path = url.split(/[?#]/, 1)[0];
-    if (path.startsWith('/intelligence')) return 'Inteligência Preditiva';
+    if (path.startsWith('/intelligence')) return 'Análise Preventiva';
     if (path.startsWith('/live-map')) return 'Mapa Vivo';
-    if (path.startsWith('/alerts')) return 'Alertas e incidentes';
+    if (path.startsWith('/alerts')) return 'Alertas e Incidentes';
     if (path.startsWith('/equipments')) return 'Equipamentos';
     if (path.startsWith('/agents')) return 'Agentes';
     if (path.startsWith('/maintenance')) return 'Manutenção';
     return 'Central de Operações';
+  }
+
+  private subtitleFor(url: string): string {
+    const path = url.split(/[?#]/, 1)[0];
+    if (path.startsWith('/intelligence')) return 'Riscos pelo histórico.';
+    if (path.startsWith('/live-map')) return 'Localização dos recursos.';
+    if (path.startsWith('/alerts')) return 'Ocorrências e atendimento.';
+    if (path.startsWith('/equipments')) return 'Situação dos ativos.';
+    if (path.startsWith('/agents')) return 'Equipes em atividade.';
+    if (path.startsWith('/maintenance')) return 'Agenda e serviços.';
+    return 'Situação e prioridades.';
   }
 
   protected toggleSidebar(): void {
@@ -77,7 +92,7 @@ export class App {
 
   protected connectionLabel(): string {
     const state = this.connectionState();
-    return state === 'connected' ? 'Tempo real conectado' : state === 'connecting' ? 'Conectando' : 'Reconectando';
+    return state === 'connected' ? 'Conectado' : state === 'connecting' ? 'Conectando' : 'Sem conexão';
   }
 
   protected closeMenu(): void {

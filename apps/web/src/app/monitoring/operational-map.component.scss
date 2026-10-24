@@ -2,8 +2,6 @@
 
 .map-section { display: grid; gap: var(--space-4); min-width: 0; }
 .map-heading, .map-compact-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
-.map-heading h1 { margin: 0; font-size: clamp(1.55rem, 2vw, 2rem); letter-spacing: -0.035em; }
-.map-heading__description { margin: var(--space-2) 0 0; color: var(--color-text-secondary); font-size: .9rem; }
 .eyebrow { margin: 0 0 var(--space-2); color: var(--color-text-muted); font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
 .map-count, .map-compact-heading span { color: var(--color-text-muted); font-size: .78rem; white-space: nowrap; }
 .map-compact-heading { padding: var(--space-3) var(--space-4) 0; }
@@ -12,11 +10,21 @@
 .map-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); gap: var(--space-3); padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
 .map-filters label { display: grid; gap: var(--space-2); color: var(--color-text-muted); font-size: .72rem; }
 .map-filters select { width: 100%; min-height: 2.55rem; padding: 0 var(--space-3); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-background); color: var(--color-text-primary); font-size: .78rem; }
+select {
+  appearance: none;
+  padding-right: 2.25rem;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--color-text-secondary) 50%),
+    linear-gradient(135deg, var(--color-text-secondary) 50%, transparent 50%);
+  background-position: calc(100% - .85rem) 50%, calc(100% - .55rem) 50%;
+  background-size: .3rem .3rem;
+  background-repeat: no-repeat;
+}
 .map-error { margin: 0; padding: var(--space-3) var(--space-4); border: 1px solid rgb(240 120 120 / 25%); border-radius: var(--radius-sm); background: rgb(240 120 120 / 7%); color: var(--color-status-danger); font-size: .82rem; }
 .map-workspace { display: grid; grid-template-columns: minmax(0, 1fr); align-items: stretch; gap: var(--space-4); min-width: 0; }
 .map-workspace--selected { grid-template-columns: minmax(0, 1fr) minmax(17rem, 21rem); }
 .map-workspace--compact { display: block; }
-.map-frame { position: relative; min-width: 0; min-height: 35rem; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-map-canvas); }
+.map-frame { position: relative; isolation: isolate; min-width: 0; min-height: 35rem; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-map-canvas); }
 .map-section--compact .map-frame { min-height: 30rem; border-radius: 0 0 var(--radius-md) var(--radius-md); }
 .map-canvas { position: absolute; inset: 0; }
 .map-overlay { position: absolute; z-index: 3; inset: 0; display: grid; align-content: center; justify-items: center; gap: var(--space-3); padding: var(--space-6); background: var(--color-surface-overlay); color: var(--color-text-secondary); text-align: center; }
@@ -32,7 +40,7 @@
 .legend-dot { display: inline-grid; width: .68rem; height: .68rem; flex: 0 0 auto; place-items: center; border-radius: 50%; background: var(--color-status-neutral); }
 .legend-dot--success { background: var(--color-status-success); }
 .legend-dot--warning { background: var(--color-status-warning); }
-.legend-dot--issue { background: var(--color-status-warning); }
+.legend-dot--problem { background: var(--color-status-danger); color: #fff; font-size: .55rem; font-style: normal; font-weight: 800; }
 .legend-dot--inactive { background: var(--color-status-neutral); }
 .legend-dot--agent { width: 1rem; height: 1rem; background: var(--color-status-info); color: var(--color-status-info-contrast); font-size: .45rem; font-style: normal; font-weight: 800; }
 .map-position-note { position: absolute; z-index: 2; top: var(--space-3); right: var(--space-3); margin: 0; padding: .45rem .65rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface-overlay); color: var(--color-text-secondary); font-size: .68rem; }
@@ -76,5 +84,5 @@
 @media (max-width: 420px) {
   .map-filters { grid-template-columns: minmax(0, 1fr); }
   .map-frame, .map-section--compact .map-frame { min-height: 26rem; }
-  .map-legend { max-width: calc(100% - 1rem); left: .5rem; bottom: .5rem; }
+  .map-legend { max-width: calc(100% - 1rem); left: .5rem; bottom: 2.5rem; }
 }

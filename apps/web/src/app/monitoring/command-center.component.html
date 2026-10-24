@@ -1,13 +1,4 @@
-<section class="command-page" aria-labelledby="command-title">
-  <header class="command-heading">
-    <div>
-      <p class="eyebrow">DSIN Challenge 2026 · Campinas demonstrativa</p>
-      <h1 id="command-title">Central de Operações</h1>
-      <p>Estado atual dos recursos urbanos e das equipes em campo.</p>
-    </div>
-    <a class="text-link" routerLink="/live-map">Abrir Mapa Vivo <span aria-hidden="true">↗</span></a>
-  </header>
-
+<section class="command-page" aria-label="Central de Operações">
   @if (error()) {
     <div class="command-error" role="alert"><span>{{ error() }}</span><button type="button" (click)="reload()">Tentar novamente</button></div>
   }
@@ -15,96 +6,133 @@
   @if (loading() && !snapshot()) {
     <div class="command-loading" role="status">Consultando inventário, alertas e manutenção…</div>
   } @else if (snapshot(); as data) {
-    <section class="metrics" aria-label="Indicadores operacionais">
-      <article class="metric"><span>Total de equipamentos</span><strong>{{ data.overview.totalEquipment }}</strong><small>Registros no inventário</small></article>
-      <article class="metric metric--success"><span>Operacionais</span><strong>{{ data.overview.operationalEquipment }}</strong><small>Estado operacional atual</small></article>
-      <article class="metric metric--warning"><span>Indisponíveis</span><strong>{{ data.overview.unavailableEquipment }}</strong><small>Furtados incluídos</small></article>
-      <article class="metric metric--accent"><span>Disponibilidade</span><strong>{{ data.overview.availabilityPercent | number:'1.1-1' }}<i>%</i></strong><small>Operacionais ÷ elegíveis</small></article>
-      <article class="metric"><span>Agentes em atividade</span><strong>{{ data.overview.agentsOnDuty }}</strong><small>Escala marcada em atividade</small></article>
+    <section class="metrics" aria-label="Resumo operacional da cidade">
+      <article class="metric"><span>Equipamentos cadastrados</span><strong>{{ data.overview.totalEquipment }}</strong></article>
+      <article class="metric metric--success"><span>Operacionais</span><strong>{{ data.overview.operationalEquipment }}</strong></article>
+      <article class="metric metric--warning"><span>Indisponíveis</span><strong>{{ data.overview.unavailableEquipment }}</strong><small>Entre os elegíveis; furtados e não classificados incluídos</small></article>
       <article class="metric metric--danger"><span>Alertas críticos ativos</span><strong>{{ data.overview.activeCriticalAlerts }}</strong><small>Abertos ou reconhecidos</small></article>
-      <article class="metric metric--warning"><span>Manutenções vencidas</span><strong>{{ data.overview.overdueMaintenance }}</strong><small>Agendadas ou em execução</small></article>
+      <article class="metric"><span>Agentes em atividade</span><strong>{{ data.overview.agentsOnDuty }}</strong></article>
+    </section>
+
+    <section class="attention-panel" aria-labelledby="attention-title">
+      <header class="panel-heading">
+        <div><p class="eyebrow">Prioridade operacional</p><h2 id="attention-title">Atenção necessária</h2></div>
+        <a routerLink="/alerts">Todas as ocorrências <span aria-hidden="true">→</span></a>
+      </header>
+      @if (data.alerts.items.length) {
+        <ol class="alert-list">
+          @for (alert of data.alerts.items; track alert.id) {
+            <li class="alert-row" [class.alert-row--critical]="alert.severity === 'critical'">
+              <span [class]="'severity-mark severity-mark--' + alert.severity" aria-hidden="true"></span>
+              <div class="alert-row__content">
+                <div class="alert-row__heading"><span [class]="'severity-label severity-label--' + alert.severity">{{ severityLabel(alert.severity) }}</span><span [class]="'status-label status-label--' + alert.status">{{ statusLabel(alert.status) }}</span><time [attr.datetime]="alert.createdAt">{{ alert.createdAt | date:'dd/MM/yyyy HH:mm' }}</time></div>
+                <strong>{{ alert.title }}</strong>
+                <span class="alert-resource">{{ alert.resourceLabel }} · {{ alert.organizationName }} · {{ alert.regionName ?? 'Região não informada' }}</span>
+                <p>{{ alert.description }}</p>
+              </div>
+              <a class="alert-open-link" [routerLink]="['/alerts']" [queryParams]="{ alert: alert.id }">Ver ocorrência <span aria-hidden="true">→</span></a>
+            </li>
+          }
+        </ol>
+      } @else {
+        <div class="empty-state"><strong>Sem ocorrências ativas</strong><span>Alertas serão exibidos aqui quando o sistema registrar uma condição operacional.</span></div>
+      }
     </section>
 
     @if (data.overview.demoMode) {
-      <p class="demo-banner"><span>DEMONSTRAÇÃO</span> Dados urbanos sintéticos de Campinas; as alterações do cenário são persistidas no banco local.</p>
+      <p class="demo-banner"><span>DEMONSTRAÇÃO</span> O cenário de Campinas usa dados demonstrativos; as alterações da simulação são persistidas no banco local.</p>
     }
+
+    <section class="map-panel" aria-label="Mapa operacional e localização dos recursos">
+      <app-operational-map [compact]="true" />
+    </section>
+
+    <section class="support-grid" aria-label="Distribuição de equipamentos e manutenção prioritária">
+      <section class="distribution-panel" aria-labelledby="distribution-title">
+        <header class="panel-heading">
+          <div><p class="eyebrow">Inventário atual</p><h2 id="distribution-title">Situação dos equipamentos</h2></div>
+          <span>{{ data.overview.totalEquipment }} no inventário</span>
+        </header>
+        @if (data.overview.totalEquipment > 0) {
+          <div class="distribution-content">
+            <div class="donut-wrap">
+              <svg class="distribution-chart" viewBox="0 0 100 100" role="img" [attr.aria-label]="'Distribuição dos ' + data.overview.totalEquipment + ' equipamentos cadastrados por situação operacional'">
+                <circle class="distribution-track" cx="50" cy="50" r="34" />
+                @for (segment of distribution(); track segment.status) {
+                  <circle [class]="'distribution-segment distribution-segment--' + segment.status" cx="50" cy="50" r="34" [attr.stroke-dasharray]="segment.dashArray" [attr.stroke-dashoffset]="segment.dashOffset" />
+                }
+              </svg>
+              <span class="donut-total"><strong>{{ data.overview.totalEquipment }}</strong><small>equipamentos</small></span>
+            </div>
+            <ul class="distribution-legend" aria-label="Valores da distribuição">
+              @for (segment of distribution(); track segment.status) {
+                <li><span [class]="'distribution-swatch distribution-swatch--' + segment.status" aria-hidden="true"></span><span>{{ segment.label }}</span><strong>{{ segment.count }}</strong><small>{{ segment.percent | number:'1.0-1' }}%</small></li>
+              }
+            </ul>
+          </div>
+        } @else {
+          <p class="panel-empty">O inventário não possui equipamentos cadastrados.</p>
+        }
+        <p class="availability-note">Disponibilidade: {{ data.overview.availabilityPercent | number:'1.1-1' }}% ({{ data.overview.operationalEquipment }} operacionais ÷ {{ data.overview.eligibleEquipment }} elegíveis). Não instalados e desativados ficam fora desse denominador.</p>
+      </section>
+
+      <section class="priority-panel maintenance-panel" aria-labelledby="maintenance-title">
+        <header class="panel-heading">
+          <div><p class="eyebrow">Fila de manutenção</p><h2 id="maintenance-title">Manutenções em atenção</h2></div>
+          <a routerLink="/maintenance">Abrir agenda <span aria-hidden="true">→</span></a>
+        </header>
+        @if (data.maintenance.length) {
+          <ul class="maintenance-list">
+            @for (entry of data.maintenance; track entry.maintenance.id) {
+              <li>
+                <span [class]="'urgency-pill urgency-pill--' + entry.urgency">{{ urgencyLabel(entry.urgency) }}</span>
+                <div><strong>{{ entry.maintenance.serialNumber }}</strong><span>{{ entry.maintenance.typeLabel }} · {{ entry.maintenance.scheduledDate | date:'dd/MM/yyyy' }}</span><small>{{ entry.maintenance.description }}</small></div>
+              </li>
+            }
+          </ul>
+        } @else { <div class="empty-state"><strong>Sem manutenção prioritária</strong><span>Itens vencidos, imediatos e previstos para os próximos sete dias aparecem aqui.</span></div> }
+      </section>
+    </section>
+
+    <section class="regions-panel" aria-labelledby="regions-title">
+      <header class="panel-heading">
+        <div><p class="eyebrow">Visão resumida</p><h2 id="regions-title">Operação por região</h2></div>
+        <span>{{ data.regions.length }} regiões · disponibilidade usa equipamentos elegíveis</span>
+      </header>
+      @if (data.regions.length) {
+        <div class="region-table-wrap">
+          <table class="region-table">
+            <thead><tr><th scope="col">Região</th><th scope="col">Operacionais / elegíveis</th><th scope="col">Disponibilidade</th><th scope="col">Agentes ativos</th><th scope="col">Furtados</th></tr></thead>
+            <tbody>
+              @for (region of data.regions; track region.id) {
+                <tr>
+                  <th scope="row"><span>{{ region.name }}</span><small>{{ region.zone }}</small></th>
+                  <td>{{ region.operationalEquipment }} / {{ region.eligibleEquipment }}</td>
+                  <td><span class="availability-value">{{ region.availabilityPercent | number:'1.0-1' }}%</span><span class="availability-track" aria-hidden="true"><i [style.width.%]="region.availabilityPercent"></i></span></td>
+                  <td>{{ region.agentsOnDuty }}</td>
+                  <td>@if (region.stolenEquipment) { <span class="stolen-count">{{ region.stolenEquipment }}</span> } @else { <span class="quiet">0</span> }</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else { <p class="panel-empty">Sem regiões cadastradas.</p> }
+      <p class="synthetic-note">Resumo calculado com equipamentos e agentes vinculados às regiões; não representa polígonos territoriais.</p>
+    </section>
 
     @if (data.overview.demoMode && data.demoScenario; as scenario) {
-      <app-mission-control [scenario]="scenario" [events]="data.demoTimeline" [busy]="busyScenario()" (scenarioAction)="toggleMissionControl()" />
+      <section class="demo-guide" aria-labelledby="demo-guide-title">
+        <header class="demo-guide__heading"><div><p class="eyebrow">Fluxo persistido no backend</p><h2 id="demo-guide-title">Demonstração guiada</h2><p>Mostre como uma alteração passa do inventário à resposta operacional. A simulação não é uma previsão.</p></div></header>
+        <ol class="demo-steps" aria-label="Etapas da demonstração">
+          <li [class]="'demo-step demo-step--' + stepState(1)"><span class="demo-step__number" aria-hidden="true">1</span><a class="demo-step__label" [routerLink]="'/equipments/' + scenario.equipmentId">Consultar equipamento</a><span class="demo-step__state">{{ stepStateLabel(1) }}</span></li>
+          <li [class]="'demo-step demo-step--' + stepState(2)"><span class="demo-step__number" aria-hidden="true">2</span><button type="button" class="demo-step__label" [attr.aria-current]="stepState(2) === 'current' ? 'step' : null" (click)="guideToMissionAction('outage')">Simular falha</button><span class="demo-step__state">{{ stepStateLabel(2) }}</span></li>
+          <li [class]="'demo-step demo-step--' + stepState(3)"><span class="demo-step__number" aria-hidden="true">3</span><button type="button" class="demo-step__label" [class.demo-step__label--muted]="stepState(3) === 'waiting'" [attr.aria-current]="stepState(3) === 'current' ? 'step' : null" (click)="openDemoAlert(3)">Conferir ocorrência e histórico</button><span class="demo-step__state">{{ stepStateLabel(3) }}</span></li>
+          <li [class]="'demo-step demo-step--' + stepState(4)"><span class="demo-step__number" aria-hidden="true">4</span><button type="button" class="demo-step__label" [class.demo-step__label--muted]="stepState(4) === 'waiting'" [attr.aria-current]="stepState(4) === 'current' ? 'step' : null" (click)="openDemoAlert(4)">Reconhecer ou anotar</button><span class="demo-step__state">{{ stepStateLabel(4) }}</span></li>
+          <li [class]="'demo-step demo-step--' + stepState(5)"><span class="demo-step__number" aria-hidden="true">5</span><button type="button" class="demo-step__label" [class.demo-step__label--muted]="stepState(5) === 'waiting'" [attr.aria-current]="stepState(5) === 'current' ? 'step' : null" (click)="guideToMissionAction('restore')">Restaurar cenário</button><span class="demo-step__state">{{ stepStateLabel(5) }}</span></li>
+        </ol>
+        @if (guideFeedback()) { <p class="demo-guide__feedback" role="status" aria-live="polite">{{ guideFeedback() }}</p> }
+        <app-mission-control [scenario]="scenario" [events]="data.demoTimeline" [busy]="busyScenario()" (scenarioAction)="toggleMissionControl()" />
+      </section>
     }
-
-    <section class="command-grid">
-      <div class="map-column">
-        <app-operational-map [compact]="true" />
-        <section class="regions-panel" aria-labelledby="regions-title">
-          <header class="panel-heading">
-            <div><p class="eyebrow">Distribuição territorial</p><h2 id="regions-title">Resumo por região</h2></div>
-            <span>{{ data.regions.length }} regiões</span>
-          </header>
-          @if (data.regions.length) {
-            <div class="region-table-wrap">
-              <table class="region-table">
-                <thead><tr><th>Região</th><th>Disponibilidade</th><th>Recursos</th><th>Agentes</th><th>Ocorrências</th></tr></thead>
-                <tbody>
-                  @for (region of data.regions; track region.id) {
-                    <tr>
-                      <th scope="row"><span>{{ region.name }}</span><small>{{ region.zone }}</small></th>
-                      <td><span class="availability-value">{{ region.availabilityPercent | number:'1.0-1' }}%</span><span class="availability-track"><i [style.width.%]="region.availabilityPercent"></i></span></td>
-                      <td>{{ region.operationalEquipment }} / {{ region.eligibleEquipment }}</td>
-                      <td>{{ region.agentsOnDuty }}</td>
-                      <td>@if (region.stolenEquipment) { <span class="stolen-count">{{ region.stolenEquipment }} furtado(s)</span> } @else { <span class="quiet">—</span> }</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          } @else { <p class="panel-empty">Sem regiões cadastradas.</p> }
-          <p class="synthetic-note">Indicadores calculados com as posições e regiões cadastradas; nenhum polígono territorial é presumido.</p>
-        </section>
-      </div>
-
-      <aside class="priority-column">
-        <section class="priority-panel" aria-labelledby="alerts-title">
-          <header class="panel-heading">
-            <div><p class="eyebrow">Ação operacional</p><h2 id="alerts-title">Alertas prioritários</h2></div>
-            <a routerLink="/alerts">Ver todos <span aria-hidden="true">→</span></a>
-          </header>
-          @if (data.alerts.items.length) {
-            <ul class="alert-list">
-              @for (alert of data.alerts.items; track alert.id) {
-                <li class="alert-row" [class.alert-row--critical]="alert.severity === 'critical'">
-                  <span class="severity-mark" [class]="'severity-mark severity-mark--' + alert.severity"></span>
-                  <div class="alert-row__content">
-                    <a [routerLink]="alert.detailPath" class="alert-title">{{ alert.title }}</a>
-                    <span class="alert-resource">{{ alert.resourceLabel }} · {{ alert.organizationName }}</span>
-                    <div class="alert-meta"><span [class]="'severity-label severity-label--' + alert.severity">{{ severityLabel(alert.severity) }}</span><span>{{ statusLabel(alert.status) }}</span></div>
-                  </div>
-                  @if (alert.status === 'open') {
-                    <button type="button" class="ack-button" [disabled]="busyAlertId() === alert.id" (click)="acknowledge(alert.id)" [attr.aria-label]="'Reconhecer ' + alert.title">Reconhecer</button>
-                  }
-                </li>
-              }
-            </ul>
-          } @else { <div class="empty-state"><strong>Sem alertas ativos</strong><span>As ocorrências aparecerão aqui quando uma condição operacional for detectada.</span></div> }
-        </section>
-
-        <section class="priority-panel maintenance-panel" aria-labelledby="maintenance-title">
-          <header class="panel-heading">
-            <div><p class="eyebrow">Acompanhamento</p><h2 id="maintenance-title">Manutenção em atenção</h2></div>
-            <a routerLink="/maintenance">Abrir agenda <span aria-hidden="true">→</span></a>
-          </header>
-          @if (data.maintenance.length) {
-            <ul class="maintenance-list">
-              @for (entry of data.maintenance; track entry.maintenance.id) {
-                <li>
-                  <span [class]="'urgency-pill urgency-pill--' + entry.urgency">{{ urgencyLabel(entry.urgency) }}</span>
-                  <div><strong>{{ entry.maintenance.serialNumber }}</strong><span>{{ entry.maintenance.typeLabel }} · {{ entry.maintenance.scheduledDate | date:'dd/MM/yyyy' }}</span><small>{{ entry.maintenance.description }}</small></div>
-                </li>
-              }
-            </ul>
-          } @else { <div class="empty-state"><strong>Agenda sem pendências próximas</strong><span>Manutenções urgentes, vencidas ou previstas em até sete dias aparecem aqui.</span></div> }
-        </section>
-      </aside>
-    </section>
   }
 </section>

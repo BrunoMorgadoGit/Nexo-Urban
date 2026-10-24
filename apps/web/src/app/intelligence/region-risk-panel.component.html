@@ -1,22 +1,19 @@
 <section class="risk-section" aria-labelledby="risk-title">
-  <header class="section-heading"><div><p class="eyebrow">Prioridade territorial</p><h2 id="risk-title">Risco operacional por região</h2></div><span>{{ regions().length }} regiões</span></header>
-  <div class="risk-layout">
-    <section class="region-plot" aria-label="Distribuição relativa pelas coordenadas dos equipamentos">
-      <div class="plot-heading"><strong>Distribuição regional</strong><span>Centros calculados das localizações cadastradas</span></div>
-      @if (plotPoints().length) {
-        <div class="plot-area"><span class="axis-label axis-label--north">Norte</span><span class="axis-label axis-label--south">Sul</span>
-          @for (point of plotPoints(); track point.region.regionId) {
-            <button type="button" class="region-point" [class]="'region-point region-point--' + point.region.classification" [class.region-point--selected]="selectedRegionId() === point.region.regionId" [style.left.%]="point.left" [style.top.%]="point.top" [attr.aria-label]="point.region.regionName + ': ' + (point.region.riskScore === null ? 'dados insuficientes' : 'índice ' + point.region.riskScore)" [attr.aria-pressed]="selectedRegionId() === point.region.regionId" (click)="regionSelected.emit(point.region)"><span class="region-point__core"></span><span class="region-point__label">{{ point.region.regionName }}</span></button>
-          }
-          <span class="plot-note">Pontos representativos · sem limites territoriais inferidos</span>
-        </div>
-      } @else { <div class="empty-plot">Não há coordenadas suficientes para posicionar as regiões neste escopo.</div> }
-      <ul class="risk-legend" aria-label="Legenda de risco"><li><i class="risk-swatch risk-swatch--critical"></i>Crítico</li><li><i class="risk-swatch risk-swatch--elevated"></i>Elevado</li><li><i class="risk-swatch risk-swatch--moderate"></i>Moderado</li><li><i class="risk-swatch risk-swatch--low"></i>Baixo</li><li><i class="risk-swatch risk-swatch--insufficient"></i>Insuficiente</li></ul>
-    </section>
-    <section class="region-ranking" aria-label="Classificação de risco das regiões">
-      @for (region of regions(); track region.regionId) {
-        <button type="button" class="region-row" [class.region-row--selected]="selectedRegionId() === region.regionId" (click)="regionSelected.emit(region)" [attr.aria-pressed]="selectedRegionId() === region.regionId"><span class="region-row__marker" [class]="'region-row__marker region-row__marker--' + region.classification"></span><span class="region-row__name"><strong>{{ region.regionName }}</strong><small>{{ region.zone }} · {{ region.eligibleEquipmentCount }} elegíveis</small></span><span class="region-row__score"><strong>{{ region.riskScore === null ? '—' : region.riskScore }}</strong><small>{{ riskLabel(region.classification) }}</small></span></button>
-      } @empty { <p class="empty-copy">Nenhuma região cadastrada.</p> }
-    </section>
+  <header class="section-heading">
+    <div><p class="eyebrow">Prioridade territorial</p><h2 id="risk-title">Regiões que merecem atenção</h2><p>Índice de priorização por região · escala de 0 a 100 · não é probabilidade.</p></div>
+    <span>{{ regions().length }} regiões</span>
+  </header>
+  <div class="region-ranking" aria-label="Comparação dos índices de priorização regionais">
+    @for (region of regions(); track region.regionId) {
+      <button type="button" class="region-row" [class.region-row--selected]="selectedRegionId() === region.regionId" (click)="regionSelected.emit(region)" [attr.aria-pressed]="selectedRegionId() === region.regionId" [attr.aria-label]="region.regionName + ': ' + (region.riskScore === null ? 'dados insuficientes' : 'índice ' + region.riskScore + ' de 100') + ', classificação ' + riskLabel(region.classification)">
+        <span class="region-row__content">
+          <span class="region-row__name"><strong>{{ region.regionName }}</strong><small>{{ region.zone }} · {{ region.eligibleEquipmentCount }} equipamentos elegíveis</small></span>
+          @if (region.riskScore !== null) {
+            <span class="risk-track" role="meter" [attr.aria-label]="'Índice de priorização de ' + region.regionName" aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="region.riskScore"><span [class]="'risk-track__fill risk-track__fill--' + region.classification" [style.width]="scoreWidth(region.riskScore)"></span></span>
+          } @else { <span class="risk-track risk-track--empty"><span></span></span> }
+        </span>
+        <span class="region-row__score"><strong>{{ region.riskScore === null ? '—' : region.riskScore }}</strong><small>{{ riskLabel(region.classification) }}</small></span>
+      </button>
+    } @empty { <p class="empty-copy">Nenhuma região cadastrada para esta origem.</p> }
   </div>
 </section>

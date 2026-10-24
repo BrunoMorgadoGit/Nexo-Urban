@@ -1,11 +1,6 @@
 <section class="map-section" [class.map-section--compact]="compact()" aria-label="Mapa operacional">
   @if (!compact()) {
     <header class="map-heading">
-      <div>
-        <p class="eyebrow">Visão geográfica</p>
-        <h1>Mapa Vivo</h1>
-        <p class="map-heading__description">Equipamentos e agentes com posição registrada no backend.</p>
-      </div>
       <span class="map-count">{{ itemCountLabel() }}</span>
     </header>
 
@@ -35,24 +30,29 @@
           </optgroup>
         </select>
       </label>
-      <label>Órgão
-        <select [ngModel]="filters().organizationId ?? ''" (ngModelChange)="changeFilter('organizationId', $event)">
-          <option value="">Todos</option>
-          @for (organization of organizations(); track organization.id) { <option [value]="organization.id">{{ organization.name }}</option> }
-        </select>
-      </label>
-      <label>Bairro
-        <select [ngModel]="filters().regionId ?? ''" (ngModelChange)="changeFilter('regionId', $event)">
-          <option value="">Todas</option>
-          @for (region of regions(); track region.id) { <option [value]="region.id">{{ region.name }}</option> }
-        </select>
-      </label>
-      <label>Região
-        <select [ngModel]="filters().regionZone ?? ''" (ngModelChange)="changeFilter('regionZone', $event)">
-          <option value="">Todas</option>
-          @for (zone of regionZones(); track zone) { <option [value]="zone">{{ zone }}</option> }
-        </select>
-      </label>
+      <details class="map-filter-more">
+        <summary>Mais filtros</summary>
+        <div class="map-filter-more__fields">
+          <label>Órgão
+            <select [ngModel]="filters().organizationId ?? ''" (ngModelChange)="changeFilter('organizationId', $event)">
+              <option value="">Todos</option>
+              @for (organization of organizations(); track organization.id) { <option [value]="organization.id">{{ organization.name }}</option> }
+            </select>
+          </label>
+          <label>Bairro
+            <select [ngModel]="filters().regionId ?? ''" (ngModelChange)="changeFilter('regionId', $event)">
+              <option value="">Todas</option>
+              @for (region of regions(); track region.id) { <option [value]="region.id">{{ region.name }}</option> }
+            </select>
+          </label>
+          <label>Região
+            <select [ngModel]="filters().regionZone ?? ''" (ngModelChange)="changeFilter('regionZone', $event)">
+              <option value="">Todas</option>
+              @for (zone of regionZones(); track zone) { <option [value]="zone">{{ zone }}</option> }
+            </select>
+          </label>
+        </div>
+      </details>
     </div>
   } @else {
     <div class="map-compact-heading">
@@ -80,7 +80,7 @@
       <div class="map-legend" aria-label="Legenda do mapa">
         <span><i class="legend-dot legend-dot--success"></i>Operacional</span>
         <span><i class="legend-dot legend-dot--warning"></i>Atenção</span>
-        <span><i class="legend-dot legend-dot--issue"></i>Ocorrência</span>
+        <span><i class="legend-dot legend-dot--problem">!</i>Falha ou furto</span>
         <span><i class="legend-dot legend-dot--inactive"></i>Inativo</span>
         <span><i class="legend-dot legend-dot--agent">AG</i>Agente</span>
       </div>
@@ -129,6 +129,20 @@
           </div>
         }
         <a class="resource-link" [routerLink]="item.detailPath">Abrir cadastro completo <span aria-hidden="true">→</span></a>
+      </aside>
+    }
+    @if (compact() && selected(); as item) {
+      <aside class="resource-panel resource-panel--compact" aria-label="Detalhes do recurso selecionado">
+        <div class="resource-panel__heading"><div><p class="eyebrow">{{ item.kind === 'agent' ? 'Agente' : item.typeLabel }}</p><h2>{{ item.label }}</h2></div><button type="button" class="icon-button" aria-label="Fechar detalhes" (click)="clearSelection()">×</button></div>
+        <p class="resource-panel__identifier">{{ item.identifier }}</p>
+        <p class="resource-status" [class]="'resource-status resource-status--' + item.status"><span class="legend-dot" [class.legend-dot--agent]="item.kind === 'agent'"></span>{{ statusLabel(item) }}</p>
+        <dl class="resource-details">
+          <div><dt>Região</dt><dd>{{ item.regionName ?? 'Não informada' }}</dd></div>
+          <div><dt>Tipo</dt><dd>{{ item.typeLabel }}</dd></div>
+          <div><dt>Última posição registrada</dt><dd>{{ formatDate(item.positionRecordedAt) }} · {{ positionLabel(item) }}</dd></div>
+        </dl>
+        @if (item.positionStale) { <p class="stale-note">Posição antiga; não representa localização atual.</p> }
+        <a class="resource-link" [routerLink]="item.detailPath">Consultar detalhes do recurso <span aria-hidden="true">→</span></a>
       </aside>
     }
   </div>

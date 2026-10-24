@@ -75,3 +75,43 @@ O pacote do código deve excluir `.env`, `.aws`, `.codex`, `node_modules`, dados
 | `.env` e Git | `.env` ignorado e modo local `600`; não foi exibido nem alterado o conteúdo. `git diff --check` passou. |
 
 Esta execução não comprova preservação ponta a ponta das funcionalidades no PostgreSQL ou navegador. Para liberar uma demonstração validada após estas correções, configure um PostgreSQL E2E separado, execute migrations/seeds nele e rode a suíte E2E pelo guard documentado no README.
+
+## Auditoria final de submissão — fotografia anterior à correção de 24/10/2026
+
+Esta seção registra a primeira rodada daquela data. As pendências de dependência e preparação de banco foram posteriormente tratadas; consulte a atualização imediatamente abaixo para o estado vigente.
+
+| Verificação | Resultado desta auditoria |
+| --- | --- |
+| Checkout e diff | `main` acompanha `origin/main`; as alterações UX e de monitoramento ainda estão no working tree, sem commit. O snapshot de código atual foi reconstruído em `/tmp` incluindo os arquivos novos não versionados. |
+| Node/npm | `nvm use` selecionou Node `v22.23.3` e npm `10.9.9`, compatíveis com `.nvmrc` e `engines`. |
+| Instalação limpa | `npm ci --no-audit` instalou 512 pacotes no snapshot temporário, sem `.env`, sem conexão a banco e sem alterar o lockfile. |
+| Build/lint/teste unitário | No snapshot limpo: `npm run build`, `npm run lint` e `npm test` passaram. Testes: 6 arquivos/12 web e 10 arquivos/41 API. O build ainda informa estouro de orçamento CSS em nove componentes, sem falha de compilação. |
+| Docker Compose | `docker compose config --quiet` passou. O serviço `db` existente estava saudável; ele não foi usado na reprodução de instalação. |
+| Migrations e seeds | Em PostgreSQL 18.6 temporário, com porta aleatória e armazenamento `tmpfs`: três migrations passaram; seed criou 12 equipamentos e 8 agentes; histórico inseriu 219 eventos. Na repetição, o seed histórico retornou `inserted: 0`. O contêiner foi encerrado ao final. |
+| Smoke da API e frontend | API e proxy Angular foram iniciados no snapshot. Health, inventário, agentes, manutenção, monitoramento, mapa, inteligência e Mission Control responderam HTTP 200. SSE respondeu `text/event-stream`. Recursos de marca carregaram. |
+| Fluxo integrado descartável | Falha de `DEMO-RAD-001`, alerta crítico, evento SSE, reconhecimento, observação, restauração e timeline resolvida foram verificados no banco temporário. Não foi executada a suíte E2E do projeto. |
+| E2E automatizado | `node scripts/run-e2e.mjs --check-config` aceitou a configuração sem verificar conectividade. `npm run test:e2e` permanece pendente: o runner altera e limpa seus fixtures no banco E2E e houve bloqueio de revisão automática em execução anterior; não foi contornado nem repetido. |
+| Banco principal `fogo` | Consultas somente leitura encontraram 4 equipamentos e 3 alertas com `BROWSER-E2E`; nenhum registro foi alterado. Os quatro equipamentos estão no Centro e têm posição com mais de 24 horas (a API trata como antiga após 15 minutos). Três alertas críticos estão abertos; cada um tem uma ação automática e um evento `alert.created`. Um equipamento também tem manutenção imediata concluída. A origem de sessão não é persistida; os registros parecem resíduos de teste, mas isso não é prova suficiente para excluir. O inventário de IDs e a estratégia de saneamento estão em [final-submission-audit.md](final-submission-audit.md); não excluir sem aprovação. |
+| `fogo_e2e` | Não foi usado nem alterado nesta reprodução. |
+| Dependências | `npm audit --audit-level=high` reportou 4 findings altos ligados a `multer@2.4.0`, dependência de `@nestjs/platform-express@12.2.0`. O endpoint de upload assíncrono descrito pelo advisory não existe no código inspecionado e a API de demonstração está limitada a loopback; ainda assim, não expor publicamente antes de resolver a cadeia vulnerável. `npm audit fix --force` não foi executado. |
+| Segredos e exclusões | `.env` local está ignorado e com modo `600`; nenhum `.env` real, `node_modules`, `dist` ou cache aparece como arquivo versionado. O pacote definitivo não foi gerado. |
+| Tamanho do pacote | Não há ZIP atual no repositório nem ZIP novo nesta auditoria. Um stream gzip temporário do snapshot fonte, excluindo dependências e caches, mediu aproximadamente 2,75 MB; isso é estimativa, não validação do ZIP final de 50 MB. |
+| Regulamento oficial | O enunciado integral não está no repositório; a conferência literal dos critérios continua necessária. |
+| Vídeo | Roteiro de 2:50 atualizado neste arquivo. O vídeo ainda não foi gravado ou revisado. |
+
+**Estado para submissão:** não pronto para gerar o pacote definitivo. Primeiro revise as alterações não commitadas, escolha uma base de demonstração limpa, resolva a pendência de dependência antes de qualquer exposição pública e compare o checklist com o regulamento oficial. Gere e confira o ZIP e o vídeo somente depois dessa revisão.
+
+## Atualização após correção dos bloqueadores — 24/10/2026
+
+Esta atualização substitui o estado de prontidão e as pendências de dependência/banco descritas na fotografia anterior. A auditoria detalhada, incluindo comandos, contagens e escopo das validações, está em [final-submission-audit.md](final-submission-audit.md); o procedimento reproduzível do banco está em [demo-database.md](demo-database.md).
+
+| Verificação | Estado vigente |
+| --- | --- |
+| Cadeia NestJS/Multer | Override compatível instala `multer@2.5.0` sob NestJS 12.2.0; `npm audit` encontrou 0 vulnerabilidades. |
+| Instalação e gates | Com Node 22.23.3/npm 10.9.9, `npm ci --no-audit`, build, lint e testes unitários passaram: 12 testes web e 41 API. Permanecem avisos CSS de orçamento em nove componentes. |
+| Banco de demonstração | `fogo_demo_final` preparado com 3 migrations, 12 equipamentos, 8 agentes, 4 manutenções e 219 eventos sintéticos. Reexecuções das seeds preservaram contagens; 0 seriais BROWSER-E2E. `fogo` e `fogo_e2e` não foram alterados por esta etapa. |
+| Fluxo e telas | Chromium confirmou as 7 telas em desktop/mobile. API/HTTP/SSE e o ciclo de falha, alerta, reconhecimento, observação, restauração e histórico foram validados no banco demo. |
+| E2E automatizado | Não executado nesta etapa; nenhum bloqueio de segurança foi contornado. |
+| Pacote e vídeo | ZIP definitivo não criado; tamanho/integridade ainda não validados. Vídeo ainda não gravado. Regulamento integral ainda precisa de confronto literal. |
+
+**Classificação vigente: PRONTO COM RESSALVAS para demonstração local.** A API não tem autenticação e não pode ser publicada; a gravação, conferência do regulamento, revisão final do working tree e validação do ZIP continuam pendentes.

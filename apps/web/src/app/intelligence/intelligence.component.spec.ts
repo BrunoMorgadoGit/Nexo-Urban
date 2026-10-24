@@ -66,8 +66,9 @@ describe('IntelligenceComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     const content = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(content).toContain('Inteligência Preditiva');
-    expect(content.toLocaleLowerCase('pt-BR')).toContain('não uma probabilidade');
+    expect(content).not.toContain('Identifique recursos e regiões que merecem atenção com base no histórico disponível.');
+    expect((fixture.nativeElement as HTMLElement).querySelector('h1')).toBeNull();
+    expect(content.toLocaleLowerCase('pt-BR')).toContain('não são probabilidades calibradas');
     expect(content).toContain('Sousas');
     expect(content).toContain('Dados insuficientes');
   });

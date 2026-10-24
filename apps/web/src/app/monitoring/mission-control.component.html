@@ -13,7 +13,7 @@
       <span>{{ scenario().label }}</span>
     </div>
     <div class="mission-actions">
-      <button type="button" class="mission-action" [disabled]="busy()" (click)="scenarioAction.emit()">
+      <button #scenarioActionButton type="button" class="mission-action" [disabled]="busy()" (click)="activateScenarioAction()">
         {{ busy() ? 'Atualizando cenário…' : scenario().active ? 'Restaurar equipamento' : 'Simular mau funcionamento' }}
       </button>
       <a [routerLink]="'/equipments/' + scenario().equipmentId">Consultar equipamento</a>

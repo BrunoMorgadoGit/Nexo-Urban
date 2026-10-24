@@ -1,6 +1,8 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type {
+  EquipmentStatus,
   MonitoringAlert,
+  MonitoringAlertCode,
   MonitoringAlertAction,
   Page,
 } from '@fogo/contracts';
@@ -141,16 +143,28 @@ export class MonitoringAlertsService {
     if (alert.resourceType === 'equipment') {
       const equipment = await manager.getRepository(EquipmentEntity).findOne({ where: { id: alert.resourceId } });
       if (!equipment) return false;
-      if (alert.code === 'equipment_malfunctioning') return equipment.status === 'malfunctioning';
-      if (alert.code === 'equipment_stolen') return equipment.status === 'stolen';
-      return equipment.status === 'maintenance' || equipment.status === 'deactivated';
+      return this.equipmentConditionIsActive(alert.code, equipment.status);
     }
     const maintenance = await manager.getRepository(MaintenanceEntity).findOne({ where: { id: alert.resourceId } });
-    if (!maintenance || !['scheduled', 'in_progress'].includes(maintenance.status)) return false;
-    if (alert.code === 'maintenance_immediate') {
+    return maintenance ? this.maintenanceConditionIsActive(alert.code, maintenance, operationalDateKey()) : false;
+  }
+
+  private equipmentConditionIsActive(code: MonitoringAlertCode, status: EquipmentStatus): boolean {
+    if (code === 'equipment_malfunctioning') return status === 'malfunctioning';
+    if (code === 'equipment_stolen') return status === 'stolen';
+    return status === 'maintenance' || status === 'deactivated';
+  }
+
+  private maintenanceConditionIsActive(
+    code: MonitoringAlertCode,
+    maintenance: MaintenanceEntity,
+    today: string,
+  ): boolean {
+    if (!['scheduled', 'in_progress'].includes(maintenance.status)) return false;
+    if (code === 'maintenance_immediate') {
       return maintenance.priority === 'immediate' || maintenance.kind === 'immediate';
     }
-    return maintenance.scheduledDate < operationalDateKey();
+    return maintenance.scheduledDate < today;
   }
 
   private async toContracts(alerts: OperationalAlertEntity[]): Promise<MonitoringAlert[]> {
@@ -164,17 +178,21 @@ export class MonitoringAlertsService {
         order: { createdAt: 'ASC' },
       }),
       equipmentIds.length
-        ? this.dataSource.getRepository(EquipmentEntity).find({ where: { id: In(equipmentIds) }, relations: { organization: true } })
+        ? this.dataSource.getRepository(EquipmentEntity).find({
+            where: { id: In(equipmentIds) },
+            relations: { organization: true, location: { region: true } },
+          })
         : Promise.resolve([]),
       maintenanceIds.length
         ? this.dataSource.getRepository(MaintenanceEntity).find({
             where: { id: In(maintenanceIds) },
-            relations: { equipment: { organization: true } },
+            relations: { equipment: { organization: true, location: { region: true } } },
           })
         : Promise.resolve([]),
     ]);
     const equipmentById = new Map(equipment.map((item) => [item.id, item]));
     const maintenanceById = new Map(maintenance.map((item) => [item.id, item]));
+    const today = operationalDateKey();
     const actionsByAlert = new Map<string, MonitoringAlertAction[]>();
     for (const action of actions) {
       const current = actionsByAlert.get(action.alertId) ?? [];
@@ -193,6 +211,10 @@ export class MonitoringAlertsService {
       const equipmentRecord = isEquipment
         ? equipmentById.get(alert.resourceId)
         : maintenanceById.get(alert.resourceId)?.equipment;
+      const maintenanceRecord = isEquipment ? undefined : maintenanceById.get(alert.resourceId);
+      const conditionActive = alert.resourceType === 'equipment'
+        ? equipmentRecord ? this.equipmentConditionIsActive(alert.code, equipmentRecord.status) : false
+        : maintenanceRecord ? this.maintenanceConditionIsActive(alert.code, maintenanceRecord, today) : false;
       const resourceLabel = isEquipment
         ? equipmentRecord?.serialNumber ?? 'Equipamento indisponível'
         : `${equipmentRecord?.serialNumber ?? 'Equipamento'} · ${maintenanceById.get(alert.resourceId)?.description ?? 'Manutenção'}`;
@@ -201,12 +223,14 @@ export class MonitoringAlertsService {
         code: alert.code,
         severity: alert.severity,
         status: alert.status,
+        canResolve: alert.status !== 'resolved' && !conditionActive,
         title: alert.title,
         description: alert.description,
         resourceType: alert.resourceType,
         resourceId: alert.resourceId,
         resourceLabel,
         organizationName: equipmentRecord?.organization.name ?? 'Órgão não disponível',
+        regionName: equipmentRecord?.location?.region?.name ?? null,
         createdAt: alert.createdAt.toISOString(),
         updatedAt: alert.updatedAt.toISOString(),
         acknowledgedAt: alert.acknowledgedAt?.toISOString() ?? null,

@@ -36,7 +36,9 @@
               }
             ],
             "styles": [
-              "src/styles.scss"
+              "src/styles.scss",
+              "src/app/monitoring/command-center.component.scss",
+              "src/app/intelligence/intelligence.component.scss"
             ]
           },
           "configurations": {

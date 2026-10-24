@@ -156,6 +156,8 @@ export type MaintenanceContract = {
 export type MonitoringOverview = {
   demoMode: boolean;
   totalEquipment: number;
+  equipmentStatusCounts: Record<EquipmentStatus, number>;
+  unclassifiedEquipment: number;
   eligibleEquipment: number;
   operationalEquipment: number;
   unavailableEquipment: number;
@@ -242,12 +244,14 @@ export type MonitoringAlert = {
   code: MonitoringAlertCode;
   severity: MonitoringAlertSeverity;
   status: MonitoringAlertStatus;
+  canResolve: boolean;
   title: string;
   description: string;
   resourceType: MonitoringAlertResourceType;
   resourceId: string;
   resourceLabel: string;
   organizationName: string;
+  regionName: string | null;
   createdAt: string;
   updatedAt: string;
   acknowledgedAt: string | null;

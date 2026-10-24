@@ -43,11 +43,12 @@ O frontend apresenta e envia comandos. A API valida regras e grava dados. O banc
 - Node.js 22.23.3 e npm 10.9.x. Com NVM, execute `nvm use` na raiz do repositório e confirme `node --version`.
 - Docker Engine e Docker Compose plugin.
 - Portas locais livres: `5437` (PostgreSQL), `3000` (API, configurável por `API_PORT`) e `4200` (Angular). Banco e API são configurados por `.env`.
+- Banco local de demonstração: `fogo_demo_final`, separado logicamente de `fogo` e do banco reservado aos testes E2E.
 - Acesso aos tiles do OpenStreetMap para carregar o mapa; a atribuição é exibida na interface.
 
 ## Instalação limpa
 
-Em um clone novo, copie `.env.example` para `.env`. O modelo deixa senha e URLs vazias para não distribuir credenciais. Defina `POSTGRES_PASSWORD` e `DATABASE_URL` localmente antes de iniciar o banco; o Compose falha com mensagem clara se a senha estiver ausente. Restrinja o arquivo local com `chmod 600 .env`. Se `.env` já existir, preserve-o e não o substitua.
+Em um clone novo, copie `.env.example` para `.env`. O modelo define `POSTGRES_DB=fogo_demo_final` e deixa senha e URL vazias para não distribuir credenciais. Defina `POSTGRES_PASSWORD` e `DATABASE_URL` localmente antes de iniciar o banco; a URL deve apontar para `fogo_demo_final` no mesmo host e porta do Compose, e usar a mesma senha configurada em `POSTGRES_PASSWORD`. O Compose falha com mensagem clara se a senha estiver ausente. Restrinja o arquivo local com `chmod 600 .env`. Se `.env` já existir, preserve-o e não o substitua.
 
 O PostgreSQL local usa `POSTGRES_USER` tanto para migrations quanto para a API. Isso simplifica a demonstração isolada; não reutilize essa configuração em implantação pública ou compartilhada. Nesse caso, crie usuário de runtime com privilégios mínimos e usuário separado para migrations.
 
@@ -57,12 +58,13 @@ node --version
 cp .env.example .env
 npm ci
 npm run db:up
+# Antes de qualquer migration ou seed, valide o destino conforme docs/demo-database.md.
 npm run db:migrate
 npm run db:seed
 npm run db:seed:intelligence
 ```
 
-O seed base é idempotente para os cadastros demonstrativos. O gerador de inteligência é versionado e não duplica eventos quando executado novamente. Nenhum comando de preparação apaga o volume do PostgreSQL.
+Se o volume local já existia quando estava configurado para `fogo`, mudar `POSTGRES_DB` não cria um banco novo: siga [o procedimento seguro de `fogo_demo_final`](docs/demo-database.md) e crie o banco somente se estiver ausente, usando uma conexão administrativa local validada. Não apague nem recrie volumes. O seed base é idempotente para os cadastros demonstrativos. O gerador de inteligência é versionado e não duplica eventos quando executado novamente. Nenhum comando de preparação apaga o volume do PostgreSQL.
 
 ## Executar
 

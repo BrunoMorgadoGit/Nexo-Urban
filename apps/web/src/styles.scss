@@ -16,7 +16,7 @@
   --color-border-strong: #47515c;
   --color-text-primary: #f2f4f5;
   --color-text-secondary: #a6b0ba;
-  --color-text-muted: #77838e;
+  --color-text-muted: #828e98;
   --color-accent: #8fceb3;
   --color-accent-soft: rgb(143 206 179 / 10%);
   --color-status-success: #56c48e;
@@ -51,7 +51,7 @@
   --radius-md: 0.75rem;
   --focus-ring: 0 0 0 3px rgb(143 206 179 / 55%);
   --sidebar-width: 16.25rem;
-  --topbar-height: 4.25rem;
+  --topbar-height: 5.25rem;
 }
 
 :root[data-theme='light'] {
@@ -63,7 +63,7 @@
   --color-border-strong: #aab6bd;
   --color-text-primary: #182329;
   --color-text-secondary: #3f4e57;
-  --color-text-muted: #61717a;
+  --color-text-muted: #5e6e77;
   --color-accent: #236b52;
   --color-accent-soft: rgb(35 107 82 / 9%);
   --color-status-success: #176b45;
@@ -126,3 +126,14 @@ button {
     transition-duration: 0.01ms !important;
   }
 }
+
+.map-filter-more { grid-column: 1 / -1; padding-top: var(--space-2); border-top: 1px solid var(--color-border); }
+.map-filter-more > summary { width: fit-content; color: var(--color-accent); font-size: .7rem; cursor: pointer; }
+.map-filter-more__fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); gap: var(--space-3); margin-top: var(--space-3); }
+.map-filter-more__fields label { display: grid; gap: var(--space-2); color: var(--color-text-muted); font-size: .72rem; }
+.map-filter-more__fields select { width: 100%; min-height: 2.55rem; padding: 0 var(--space-3); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-background); color: var(--color-text-primary); font-size: .78rem; }
+@media (max-width: 760px) { .map-filter-more__fields { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (max-width: 420px) { .map-filter-more__fields { grid-template-columns: minmax(0,1fr); } }
+.command-page .distribution-segment--unclassified { stroke: var(--color-text-muted); }
+.command-page .distribution-swatch--unclassified { background: var(--color-text-muted); }
+.alerts-page .resolution-hint { margin: 0; color: var(--color-status-warning); font-size: .68rem; }

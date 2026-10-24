@@ -1,78 +1,53 @@
-# Roteiro de apresentação — F.O.G.O. Mission Control
+# Roteiro do vídeo demonstrativo — NEXO Urbano
 
-Duração prevista: 4 minutos. Todos os valores vêm do PostgreSQL e da API em execução; o incidente reproduzido é explicitamente demonstrativo.
+Duração prevista: **2 minutos e 50 segundos**. O vídeo cobre as três partes do desafio: inventário, operação e análise preventiva.
 
-## Preparação antes da gravação
+## Preparação
 
-Na raiz do projeto, confirme o estado inicial do recurso. Em desenvolvimento, você também pode restaurá-lo pela interface **Mission Control**.
+- Use uma base local de demonstração limpa, populada pelas migrations, pelo seed base e pelo histórico sintético. Não grave usando uma base que contenha registros de teste ainda não revisados.
+- Na raiz, confirme `nvm use`, `node --version`, `npm run db:migrations:show` e que a API e o frontend iniciaram conforme o README.
+- Abra `http://127.0.0.1:4200`, aguarde **Tempo real conectado** e o mapa. O mapa precisa de conectividade com os tiles do OpenStreetMap; mantenha a atribuição visível.
+- Confira que `DEMO-RAD-001` está operacional e que o cenário do Mission Control está restaurado. Restaurar o cenário preserva o histórico já gravado.
+- Não mostre o terminal com `.env`, URLs de banco ou credenciais. Grave a aplicação local em loopback.
 
-```bash
-nvm use
-docker compose ps
-npm run db:migrations:show
-```
+## Roteiro cronometrado
 
-Se for uma instalação nova, siga primeiro as instruções de instalação do README. Depois, em dois terminais:
+### 0:00–0:20 — Problema e proposta
 
-```bash
-nvm use
-npm run dev:api
-```
+**Fala:** “O NEXO Urbano conecta o inventário de equipamentos, a resposta a ocorrências e a análise preventiva em uma visão operacional.”
 
-```bash
-nvm use
-npm run dev:web
-```
+**Ação:** mostre a Central de Operações, o estado SSE e a identificação do ambiente demonstrativo.
 
-Abra <http://127.0.0.1:4200> em uma janela de 1440 × 900 ou similar. Aguarde o estado **Tempo real conectado** e o carregamento do mapa. Não recarregue a página durante a simulação: a atualização SSE deve ser visível.
+### 0:20–0:50 — Inventário e localização
 
-Se o cenário já estiver ativo, use **Restaurar equipamento** antes de iniciar a apresentação. Isso normaliza o equipamento, mas preserva os eventos anteriores na timeline.
+**Fala:** “Os equipamentos, estados e posições vêm da API. O mapa permite localizar o recurso e abrir seu cadastro.”
 
-## Apresentação, fala e ações
+**Ação:** selecione um equipamento cadastrado, mostre seu detalhe e localização no Mapa Vivo; retorne à Central.
 
-### 0:00–0:30 — Problema e proposta
+### 0:50–1:45 — Falha e atendimento
 
-**Fala:** “Uma operação urbana precisa relacionar ativos, equipes e ocorrências. O F.O.G.O. reúne inventário, monitoramento e análise histórica em um fluxo que o gestor pode consultar e auditar.”
+**Fala:** “Vou simular uma falha operacional pelo Mission Control. A simulação altera o estado persistido, gera um alerta e publica eventos para a Central atualizar sem recarga.”
 
-**Ação:** inicie em **Central de Operações**. Aponte o estado da conexão SSE e o aviso de ambiente demonstrativo.
+**Ação:** clique **Simular mau funcionamento**. Mostre a atualização SSE dos indicadores e do mapa, abra **Ver ocorrência**, reconheça o alerta e registre uma observação de atendimento.
 
-### 0:30–1:05 — Inventário, mapa e indicadores
+**Fala:** “Esse incidente foi provocado agora para demonstrar a resposta operacional; ele não foi previsto pelo modelo.”
 
-**Fala:** “Os indicadores e as posições são consultados da API; a disponibilidade usa a política documentada. No mapa, cada símbolo representa um recurso persistido, e o detalhe leva ao cadastro.”
+### 1:45–2:05 — Normalização e histórico
 
-**Ação:** mostre os indicadores do topo, selecione um marcador no mapa e abra rapidamente o equipamento. Retorne à Central pelo menu lateral.
+**Ação:** volte à Central, clique **Restaurar equipamento** e confira o estado operacional, o alerta resolvido e os eventos persistidos na timeline.
 
-### 1:05–2:20 — Mission Control e resposta ao incidente
+**Fala:** “A normalização encerra o alerta. A timeline preserva a falha simulada e as ações do operador.”
 
-**Fala:** “Agora vou aplicar uma falha determinística em um radar de demonstração. O backend persiste a mudança, reconcilia os alertas e publica os eventos. O navegador atualiza o snapshot sem recarga.”
+### 2:05–2:40 — Análise preventiva
 
-**Ação:** em **Mission Control**, clique **Simular mau funcionamento**. Aguarde a situação mudar para **Mau funcionamento**. Mostre a disponibilidade atualizada, o alerta crítico, a entrada de falha e a criação do alerta na timeline. Clique **Reconhecer** no alerta e abra **Consultar equipamento**.
+**Ação:** abra **Análise Preventiva**, escolha uma região com dados suficientes e mostre os fatores, a prioridade de manutenção e a validação histórica.
 
-**Fala:** “Reconhecer registra o atendimento, mas não apaga o alerta. A linha do tempo distingue o evento de demonstração e a ação do operador.”
+**Fala:** “A análise usa histórico sintético identificado. O índice ajuda a ordenar prioridades, não é uma probabilidade calibrada. O backtest é limitado e não comprova eficácia preditiva em uma cidade real.”
 
-### 2:20–3:10 — Inteligência e limites
+### 2:40–2:50 — Encerramento
 
-**Ação:** navegue para **Inteligência Preditiva**. Selecione uma região com dados suficientes e mostre os fatores, a tendência, a manutenção prioritária e a validação retrospectiva.
+**Fala:** “O NEXO reúne recursos, localização, atendimento persistido e evidências históricas para apoiar decisões urbanas.”
 
-**Fala:** “A análise usa histórico sintético identificado e regras explicáveis. O escore organiza prioridades; não é uma probabilidade. O backtest conta falhas nas 24 horas após cada corte, e a tela expõe falsos positivos, prevalência e o baseline. Isso não prova eficácia em operação real.”
+## Conferência da gravação
 
-**Ação:** aponte a origem e a qualidade dos dados. Evite chamar a falha que acabou de simular de previsão: ela é uma ocorrência observada, posterior à análise histórica.
-
-### 3:10–4:00 — Normalização e encerramento
-
-**Ação:** retorne à Central e clique **Restaurar equipamento**. Aguarde a atualização SSE. Mostre a situação operacional, a resolução do alerta e as entradas de restauração/resolução na timeline.
-
-**Fala:** “A condição normalizada encerra o alerta e recupera os indicadores. A ocorrência permanece no histórico persistido. O gestor consegue acompanhar o estado, entender a recomendação e conferir o que aconteceu.”
-
-## Sequência curta de cliques
-
-1. Central de Operações → selecionar um marcador → **Consultar equipamento**.
-2. Voltar à Central → Mission Control → **Simular mau funcionamento**.
-3. Alertas prioritários → **Reconhecer** → abrir o cadastro relacionado.
-4. Menu → **Inteligência Preditiva** → selecionar região → mostrar fatores, manutenção e backtest.
-5. Voltar à Central → Mission Control → **Restaurar equipamento**.
-6. Confirmar timeline com alerta resolvido e indicador atualizado.
-
-## Gravação manual
-
-Não há arquivo de vídeo incluído nesta entrega. Para gravar, use um gravador local de tela, mantenha o navegador em `127.0.0.1`, não exiba o terminal com conteúdo de `.env` e siga o roteiro sem editar a timeline. O resultado da gravação deve ser reproduzido e conferido antes de ser enviado à organização do desafio.
+Assista ao vídeo final antes de enviá-lo. Confirme que os dados demonstrativos estão identificados, que o incidente é apresentado como simulação, que o histórico não foi editado e que nenhuma credencial ou dado pessoal aparece na tela. O arquivo de vídeo não faz parte do pacote de código até ser gravado e revisado.

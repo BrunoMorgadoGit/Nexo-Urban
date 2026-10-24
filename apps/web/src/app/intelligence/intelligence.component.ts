@@ -6,6 +6,7 @@ import type {
   IntelligenceBacktest,
   IntelligenceOverview,
   IntelligenceSourceScope,
+  PredictiveMaintenancePriority,
   RegionIntelligenceDetail,
   RegionalRiskAssessment,
 } from '@fogo/contracts';
@@ -23,7 +24,6 @@ type IntelligenceSnapshot = {
   selector: 'app-intelligence',
   imports: [DatePipe, PercentPipe, RouterLink, RegionRiskPanelComponent, RegionRiskDetailComponent],
   templateUrl: './intelligence.component.html',
-  styleUrl: './intelligence.component.scss',
 })
 export class IntelligenceComponent {
   private readonly api = inject(InventoryApiService);
@@ -107,5 +107,40 @@ export class IntelligenceComponent {
       preventive_inspection: 'Inspeção preventiva',
       monitor: 'Monitorar',
     }[type];
+  }
+
+  protected recommendationAction(item: PredictiveMaintenancePriority): string {
+    const reasons = new Set(item.reasons.map((reason) => reason.code));
+    if (reasons.has('currently_malfunctioning') || reasons.has('severe_failure')
+      || reasons.has('urgent_maintenance') || reasons.has('overdue_maintenance')) {
+      return 'Priorizar avaliação técnica e verificar a manutenção vencida ou urgente registrada.';
+    }
+    if (reasons.has('deteriorating_trend') || reasons.has('recurrent_failures')) {
+      return 'Programar inspeção preventiva para investigar a recorrência ou o aumento recente de falhas.';
+    }
+    if (reasons.has('immediate_priority')) {
+      return 'Verificar a prioridade imediata registrada no cadastro e confirmar se há manutenção ativa.';
+    }
+    if (reasons.has('scheduled_maintenance')) {
+      return 'Confirmar a inspeção já cadastrada e acompanhar sua execução.';
+    }
+    if (reasons.has('maintenance_in_progress')) {
+      return 'Acompanhar a manutenção em andamento antes de alterar a situação do equipamento.';
+    }
+    if (reasons.has('last_failure')) {
+      return 'Revisar o último registro de falha e programar acompanhamento preventivo.';
+    }
+    return 'Monitorar a condição e revisar a prioridade quando houver novos registros.';
+  }
+
+  protected validationComparison(validation: IntelligenceBacktest): string {
+    if (validation.modelPrecision === null || validation.baselinePrecision === null) {
+      return 'Amostra insuficiente para comparar a precisão com a referência.';
+    }
+    const difference = validation.modelPrecision - validation.baselinePrecision;
+    if (Math.abs(difference) < 0.01) return 'Precisão semelhante à regra de referência nesta amostra.';
+    return difference > 0
+      ? 'Precisão maior que a referência nesta amostra; isso não comprova desempenho em operação real.'
+      : 'Precisão abaixo da referência nesta amostra; considere esse limite ao interpretar a prioridade.';
   }
 }

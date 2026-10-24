@@ -4,7 +4,7 @@
   } @else if (error()) {
     <div class="feedback feedback--error" role="alert"><p>{{ error() }}</p><a class="button button--secondary" routerLink="/agents">Voltar aos agentes</a></div>
   } @else if (agent(); as item) {
-    <header class="page-heading"><div><a class="back-link" routerLink="/agents">← Voltar aos agentes</a><p class="eyebrow">Equipe operacional</p><h1 id="page-title">{{ item.name }}</h1><p class="page-description">Identificação {{ item.identifier }} · {{ categoryLabel(item.category) }}</p></div><a class="button button--secondary" [routerLink]="['/agents', item.id, 'edit']">Editar agente</a></header>
+    <header class="page-heading"><div><a class="back-link" routerLink="/agents">← Voltar aos agentes</a><p class="eyebrow">Equipe operacional</p><h2 id="page-title">{{ item.name }}</h2><p class="page-description">Identificação {{ item.identifier }} · {{ categoryLabel(item.category) }}</p></div><a class="button button--secondary" [routerLink]="['/agents', item.id, 'edit']">Editar agente</a></header>
     @if (notice()) { <div class="feedback feedback--success" role="status">{{ notice() }}</div> }
     <section class="detail-card" aria-labelledby="details-title">
       <header class="card-heading"><div><p class="eyebrow">Cadastro funcional</p><h2 id="details-title">Dados operacionais</h2></div><app-state-badge [status]="item.availability" /></header>

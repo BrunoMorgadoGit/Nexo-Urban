@@ -1,15 +1,42 @@
 <section class="region-detail" aria-labelledby="region-detail-title">
-  <header class="detail-heading"><div><p class="eyebrow">Análise selecionada</p><h3 id="region-detail-title">{{ detail().risk.regionName }} <span>{{ detail().risk.riskScore === null ? '—' : detail().risk.riskScore }}</span></h3><p>{{ detail().risk.city }} · {{ detail().risk.zone }} · janela de 90 dias</p><p>Última observação: {{ detail().risk.latestObservationAt ? (detail().risk.latestObservationAt | date:'dd/MM/yyyy HH:mm') : 'sem observações' }}</p></div><span [class]="'risk-badge risk-badge--' + detail().risk.classification">{{ riskLabel(detail().risk.classification) }}</span></header>
+  <header class="detail-heading">
+    <div>
+      <p class="eyebrow">Detalhe da região selecionada</p>
+      <h3 id="region-detail-title">{{ detail().risk.regionName }} <span>{{ detail().risk.riskScore === null ? '—' : detail().risk.riskScore }}</span></h3>
+      <p>{{ detail().risk.city }} · {{ detail().risk.zone }} · {{ detail().risk.historyWindowDays }} dias analisados</p>
+      <p>Última observação: {{ detail().risk.latestObservationAt ? (detail().risk.latestObservationAt | date:'dd/MM/yyyy HH:mm') : 'sem observações' }}</p>
+    </div>
+    <span [class]="'risk-badge risk-badge--' + detail().risk.classification">{{ riskLabel(detail().risk.classification) }}</span>
+  </header>
+  <div class="detail-provenance" aria-label="Qualidade e origem dos dados">
+    <span>Qualidade {{ qualityLabel(detail().risk.dataQuality) }}</span><span>{{ detail().risk.observationCount }} observações</span><span>{{ detail().risk.coverageDays }} dias de cobertura</span><span>{{ scopeLabel(detail().risk.sourceScope) }}</span><span>{{ detail().risk.sourceComposition.syntheticIncidents }} falhas sintéticas · {{ detail().risk.sourceComposition.manualIncidents }} registros operacionais</span>
+  </div>
   <div class="detail-grid">
-    <section class="trend-panel" aria-labelledby="trend-title"><div class="subheading"><h4 id="trend-title">Evolução do índice</h4><span>avaliações semanais</span></div>
-      @if (detail().risk.classification === 'insufficient_data') { <p class="empty-copy">O histórico disponível ainda não cobre os critérios mínimos para calcular uma série comparável.</p> }
-      @else { <svg class="trend-chart" viewBox="0 0 100 40" role="img" [attr.aria-label]="'Evolução semanal do índice de risco de ' + detail().risk.regionName"><line x1="4" y1="6" x2="96" y2="6" class="chart-gridline"/><line x1="4" y1="21" x2="96" y2="21" class="chart-gridline"/><line x1="4" y1="36" x2="96" y2="36" class="chart-gridline"/>@for (segment of trendSegments(); track $index) { <polyline [attr.points]="segment" class="trend-line"/> }</svg><div class="chart-axis"><span>{{ detail().trend[0]?.referenceAt | date:'dd/MM' }}</span><span>Índice de priorização · 0–100</span><span>{{ detail().trend.at(-1)?.referenceAt | date:'dd/MM' }}</span></div><p class="quiet-note">Janelas sem dados mínimos não recebem pontuação e não são conectadas no gráfico.</p> }
+    <section class="trend-panel" aria-labelledby="trend-title">
+      <div class="subheading"><h4 id="trend-title">Evolução do índice de priorização</h4><span>escala de 0 a 100</span></div>
+      @if (trendAvailable()) {
+        <div class="trend-chart-wrap">
+          <div class="trend-y-axis" aria-hidden="true"><span>100</span><span>50</span><span>0</span></div>
+          <svg class="trend-chart" viewBox="0 0 100 40" role="img" [attr.aria-label]="'Evolução semanal do índice de priorização de ' + detail().risk.regionName + ', escala de 0 a 100'">
+            <line x1="4" y1="6" x2="96" y2="6" class="chart-gridline"/><line x1="4" y1="21" x2="96" y2="21" class="chart-gridline"/><line x1="4" y1="36" x2="96" y2="36" class="chart-gridline"/>
+            @for (segment of trendSegments(); track $index) { <polyline [attr.points]="segment" class="trend-line"/> }
+            @for (point of trendPoints(); track point.referenceAt) { <circle [attr.cx]="point.x" [attr.cy]="point.y" r="1.6" class="trend-point"><title>{{ point.referenceAt | date:'dd/MM/yyyy' }} · índice {{ point.riskScore }} de 100</title></circle> }
+          </svg>
+        </div>
+        <div class="chart-axis"><span>{{ detail().trend[0]?.referenceAt | date:'dd/MM' }}</span><span>Semanas observadas</span><span>{{ detail().trend.at(-1)?.referenceAt | date:'dd/MM' }}</span></div>
+        <p class="quiet-note">Pontos sem histórico mínimo ficam sem nota; as lacunas não são conectadas nem preenchidas.</p>
+        <details class="trend-table-details"><summary>Consultar valores e períodos</summary><div class="trend-table-wrap"><table><caption>Índice semanal observado</caption><thead><tr><th scope="col">Data</th><th scope="col">Índice</th><th scope="col">Falhas nos 30 dias anteriores</th></tr></thead><tbody>@for (point of detail().trend; track point.referenceAt) { <tr><th scope="row">{{ point.referenceAt | date:'dd/MM/yyyy' }}</th><td>{{ point.riskScore === null ? 'Sem cálculo' : point.riskScore }}</td><td>{{ point.failuresInWindow }}</td></tr> }</tbody></table></div></details>
+      } @else {
+        <p class="empty-copy">O histórico ainda não contém dois pontos calculáveis para sustentar uma série temporal.</p>
+      }
     </section>
-    <section class="factor-panel" aria-labelledby="factor-title"><div class="subheading"><h4 id="factor-title">Fatores considerados</h4><span>{{ detail().risk.observationCount }} observações</span></div>
+    <section class="factor-panel" aria-labelledby="factor-title">
+      <div class="subheading"><h4 id="factor-title">Fatores considerados</h4><span>{{ detail().risk.observationCount }} observações</span></div>
       @for (factor of detail().risk.factors; track factor.code) { <div class="factor-row"><div class="factor-row__top"><strong>{{ factor.label }}</strong><span>{{ factor.contribution | number:'1.0-1' }} pts</span></div><div class="factor-track" aria-hidden="true"><i [style.width.%]="factor.normalizedValue"></i></div><p>{{ factor.explanation }}</p></div> }
+      @if (!detail().risk.factors.length) { <p class="empty-copy">Não há fatores calculáveis com a qualidade de dados atual.</p> }
     </section>
   </div>
   @if (error()) { <p class="inline-error" role="alert">{{ error() }}</p> }
   @if (loading()) { <p class="quiet-note" role="status">Atualizando detalhe…</p> }
-  <section class="recommendations" aria-labelledby="recommendation-title"><h4 id="recommendation-title">Ações recomendadas</h4><ul>@for (recommendation of detail().risk.recommendations; track recommendation) { <li>{{ recommendation }}</li> }</ul></section>
+  <section class="recommendations" aria-labelledby="recommendation-title"><h4 id="recommendation-title">Ações recomendadas</h4><ul>@for (recommendation of detail().risk.recommendations; track recommendation) { <li>{{ recommendation }}</li> } @empty { <li>Sem recomendação disponível para os dados atuais.</li> }</ul></section>
 </section>
