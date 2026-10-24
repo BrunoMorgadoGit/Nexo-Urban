@@ -37,7 +37,7 @@ export class AgentsService {
       throw new ConflictException('Identificação funcional já cadastrada.');
     }
 
-    const id = await this.dataSource.transaction(async (manager) => {
+    const result = await this.dataSource.transaction(async (manager) => {
       const agent = await manager.getRepository(AgentEntity).save(
         manager.getRepository(AgentEntity).create({
           name: input.name.trim(),
@@ -58,10 +58,11 @@ export class AgentsService {
           recordedAt: new Date(input.position.recordedAt),
         });
       }
-      return agent.id;
+      const events = await this.monitoringWrite.agentChanged(manager, agent.id);
+      return { id: agent.id, events };
     });
-    await this.monitoringWrite.agentChanged(id);
-    return this.get(id);
+    this.monitoringWrite.publish(result.events);
+    return this.get(result.id);
   }
 
   async list(query: ListAgentsDto): Promise<Page<AgentContract>> {
@@ -131,7 +132,7 @@ export class AgentsService {
       .getExists();
     if (duplicate) throw new ConflictException('Identificação funcional já cadastrada.');
 
-    await this.dataSource.transaction(async (manager) => {
+    const events = await this.dataSource.transaction(async (manager) => {
       await manager.getRepository(AgentEntity).save({
         id: current.id,
         name: input.name.trim(),
@@ -154,8 +155,9 @@ export class AgentsService {
       } else if (position) {
         await positionRepository.remove(position);
       }
+      return this.monitoringWrite.agentChanged(manager, id);
     });
-    await this.monitoringWrite.agentChanged(id);
+    this.monitoringWrite.publish(events);
     return this.get(id);
   }
 

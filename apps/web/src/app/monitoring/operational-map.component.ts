@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+import { CommonModule, DOCUMENT } from '@angular/common';
 import { AfterViewInit, ChangeDetectionStrategy, Component, DestroyRef, ElementRef, OnDestroy, ViewChild, computed, inject, signal, input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -41,11 +41,13 @@ export class OperationalMapComponent implements AfterViewInit, OnDestroy {
   protected readonly filters = signal<MonitoringMapFilters>({ resourceType: 'all' });
   protected readonly itemCountLabel = computed(() => `${this.items().length} recursos no mapa`);
 
+  private readonly document = inject(DOCUMENT);
   private readonly api = inject(InventoryApiService);
   private readonly realtime = inject(MonitoringRealtimeService);
   private readonly destroyRef = inject(DestroyRef);
   private map: MapLibreMap | null = null;
   private mapReady = false;
+  private themeObserver: MutationObserver | null = null;
   constructor() {
     this.realtime.acquire(this.destroyRef);
     this.loadLookups();
@@ -54,9 +56,15 @@ export class OperationalMapComponent implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     this.createMap();
+    const Observer = this.document.defaultView?.MutationObserver;
+    if (Observer) {
+      this.themeObserver = new Observer(() => this.updateMapTheme());
+      this.themeObserver.observe(this.document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    }
   }
 
   ngOnDestroy(): void {
+    this.themeObserver?.disconnect();
     this.map?.remove();
     this.map = null;
     this.mapReady = false;
@@ -189,13 +197,14 @@ export class OperationalMapComponent implements AfterViewInit, OnDestroy {
         },
         layers: [{
           id: 'openstreetmap-raster', type: 'raster', source: 'openstreetmap',
-          paint: { 'raster-saturation': -0.35, 'raster-brightness-max': 0.82, 'raster-contrast': 0.08 },
+          paint: { 'raster-saturation': this.isLightTheme() ? 0 : -0.35, 'raster-brightness-max': this.isLightTheme() ? 1 : 0.82, 'raster-contrast': this.isLightTheme() ? 0 : 0.08 },
         }],
       },
     });
     map.addControl(new NavigationControl({ showCompass: false }), 'top-left');
     map.on('load', () => {
       this.mapReady = true;
+      this.updateMapTheme();
       this.addResourceLayers(map);
       this.syncGeoJson();
       setTimeout(() => map.resize(), 0);
@@ -228,6 +237,19 @@ export class OperationalMapComponent implements AfterViewInit, OnDestroy {
       }
     });
     this.map = map;
+  }
+
+  private isLightTheme(): boolean {
+    return this.document.documentElement.getAttribute('data-theme') === 'light';
+  }
+
+  private updateMapTheme(): void {
+    const map = this.map;
+    if (!map?.getLayer('openstreetmap-raster')) return;
+    const isLight = this.isLightTheme();
+    map.setPaintProperty('openstreetmap-raster', 'raster-saturation', isLight ? 0 : -0.35);
+    map.setPaintProperty('openstreetmap-raster', 'raster-brightness-max', isLight ? 1 : 0.82);
+    map.setPaintProperty('openstreetmap-raster', 'raster-contrast', isLight ? 0 : 0.08);
   }
 
   private addResourceLayers(map: MapLibreMap): void {

@@ -21,7 +21,16 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.brand__text strong')?.textContent).toContain('F.O.G.O.');
+    expect(compiled.querySelector('.brand')?.getAttribute('aria-label')).toContain('NEXO Urbano');
     expect(compiled.textContent).toContain('Central de Operações');
+  });
+
+  it('provides a keyboard skip link to the main content', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const link = compiled.querySelector<HTMLAnchorElement>('.skip-link');
+    expect(link?.getAttribute('href')).toBe('#main-content');
+    expect(compiled.querySelector('main#main-content')?.getAttribute('tabindex')).toBe('-1');
   });
 });

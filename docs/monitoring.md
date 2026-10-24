@@ -11,9 +11,11 @@ Todos os números são calculados pela API a partir do PostgreSQL. A lista de st
 - **Disponibilidade:** `operacionais / elegíveis × 100`, arredondada para uma casa decimal; denominador vazio resulta em `0%`.
 - **Agentes em atividade:** agentes com disponibilidade `on_duty`.
 - **Alertas críticos ativos:** alertas críticos `open` ou `acknowledged`; reconhecimento não encerra uma ocorrência.
-- **Manutenções vencidas:** manutenções `scheduled` ou `in_progress` anteriores à data corrente do PostgreSQL.
+- **Manutenções vencidas:** manutenções `scheduled` ou `in_progress` anteriores à data civil de `America/Sao_Paulo`, aplicada pela API para não depender do fuso configurado no PostgreSQL.
 
-O mapa não inventa fronteiras: a tabela por região agrega os bairros/regiões cadastrados no banco. A última posição móvel só é marcada como recente até 15 minutos; posições antigas continuam visíveis com indicação explícita.
+O mapa não inventa fronteiras: a tabela por região agrega os bairros/regiões cadastrados no banco. A última posição móvel só é marcada como recente até 15 minutos; posições antigas continuam visíveis com indicação explícita. Timestamps GPS até dois minutos no futuro são tolerados para compensar relógios, mas qualquer posição ainda no futuro é marcada como desatualizada.
+
+Cada consulta retorna no máximo 5.000 equipamentos e 5.000 agentes, sem paginação geográfica. Esse limite atende ao inventário demonstrativo; não representa uma estratégia de escala para grandes cidades.
 
 ## Endpoints
 
@@ -31,7 +33,7 @@ Todos ficam sob `/api/v1`.
 | `POST` | `/monitoring/alerts/:id/notes` | Registra observação de 2 a 500 caracteres |
 | `POST` | `/monitoring/alerts/:id/resolve` | Encerra apenas após a condição operacional ser normalizada |
 | `GET` | `/monitoring/events/stream` | Fluxo Server-Sent Events; aceita `Last-Event-ID` ou `?since=` |
-| `GET` | `/monitoring/demo/scenario/timeline` | Últimos eventos persistidos do recurso `DEMO-RAD-001` e dos alertas relacionados; somente em desenvolvimento |
+| `GET` | `/monitoring/demo/scenario/timeline` | Últimos eventos persistidos do recurso `DEMO-RAD-001` e dos alertas relacionados; somente com `NODE_ENV=development` e `DEMO_SCENARIO_ENABLED=true` |
 
 ### Eventos SSE
 
@@ -45,7 +47,7 @@ As condições ativas usam fingerprints únicos com índice parcial no PostgreSQ
 
 ## Cenário demonstrativo
 
-O `DemoScenarioModule` só é importado quando o processo da API inicia com `NODE_ENV=development`; `npm run dev:api` define esse modo. Os endpoints não são registrados no processo de produção.
+O `DemoScenarioModule` só é importado quando a API inicia com `NODE_ENV=development` e `DEMO_SCENARIO_ENABLED=true`; `npm run dev:api` define ambos. O processo de produção não registra esses endpoints, mesmo que a flag esteja ligada.
 
 | Método | Rota | Efeito |
 | --- | --- | --- |

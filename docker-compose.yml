@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-fogo}
       POSTGRES_USER: ${POSTGRES_USER:-fogo}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fogo_local_only}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD no arquivo .env antes de iniciar o PostgreSQL.}
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:

@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { DemoScenario, DemoTimelineEntry, OperationalEventType } from '@fogo/contracts';
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import { EquipmentEntity } from '../equipment/equipment.entity.js';
 import { OperationalAlertEntity } from './operational-alert.entity.js';
 import { OperationalEventEntity } from './operational-event.entity.js';
@@ -59,40 +59,45 @@ export class DemoScenarioService {
   }
 
   async outage(): Promise<DemoScenario> {
-    const equipment = await this.findEquipment();
-    if (equipment.status !== 'malfunctioning') {
+    const events = await this.dataSource.transaction(async (manager) => {
+      const equipment = await this.findEquipment(manager);
+      if (equipment.status === 'malfunctioning') return [];
       const previousStatus = equipment.status;
-      await this.dataSource.getRepository(EquipmentEntity).update(equipment.id, {
+      await manager.getRepository(EquipmentEntity).update(equipment.id, {
         status: 'malfunctioning',
         maintenancePriority: 'immediate',
       });
-      await this.monitoringWrite.equipmentChanged(equipment.id, previousStatus, 'demo', 'demo.scenario.changed', {
+      return this.monitoringWrite.equipmentChanged(manager, equipment.id, previousStatus, 'demo', 'demo.scenario.changed', {
         scenarioCode: 'radar-outage',
         action: 'outage',
       });
-    }
+    });
+    this.monitoringWrite.publish(events);
     return this.get();
   }
 
   async reset(): Promise<DemoScenario> {
-    const equipment = await this.findEquipment();
-    if (equipment.status !== 'operational' || equipment.maintenancePriority !== 'normal' || equipment.nextMaintenanceDate !== initialNextMaintenanceDate) {
+    const events = await this.dataSource.transaction(async (manager) => {
+      const equipment = await this.findEquipment(manager);
+      if (equipment.status === 'operational' && equipment.maintenancePriority === 'normal' && equipment.nextMaintenanceDate === initialNextMaintenanceDate) return [];
       const previousStatus = equipment.status;
-      await this.dataSource.getRepository(EquipmentEntity).update(equipment.id, {
+      await manager.getRepository(EquipmentEntity).update(equipment.id, {
         status: 'operational',
         maintenancePriority: 'normal',
         nextMaintenanceDate: initialNextMaintenanceDate,
       });
-      await this.monitoringWrite.equipmentChanged(equipment.id, previousStatus, 'demo', 'demo.scenario.changed', {
+      return this.monitoringWrite.equipmentChanged(manager, equipment.id, previousStatus, 'demo', 'demo.scenario.changed', {
         scenarioCode: 'radar-outage',
         action: 'reset',
       });
-    }
+    });
+    this.monitoringWrite.publish(events);
     return this.get();
   }
 
-  private async findEquipment(): Promise<EquipmentEntity> {
-    const equipment = await this.dataSource.getRepository(EquipmentEntity).findOne({ where: { serialNumber: scenarioSerial } });
+  private async findEquipment(manager?: EntityManager): Promise<EquipmentEntity> {
+    const repository = manager?.getRepository(EquipmentEntity) ?? this.dataSource.getRepository(EquipmentEntity);
+    const equipment = await repository.findOne({ where: { serialNumber: scenarioSerial } });
     if (!equipment) throw new NotFoundException('Equipamento do cenário demonstrativo não encontrado. Execute o seed oficial.');
     if (equipment.dataOrigin !== 'demo') {
       throw new ConflictException('O equipamento do cenário não está marcado como demonstrativo.');

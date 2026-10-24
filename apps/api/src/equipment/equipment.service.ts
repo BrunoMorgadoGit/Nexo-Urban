@@ -87,10 +87,11 @@ export class EquipmentService {
           }),
         );
       }
-      return equipment.id;
+      const events = await this.monitoringWrite.equipmentChanged(manager, equipment.id, null);
+      return { id: equipment.id, events };
     });
-    await this.monitoringWrite.equipmentChanged(result, null);
-    return this.get(result);
+    this.monitoringWrite.publish(result.events);
+    return this.get(result.id);
   }
 
   async list(query: ListEquipmentDto): Promise<Page<EquipmentContract>> {
@@ -159,7 +160,7 @@ export class EquipmentService {
       throw new ConflictException('Número de série já cadastrado.');
     }
 
-    await this.dataSource.transaction(async (manager) => {
+    const events = await this.dataSource.transaction(async (manager) => {
       const equipmentRepository = manager.getRepository(EquipmentEntity);
       const locationRepository = manager.getRepository(EquipmentLocationEntity);
       const positionRepository = manager.getRepository(EquipmentPositionEntity);
@@ -206,18 +207,23 @@ export class EquipmentService {
       } else if (position) {
         await positionRepository.remove(position);
       }
+      return this.monitoringWrite.equipmentChanged(manager, id, current.status);
     });
-    await this.monitoringWrite.equipmentChanged(id, current.status);
+    this.monitoringWrite.publish(events);
     return this.get(id);
   }
 
   async deactivate(id: string): Promise<EquipmentContract> {
-    const equipment = await this.equipment.findOne({ where: { id } });
-    if (!equipment) throw new NotFoundException('Equipamento não encontrado.');
-    const previousStatus = equipment.status;
-    equipment.status = 'deactivated';
-    await this.equipment.save(equipment);
-    await this.monitoringWrite.equipmentChanged(id, previousStatus);
+    const events = await this.dataSource.transaction(async (manager) => {
+      const repository = manager.getRepository(EquipmentEntity);
+      const equipment = await repository.findOne({ where: { id } });
+      if (!equipment) throw new NotFoundException('Equipamento não encontrado.');
+      const previousStatus = equipment.status;
+      equipment.status = 'deactivated';
+      await repository.save(equipment);
+      return this.monitoringWrite.equipmentChanged(manager, id, previousStatus);
+    });
+    this.monitoringWrite.publish(events);
     return this.get(id);
   }
 

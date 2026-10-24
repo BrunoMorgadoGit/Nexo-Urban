@@ -14,14 +14,15 @@ import { MaintenanceEntity } from '../maintenance/maintenance.entity.js';
 import { RegionEntity } from '../regions/region.entity.js';
 import { MonitoringMapQueryDto } from './dto/monitoring-map-query.dto.js';
 import { OperationalAlertEntity } from './operational-alert.entity.js';
-import { calculateAvailability } from './monitoring-policies.js';
-const stalePositionAfterMs = 15 * 60 * 1000;
+import { calculateAvailability, isPositionStale } from './monitoring-policies.js';
+import { addCalendarDays, operationalDateKey } from '../common/operational-date.js';
 
 @Injectable()
 export class MonitoringReadService {
   constructor(private readonly dataSource: DataSource) {}
 
   async overview(): Promise<MonitoringOverview> {
+    const today = operationalDateKey();
     const [statusRows, agentsOnDuty, activeCriticalAlerts, overdueMaintenance] = await Promise.all([
       this.dataSource.getRepository(EquipmentEntity)
         .createQueryBuilder('equipment')
@@ -36,7 +37,7 @@ export class MonitoringReadService {
       this.dataSource.getRepository(MaintenanceEntity)
         .createQueryBuilder('maintenance')
         .where('maintenance.status IN (:...statuses)', { statuses: ['scheduled', 'in_progress'] })
-        .andWhere('maintenance.scheduledDate < CURRENT_DATE')
+        .andWhere('maintenance.scheduledDate < :today', { today })
         .getCount(),
     ]);
 
@@ -119,16 +120,17 @@ export class MonitoringReadService {
   }
 
   async maintenanceAlerts(): Promise<MaintenanceAttention[]> {
+    const today = operationalDateKey();
+    const throughDate = addCalendarDays(today, 7);
     const rows = await this.dataSource.getRepository(MaintenanceEntity)
       .createQueryBuilder('maintenance')
       .innerJoinAndSelect('maintenance.equipment', 'equipment')
       .innerJoinAndSelect('equipment.type', 'type')
       .where('maintenance.status IN (:...statuses)', { statuses: ['scheduled', 'in_progress'] })
-      .andWhere('(maintenance.scheduledDate <= CURRENT_DATE + INTERVAL \'7 days\' OR maintenance.priority = \'immediate\')')
+      .andWhere('(maintenance.scheduledDate <= :throughDate OR maintenance.priority = \'immediate\')', { throughDate })
       .orderBy('maintenance.scheduledDate', 'ASC')
       .take(12)
       .getMany();
-    const today = new Date().toISOString().slice(0, 10);
     return rows.map((maintenance) => ({
       maintenance: {
         id: maintenance.id,
@@ -192,7 +194,7 @@ export class MonitoringReadService {
         longitude,
         positionRecordedAt: recordedAt.toISOString(),
         positionSource: usesLastPosition ? 'last_known' : equipment.location.role === 'base' ? 'operational_base' : 'fixed_location',
-        positionStale: usesLastPosition && now - recordedAt.getTime() > stalePositionAfterMs,
+        positionStale: usesLastPosition && isPositionStale(recordedAt, now),
         dataOrigin: equipment.dataOrigin,
         maintenancePriority: equipment.maintenancePriority,
         nextMaintenanceDate: equipment.nextMaintenanceDate,
@@ -232,7 +234,7 @@ export class MonitoringReadService {
       longitude: agent.position!.longitude,
       positionRecordedAt: agent.position!.recordedAt.toISOString(),
       positionSource: 'last_known',
-      positionStale: now - agent.position!.recordedAt.getTime() > stalePositionAfterMs,
+      positionStale: isPositionStale(agent.position!.recordedAt, now),
       dataOrigin: agent.dataOrigin,
       maintenancePriority: null,
       nextMaintenanceDate: null,

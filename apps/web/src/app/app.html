@@ -1,3 +1,5 @@
+<a class="skip-link" href="#main-content">Pular para o conteúdo principal</a>
+
 <div class="app-shell" [class.app-shell--collapsed]="sidebarCollapsed()">
   @if (menuOpen()) {
     <button
@@ -9,11 +11,20 @@
   }
 
   <aside class="sidebar" [class.sidebar--open]="menuOpen()" aria-label="Navegação principal">
-    <a class="brand" routerLink="/command" (click)="closeMenu()" title="F.O.G.O. Urban Intelligence">
-      <span class="brand__mark" aria-hidden="true">F</span>
-      <span class="brand__text">
-        <strong>F.O.G.O.</strong>
-        <small>Urban Intelligence</small>
+    <a class="brand" routerLink="/command" (click)="closeMenu()" title="NEXO Urbano" aria-label="NEXO Urbano — página inicial">
+      <span class="brand__logo brand__logo--full" aria-hidden="true">
+        @if (theme() === 'light') {
+          <img class="brand__logo-image brand__logo-image--light" src="/image/logowhite.png" alt="">
+        } @else {
+          <img class="brand__logo-image brand__logo-image--dark" src="/image/logoblack.png" alt="">
+        }
+      </span>
+      <span class="brand__logo brand__logo--icon" aria-hidden="true">
+        @if (theme() === 'light') {
+          <img class="brand__logo-image brand__logo-image--light" src="/image/iconwhite.png" alt="">
+        } @else {
+          <img class="brand__logo-image brand__logo-image--dark" src="/image/iconbalck.png" alt="">
+        }
       </span>
     </a>
 
@@ -97,6 +108,13 @@
       <button class="sidebar-toggle" type="button" (click)="toggleSidebar()" [attr.aria-expanded]="!sidebarCollapsed()" [attr.aria-label]="sidebarCollapsed() ? 'Expandir menu lateral' : 'Recolher menu lateral'" [title]="sidebarCollapsed() ? 'Expandir menu' : 'Recolher menu'">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM10 5v14M15 9l-2 3 2 3" /></svg>
       </button>
+      <button class="theme-toggle" type="button" (click)="toggleTheme()" [attr.aria-label]="theme() === 'light' ? 'Ativar modo escuro' : 'Ativar modo claro'" [title]="theme() === 'light' ? 'Ativar modo escuro' : 'Ativar modo claro'">
+        @if (theme() === 'light') {
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.1A8.3 8.3 0 0 1 8.9 3.8 8.4 8.4 0 1 0 20.2 15.1Z" /></svg>
+        } @else {
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" /></svg>
+        }
+      </button>
       <div class="topbar__context">
         <span>DSIN Challenge 2026</span>
         <span class="context-separator" aria-hidden="true">/</span>
@@ -105,7 +123,7 @@
       <span class="topbar__badge" [class.topbar__badge--connected]="connectionState() === 'connected'" role="status" aria-live="polite"><span></span> {{ connectionLabel() }}</span>
     </header>
 
-    <main id="main-content" class="main-content">
+    <main id="main-content" class="main-content" tabindex="-1">
       <router-outlet />
     </main>
   </div>

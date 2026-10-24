@@ -8,6 +8,7 @@ import { AgentEntity } from '../agents/agent.entity.js';
 import { OperationalAlertActionEntity } from './operational-alert-action.entity.js';
 import { OperationalAlertEntity } from './operational-alert.entity.js';
 import { OperationalEventEntity } from './operational-event.entity.js';
+import { operationalDateKey } from '../common/operational-date.js';
 
 type ChangeContext = {
   eventType: OperationalEventType;
@@ -43,54 +44,49 @@ export class MonitoringWriteService implements OnApplicationBootstrap {
   }
 
   async equipmentChanged(
+    manager: EntityManager,
     equipmentId: string,
     previousStatus: EquipmentEntity['status'] | null,
     source: 'api' | 'demo' = 'api',
     eventType: OperationalEventType = 'equipment.updated',
     extraPayload: Record<string, unknown> = {},
-  ): Promise<void> {
-    const events = await this.dataSource.transaction((manager) => this.reconcileEquipment(manager, equipmentId, {
+  ): Promise<OperationalEventEntity[]> {
+    return this.reconcileEquipment(manager, equipmentId, {
       eventType,
       source,
       resourceType: eventType === 'demo.scenario.changed' ? 'demo_scenario' : 'equipment',
       resourceId: equipmentId,
       payload: { previousStatus, ...extraPayload },
-    }));
-    this.publish(events);
+    });
   }
 
-  async agentChanged(agentId: string): Promise<void> {
-    const event = await this.dataSource.transaction(async (manager) => {
-      const agent = await manager.getRepository(AgentEntity).findOne({ where: { id: agentId } });
-      if (!agent) return null;
-      return this.appendEvent(manager, {
-        eventType: 'agent.updated',
-        resourceType: 'agent',
-        resourceId: agent.id,
-        payload: { availability: agent.availability, dataOrigin: agent.dataOrigin },
-        source: 'api',
-      });
-    });
-    if (event) this.publish([event]);
+  async agentChanged(manager: EntityManager, agentId: string): Promise<OperationalEventEntity[]> {
+    const agent = await manager.getRepository(AgentEntity).findOne({ where: { id: agentId } });
+    if (!agent) return [];
+    return [await this.appendEvent(manager, {
+      eventType: 'agent.updated',
+      resourceType: 'agent',
+      resourceId: agent.id,
+      payload: { availability: agent.availability, dataOrigin: agent.dataOrigin },
+      source: 'api',
+    })];
   }
 
   async maintenanceChanged(
+    manager: EntityManager,
     maintenanceId: string,
     eventType: 'maintenance.created' | 'maintenance.updated',
     payload: Record<string, unknown>,
-  ): Promise<void> {
-    const events = await this.dataSource.transaction(async (manager) => {
-      const maintenance = await manager.getRepository(MaintenanceEntity).findOne({ where: { id: maintenanceId } });
-      if (!maintenance) return [];
-      return this.reconcileEquipment(manager, maintenance.equipmentId, {
-        eventType,
-        source: 'api',
-        resourceType: 'maintenance',
-        resourceId: maintenance.id,
-        payload,
-      });
+  ): Promise<OperationalEventEntity[]> {
+    const maintenance = await manager.getRepository(MaintenanceEntity).findOne({ where: { id: maintenanceId } });
+    if (!maintenance) return [];
+    return this.reconcileEquipment(manager, maintenance.equipmentId, {
+      eventType,
+      source: 'api',
+      resourceType: 'maintenance',
+      resourceId: maintenance.id,
+      payload,
     });
-    this.publish(events);
   }
 
   private async reconcileEquipment(
@@ -225,7 +221,7 @@ export class MonitoringWriteService implements OnApplicationBootstrap {
       });
     }
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = operationalDateKey();
     for (const maintenance of maintenanceRecords) {
       if (!['scheduled', 'in_progress'].includes(maintenance.status)) continue;
       const maintenancePrefix = `${prefix}maintenance:${maintenance.id}:`;

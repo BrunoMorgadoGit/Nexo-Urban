@@ -50,7 +50,7 @@ describe('MonitoringRealtimeService', () => {
     service.acquire({ onDestroy: (callback: () => void) => { destroy = callback; } } as DestroyRef);
     const source = FakeEventSource.instances[0];
 
-    expect(source.url).toBe('http://127.0.0.1:3000/api/v1/monitoring/events/stream');
+    expect(source.url).toBe('/api/v1/monitoring/events/stream');
     source.onopen?.();
     expect(service.state()).toBe('connected');
     expect(service.refreshVersion()).toBe(1);

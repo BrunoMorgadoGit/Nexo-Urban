@@ -3,10 +3,10 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "prestart": "node ../../scripts/copy-maplibre-worker.mjs",
+    "prestart": "node ../../scripts/copy-maplibre-worker.mjs && node ../../scripts/prepare-web-dev.mjs",
     "prebuild": "node ../../scripts/copy-maplibre-worker.mjs",
     "prewatch": "node ../../scripts/copy-maplibre-worker.mjs",
-    "start": "ng serve --host 127.0.0.1",
+    "start": "ng serve --host 127.0.0.1 --proxy-config .angular/fogo-proxy.json",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "lint": "oxlint --type-aware src/",

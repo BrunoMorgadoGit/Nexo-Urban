@@ -42,12 +42,14 @@ O frontend apresenta e envia comandos. A API valida regras e grava dados. O banc
 
 - Node.js 22.23.3 e npm 10.9.x. Com NVM, execute `nvm use` na raiz do repositório e confirme `node --version`.
 - Docker Engine e Docker Compose plugin.
-- Portas locais livres: `5437` (PostgreSQL), `3000` (API) e `4200` (Angular), ajustáveis em `.env`.
+- Portas locais livres: `5437` (PostgreSQL), `3000` (API, configurável por `API_PORT`) e `4200` (Angular). Banco e API são configurados por `.env`.
 - Acesso aos tiles do OpenStreetMap para carregar o mapa; a atribuição é exibida na interface.
 
 ## Instalação limpa
 
-Em um clone novo, copie `.env.example` para `.env`. O modelo deixa senha e URL do banco vazias para não distribuir credenciais. Antes de iniciar o PostgreSQL, defina `POSTGRES_PASSWORD` com uma senha local e preencha `DATABASE_URL` usando a mesma senha. Se `.env` já existir, preserve-o e não o substitua.
+Em um clone novo, copie `.env.example` para `.env`. O modelo deixa senha e URLs vazias para não distribuir credenciais. Defina `POSTGRES_PASSWORD` e `DATABASE_URL` localmente antes de iniciar o banco; o Compose falha com mensagem clara se a senha estiver ausente. Restrinja o arquivo local com `chmod 600 .env`. Se `.env` já existir, preserve-o e não o substitua.
+
+O PostgreSQL local usa `POSTGRES_USER` tanto para migrations quanto para a API. Isso simplifica a demonstração isolada; não reutilize essa configuração em implantação pública ou compartilhada. Nesse caso, crie usuário de runtime com privilégios mínimos e usuário separado para migrations.
 
 ```bash
 nvm use
@@ -76,7 +78,7 @@ nvm use
 npm run dev:web
 ```
 
-Abra <http://127.0.0.1:4200>. A API atende em `127.0.0.1:3000/api/v1`. O Docker Compose também publica o PostgreSQL somente no loopback. Não exponha esses serviços demonstrativos publicamente: não há autenticação de usuário nesta entrega.
+Abra <http://127.0.0.1:4200>. O frontend usa `/api/v1` para HTTP e SSE; o proxy de desenvolvimento gerado pelo `prestart` aponta para `127.0.0.1:API_PORT` a partir do `.env` ou do ambiente. A API permanece vinculada a `127.0.0.1` e o Compose publica o PostgreSQL somente no loopback. As rotas de simulação exigem ambiente de desenvolvimento e opt-in explícito. O sistema não tem autenticação de usuário: não o exponha por proxy público. Exposição pública exige autenticação e autorização implementadas e verificadas no servidor, além de configuração de produção apropriada.
 
 Para parar a aplicação, use `Ctrl+C` nos processos Angular e NestJS. `npm run db:down` apenas para o container e preserva o volume. Não use `docker compose down -v` para o banco de desenvolvimento.
 
@@ -103,9 +105,20 @@ npm run test:e2e
 npm audit --audit-level=high
 ```
 
-Os E2E usam PostgreSQL. `npm run test:e2e` define `NODE_ENV=development` para testar os endpoints de demonstração protegidos pela própria condição de ambiente; a inicialização normal de produção não registra esses endpoints.
+Os E2E usam exclusivamente PostgreSQL local dedicado. Crie previamente um banco cujo nome contenha `_e2e` ou `_test`. Configure as variáveis apenas no seu shell:
 
-Na revisão final, a instalação limpa com `npm ci`, migrations, os dois seeds, build, lint, unitários e E2E foram executados em cópia temporária isolada. A auditoria npm encontrou 0 vulnerabilidades. O build Angular conclui sem erros, mas registra avisos não bloqueantes de orçamento CSS em alguns componentes; eles estão documentados no checklist de avaliação.
+```bash
+export E2E_DATABASE_NAME=fogo_e2e
+export E2E_DATABASE_URL='postgresql://<usuario>:<senha>@127.0.0.1:5437/fogo_e2e'
+DATABASE_URL="$E2E_DATABASE_URL" npm run db:migrate
+DATABASE_URL="$E2E_DATABASE_URL" npm run db:seed
+DATABASE_URL="$E2E_DATABASE_URL" npm run db:seed:intelligence
+npm run test:e2e
+```
+
+O runner rejeita URL ausente, nome incompatível, host não local e o mesmo nome de banco definido em `DATABASE_URL`; antes de iniciar os testes consulta apenas `current_database()` e `current_user`. Mission Control e os testes de inventário podem alterar o banco E2E, por isso nunca direcione essa URL a dados operacionais. Nenhum teste E2E é iniciado sem validação da identidade conectada.
+
+Use os resultados de build, lint, testes, migrations e auditoria registrados para o checkout atual; resultados de cópias anteriores não demonstram o estado deste checkout.
 
 ## Rotas principais
 
@@ -117,7 +130,7 @@ Todos os endpoints abaixo usam o prefixo `/api/v1`.
 | Domínio | `GET /equipment-types`, `/organizations`, `/regions`; `GET/POST /maintenance` |
 | Monitoramento | `GET /monitoring/overview`, `/map`, `/regions`, `/alerts`, `/alerts/:id`; ações de alerta em `/monitoring/alerts/:id/*` |
 | Eventos | `GET /monitoring/events/stream` (SSE); timeline da simulação em `GET /monitoring/demo/scenario/timeline` |
-| Mission Control | `GET /monitoring/demo/scenario`; `POST /monitoring/demo/scenario/outage` e `/reset` somente em desenvolvimento |
+| Mission Control | `GET /monitoring/demo/scenario`; `POST /monitoring/demo/scenario/outage` e `/reset` somente com `NODE_ENV=development` e `DEMO_SCENARIO_ENABLED=true` |
 | Inteligência | `GET /intelligence/overview`, `/regions`, `/regions/:id`, `/maintenance-priorities`, `/trends`, `/validation` |
 
 Políticas operacionais e detalhes SSE: [docs/monitoring.md](docs/monitoring.md). Fórmulas, critérios de qualidade e backtest: [docs/intelligence.md](docs/intelligence.md). Decisões de arquitetura: [docs/architecture.md](docs/architecture.md).

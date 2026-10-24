@@ -7,7 +7,45 @@ coverage/
 .codex/
 .env
 .env.*
-!.env.example
+!/.env.example
 npm-debug.log*
 *.tsbuildinfo
 .DS_Store
+
+# Local credentials and key material
+.envrc
+.npmrc
+.pypirc
+.netrc
+.pgpass
+.my.cnf
+.docker/
+.kube/
+.ssh/
+.gcloud/
+.firebase/
+.vercel/
+.netlify/
+.supabase/
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+credentials*.json
+service-account*.json
+*-service-account.json
+
+# Local database copies and backups
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.backup
+*.bak
+*.sql.gz
+
+# Logs
+*.log
+logs/

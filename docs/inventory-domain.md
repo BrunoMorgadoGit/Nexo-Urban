@@ -10,7 +10,7 @@ Os estados de equipamento são `not_installed`, `operational`, `malfunctioning`,
 
 ## Agentes e localização
 
-O cadastro guarda somente nome demonstrativo, identificador funcional, categoria (`traffic_agent`, `municipal_guard`, `police_officer`), órgão e disponibilidade (`available`, `on_duty`, `unavailable`, `off_duty`). `agent_positions` mantém uma posição conhecida e seu instante de coleta; telemetria e histórico de posições ficam para etapa futura.
+O cadastro guarda somente nome demonstrativo, identificador funcional, categoria (`traffic_agent`, `municipal_guard`, `police_officer`), órgão e disponibilidade (`available`, `on_duty`, `unavailable`, `off_duty`). `agent_positions` mantém uma única posição conhecida e seu instante de coleta; não há histórico contínuo de GPS nem integração com dispositivos de telemetria.
 
 Endereços de equipamento ficam em `equipment_locations`, ligados a `regions` com cidade e UF. Coordenadas são números decimais validados em longitude/latitude. Posições atuais de equipamentos e agentes ficam em tabelas próprias, evitando confundir a base fixa com deslocamento.
 

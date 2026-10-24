@@ -35,9 +35,9 @@ O texto integral do edital/enunciado original da DSIN não está versionado nest
 | Validar sem vazamento temporal e comparar baseline | Cortes diários; dados até o corte formam escore; falha nas 24 horas posteriores é o desfecho; matriz de confusão, prevalência, classes e precisão top-1 | `/api/v1/intelligence/validation` | Teste E2E e relatório exposto na UI | Amostra sintética não demonstra desempenho em operação real; regra-base é simples |
 | Gerar dados históricos demonstrativos reproduzíveis | Dataset sintético identificado por chave/versão, chaves de evento únicas e seed idempotente | `npm run db:seed:intelligence` | Execução repetida e auditoria no PostgreSQL | Histórico é criado retroativamente para demonstração e vinculado ao inventário DEMO |
 
-## Evidência da conclusão técnica
+## Histórico de validação anterior ao hardening
 
-Validação final desta entrega (Node.js 22.23.3, PostgreSQL 18.6 temporário e isolado):
+Os resultados abaixo já estavam documentados antes das correções de segurança e estabilidade desta etapa. Eles descrevem uma execução anterior em ambiente temporário e não comprovam o estado atual; não foram repetidos nesta auditoria porque Docker/PostgreSQL de teste não está acessível.
 
 | Verificação | Resultado observado |
 | --- | --- |
@@ -55,6 +55,23 @@ Validação final desta entrega (Node.js 22.23.3, PostgreSQL 18.6 temporário e 
 | Vídeo | Não produzido. Roteiro e instruções de gravação manual estão em `docs/demo-script.md`. |
 | Pacote final | Criado como arquivo ZIP por `git archive`; contém somente arquivos versionados, fica abaixo de 50 MB e exclui `.env`, `.aws`, `.codex`, dependências, dados e caches. |
 
-A revisão visual usou Chromium a 1440 px no desktop e 390 px no mobile, além de capturas dos estados principais. Capturas estáticas complementam, mas não substituem, a interação observada no navegador. O build Angular conclui sem erros, com avisos não bloqueantes em 11 arquivos SCSS acima do orçamento local de 4 KB; essa dívida de tamanho está visível no log do build e não foi mascarada aumentando o limite.
+A revisão visual histórica usou Chromium a 1440 px no desktop e 390 px no mobile. Capturas estáticas complementam, mas não substituem, a interação observada no navegador. Esta etapa não reexecutou a validação de navegador.
 
 O pacote do código deve excluir `.env`, `.aws`, `.codex`, `node_modules`, dados/volumes do PostgreSQL e caches. Nenhum arquivo de vídeo é incluído enquanto não houver gravação reproduzida e verificada.
+
+## Validação do hardening em 23/10/2026
+
+| Comando/verificação | Resultado observado nesta revisão |
+| --- | --- |
+| Node e npm via NVM | Node `v22.23.3`, npm `10.9.9`. |
+| `npm run build` | Passou para contratos, Angular e NestJS. Angular ainda emite avisos de orçamento CSS em componentes; sem erros. |
+| `npm run lint` | Passou em web e API. |
+| `npm test` | Passou: 8 testes web e 41 testes unitários da API, incluindo guard E2E, port proxy, timestamps GPS, data operacional e gate das rotas demonstrativas. |
+| `docker compose config --quiet` com senha placeholder | Passou sem iniciar containers. Com `POSTGRES_PASSWORD` vazio, Compose recusou a configuração com a mensagem de campo obrigatório. |
+| Proxy Angular com `API_PORT=3456` | Configuração gerada em modo de inspeção apontou `/api/**` para `127.0.0.1:3456`. Não houve validação de tráfego contra uma API ativa. |
+| `npm run test:e2e` sem URL dedicada | Recusado antes de iniciar Vitest: exige `E2E_DATABASE_URL`. Nenhuma escrita ou conexão ao PostgreSQL ocorreu. Foi acrescentado caso E2E de rollback quando a gravação do evento falha, ainda não executado. |
+| Docker/PostgreSQL, migrations, integração e navegador | Não validados: o socket do Docker retornou `permission denied`; não foi usado `sudo` nem conectado o banco configurado no `.env`. |
+| `npm audit --audit-level=high` | Não concluiu: `registry.npmjs.org` retornou `ENOTFOUND`. A auditoria de dependências permanece pendente. |
+| `.env` e Git | `.env` ignorado e modo local `600`; não foi exibido nem alterado o conteúdo. `git diff --check` passou. |
+
+Esta execução não comprova preservação ponta a ponta das funcionalidades no PostgreSQL ou navegador. Para liberar uma demonstração validada após estas correções, configure um PostgreSQL E2E separado, execute migrations/seeds nele e rode a suíte E2E pelo guard documentado no README.

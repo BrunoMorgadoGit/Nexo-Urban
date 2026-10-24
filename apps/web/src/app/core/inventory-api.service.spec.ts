@@ -22,7 +22,7 @@ describe('InventoryApiService', () => {
     service.listEquipment({ search: 'radar', status: 'operational', page: 2, pageSize: 10 }).subscribe((value) => {
       received = value;
     });
-    const request = http.expectOne((item) => item.url === 'http://127.0.0.1:3000/api/v1/equipments');
+    const request = http.expectOne((item) => item.url === '/api/v1/equipments');
     expect(request.request.method).toBe('GET');
     expect(request.request.params.get('search')).toBe('radar');
     expect(request.request.params.get('status')).toBe('operational');
@@ -42,7 +42,7 @@ describe('InventoryApiService', () => {
       },
     };
     service.createEquipment(input).subscribe();
-    const request = http.expectOne('http://127.0.0.1:3000/api/v1/equipments');
+    const request = http.expectOne('/api/v1/equipments');
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual(input);
     request.flush({ id: 'equipment-id', ...input });

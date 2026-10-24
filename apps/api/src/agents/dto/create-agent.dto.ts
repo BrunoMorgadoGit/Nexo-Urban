@@ -2,6 +2,7 @@ import { Transform, Type } from 'class-transformer';
 import { IsDateString, IsIn, IsLatitude, IsLongitude, IsOptional, IsString, IsUUID, MaxLength, MinLength, ValidateNested } from 'class-validator';
 import { agentAvailabilityStates, agentCategories } from '@fogo/contracts';
 import type { AgentAvailability, AgentCategory } from '@fogo/contracts';
+import { IsRecordedAtWithinClockSkew } from '../../common/validators/recorded-at.validator.js';
 
 class AgentPositionDto {
   @Type(() => Number)
@@ -13,6 +14,7 @@ class AgentPositionDto {
   longitude!: number;
 
   @IsDateString()
+  @IsRecordedAtWithinClockSkew()
   recordedAt!: string;
 
   @IsOptional()

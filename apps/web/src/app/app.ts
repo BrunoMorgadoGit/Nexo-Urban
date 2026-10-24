@@ -1,8 +1,12 @@
+import { DOCUMENT } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, HostListener, inject, signal, ViewChild } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MonitoringRealtimeService } from './core/monitoring-realtime.service';
+
+type ColorTheme = 'dark' | 'light';
+const themeStorageKey = 'fogo-color-theme';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -12,6 +16,8 @@ import { MonitoringRealtimeService } from './core/monitoring-realtime.service';
   templateUrl: './app.html',
 })
 export class App {
+  private readonly document = inject(DOCUMENT);
+  protected readonly theme = signal<ColorTheme>(this.readTheme());
   protected readonly menuOpen = signal(false);
   protected readonly sidebarCollapsed = signal(false);
   private readonly router = inject(Router);
@@ -23,11 +29,35 @@ export class App {
   @ViewChild('menuToggle') private menuToggle?: ElementRef<HTMLButtonElement>;
 
   constructor() {
+    this.applyTheme(this.theme());
     this.realtime.acquire(this.destroyRef);
     this.router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe((event) => this.pageTitle.set(this.titleFor(event.urlAfterRedirects)));
+  }
+
+  private readTheme(): ColorTheme {
+    try {
+      return this.document.defaultView?.localStorage.getItem(themeStorageKey) === 'light' ? 'light' : 'dark';
+    } catch {
+      return 'dark';
+    }
+  }
+
+  private applyTheme(theme: ColorTheme): void {
+    this.document.documentElement.setAttribute('data-theme', theme);
+    try {
+      this.document.defaultView?.localStorage.setItem(themeStorageKey, theme);
+    } catch {
+      // The theme remains usable for this session when browser storage is unavailable.
+    }
+  }
+
+  protected toggleTheme(): void {
+    const nextTheme = this.theme() === 'dark' ? 'light' : 'dark';
+    this.theme.set(nextTheme);
+    this.applyTheme(nextTheme);
   }
 
   private titleFor(url: string): string {

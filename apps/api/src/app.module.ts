@@ -13,6 +13,7 @@ import { MonitoringModule } from './monitoring/monitoring.module.js';
 import { DemoScenarioModule } from './monitoring/demo-scenario.module.js';
 import { validateEnvironment } from './config/environment.js';
 import { IntelligenceModule } from './intelligence/intelligence.module.js';
+import { isDemoScenarioEnabled } from './monitoring/demo-scenario-gate.js';
 
 @Module({
   imports: [
@@ -41,7 +42,7 @@ import { IntelligenceModule } from './intelligence/intelligence.module.js';
     InventoryModule,
     IntelligenceModule,
     MonitoringModule,
-    ...(process.env.NODE_ENV === 'development' ? [DemoScenarioModule] : []),
+    ...(isDemoScenarioEnabled(process.env) ? [DemoScenarioModule] : []),
   ],
 })
 export class AppModule {}

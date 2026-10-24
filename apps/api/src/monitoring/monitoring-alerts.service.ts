@@ -11,6 +11,7 @@ import { OperationalAlertActionEntity } from './operational-alert-action.entity.
 import { OperationalAlertEntity } from './operational-alert.entity.js';
 import { ListMonitoringAlertsDto } from './dto/list-monitoring-alerts.dto.js';
 import { MonitoringWriteService } from './monitoring-write.service.js';
+import { operationalDateKey } from '../common/operational-date.js';
 
 @Injectable()
 export class MonitoringAlertsService {
@@ -149,7 +150,7 @@ export class MonitoringAlertsService {
     if (alert.code === 'maintenance_immediate') {
       return maintenance.priority === 'immediate' || maintenance.kind === 'immediate';
     }
-    return maintenance.scheduledDate < new Date().toISOString().slice(0, 10);
+    return maintenance.scheduledDate < operationalDateKey();
   }
 
   private async toContracts(alerts: OperationalAlertEntity[]): Promise<MonitoringAlert[]> {

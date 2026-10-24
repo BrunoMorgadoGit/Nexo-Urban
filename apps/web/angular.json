@@ -28,6 +28,11 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "**/*",
+                "input": "image",
+                "output": "image"
               }
             ],
             "styles": [
@@ -60,6 +65,9 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "proxyConfig": ".angular/fogo-proxy.json"
+          },
           "configurations": {
             "production": {
               "buildTarget": "fogo-web:build:production"

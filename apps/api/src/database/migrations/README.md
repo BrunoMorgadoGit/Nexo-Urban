@@ -1,5 +1,5 @@
 # Migrations TypeORM
 
-Versione neste diretório somente migrations revisadas. Gere uma migration depois de definir entidades e invariantes do inventário, valide o SQL e então execute `npm run db:migrate` na raiz.
+Versione neste diretório somente migrations revisadas. O schema de inventário, monitoramento e inteligência já é criado por migrations versionadas. Revise o SQL de cada mudança aditiva e execute `npm run db:migrate` apenas no banco pretendido.
 
-Ainda não há migration de domínio nesta fundação. A execução atual da CLI criou a tabela interna `public.migrations` e confirmou que não há mudanças pendentes.
+`synchronize` e `migrationsRun` permanecem desativados na inicialização da API. Para E2E, use somente um banco dedicado identificado por `E2E_DATABASE_NAME`; nunca execute migrations ou seeds no banco de operação como preparação dos testes.

@@ -30,7 +30,7 @@
     "build": "npm run build:contracts && npm --workspace fogo-web run build && npm --workspace fogo-api run build",
     "lint": "npm run build:contracts && npm --workspace fogo-web run lint && npm --workspace fogo-api run lint",
     "test": "npm run build:contracts && npm --workspace fogo-web run test && npm --workspace fogo-api run test",
-    "test:e2e": "npm run build:contracts && npm --workspace fogo-api run test:e2e",
+    "test:e2e": "npm run build:contracts && node scripts/run-e2e.mjs",
     "db:up": "docker compose up -d db",
     "db:down": "docker compose stop db",
     "db:logs": "docker compose logs -f db",

@@ -72,7 +72,7 @@ O histórico é sintético e foi criado para demonstração, não é uma amostra
 
 ## Atualização e persistência
 
-Os endpoints reaproveitam um snapshot em memória por até cinco minutos por escopo para evitar recálculo a cada consulta. Uma avaliação por região, escopo, versão e hora é persistida em `intelligence_assessments` e `intelligence_region_assessments`, com referência, janela, origem, versão, fatores e recomendações. A persistência de snapshots não altera equipamento nem cria ordem de serviço.
+Os endpoints reaproveitam um snapshot em memória por até cinco minutos por escopo para evitar recálculo a cada consulta. Na primeira leitura após expirar o cache, o GET materializa por upsert uma avaliação por região, escopo, versão e hora em `intelligence_assessments` e `intelligence_region_assessments`, com referência, janela, origem, versão, fatores e recomendações. Essa escrita é idempotente e rastreável, mas significa que os endpoints de leitura têm esse efeito limitado de persistência; não altera equipamento nem cria ordem de serviço.
 
 ## Endpoints
 

@@ -16,6 +16,7 @@ import { RegionEntity } from '../regions/region.entity.js';
 import { IntelligenceAssessmentEntity } from './intelligence-assessment.entity.js';
 import { IntelligenceHistoryEventEntity } from './intelligence-history-event.entity.js';
 import { IntelligenceRegionAssessmentEntity } from './intelligence-region-assessment.entity.js';
+import { operationalDateKey } from '../common/operational-date.js';
 import {
   calculateRegionalRisk,
   HISTORY_WINDOW_DAYS,
@@ -287,7 +288,7 @@ export class IntelligenceService {
       const members = equipmentByRegion.get(region.id) ?? [];
       const regionalEvents = selectedEvents.filter((event) => event.regionId === region.id);
       const eligible = members.filter((asset) => !['not_installed', 'deactivated'].includes(asset.status)).length;
-      const today = referenceAt.toISOString().slice(0, 10);
+      const today = operationalDateKey(referenceAt);
       const pendingMaintenanceCount = members.reduce((total, asset) => total + asset.maintenances.filter((maintenance) =>
         ['scheduled', 'in_progress'].includes(maintenance.status)
         && (maintenance.scheduledDate < today || maintenance.priority === 'immediate' || maintenance.kind === 'immediate')).length, 0);

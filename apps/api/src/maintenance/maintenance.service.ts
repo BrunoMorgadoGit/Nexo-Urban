@@ -12,6 +12,7 @@ import { CreateMaintenanceDto } from './dto/create-maintenance.dto.js';
 import { ListMaintenanceDto } from './dto/list-maintenance.dto.js';
 import { MaintenanceEntity, MaintenanceStatus } from './maintenance.entity.js';
 import { MonitoringWriteService } from '../monitoring/monitoring-write.service.js';
+import { addCalendarDays, operationalDateKey } from '../common/operational-date.js';
 
 @Injectable()
 export class MaintenanceService {
@@ -32,12 +33,12 @@ export class MaintenanceService {
     if (!equipment || equipment.status === 'deactivated' || equipment.status === 'stolen') {
       throw new BadRequestException('Equipamento indisponível para agendamento.');
     }
-    const record = await this.dataSource.transaction(async (manager) => {
+    const result = await this.dataSource.transaction(async (manager) => {
       await manager.getRepository(EquipmentEntity).update(equipment.id, {
         nextMaintenanceDate: input.scheduledDate,
         maintenancePriority: input.priority,
       });
-      return manager.getRepository(MaintenanceEntity).save(
+      const record = await manager.getRepository(MaintenanceEntity).save(
         manager.getRepository(MaintenanceEntity).create({
           equipmentId: equipment.id,
           equipment,
@@ -49,13 +50,15 @@ export class MaintenanceService {
           completedAt: null,
         }),
       );
+      const events = await this.monitoringWrite.maintenanceChanged(manager, record.id, 'maintenance.created', {
+        status: record.status,
+        priority: record.priority,
+        scheduledDate: record.scheduledDate,
+      });
+      return { record, events };
     });
-    await this.monitoringWrite.maintenanceChanged(record.id, 'maintenance.created', {
-      status: record.status,
-      priority: record.priority,
-      scheduledDate: record.scheduledDate,
-    });
-    return this.getContract(record.id);
+    this.monitoringWrite.publish(result.events);
+    return this.getContract(result.record.id);
   }
 
   async list(query: ListMaintenanceDto): Promise<Page<MaintenanceContract>> {
@@ -70,7 +73,7 @@ export class MaintenanceService {
     }
     if (query.status) builder.andWhere('maintenance.status = :status', { status: query.status });
     if (query.overdueOnly) {
-      builder.andWhere('maintenance.scheduledDate < CURRENT_DATE')
+      builder.andWhere('maintenance.scheduledDate < :today', { today: operationalDateKey() })
         .andWhere('maintenance.status IN (:...activeStatuses)', {
           activeStatuses: ['scheduled', 'in_progress'],
         });
@@ -91,6 +94,8 @@ export class MaintenanceService {
 
   async overview() {
     const activeStatuses: MaintenanceStatus[] = ['scheduled', 'in_progress'];
+    const today = operationalDateKey();
+    const throughDate = addCalendarDays(today, 14);
     const [immediate, overdue, upcoming] = await Promise.all([
       this.maintenances
         .createQueryBuilder('maintenance')
@@ -99,13 +104,13 @@ export class MaintenanceService {
         .getCount(),
       this.maintenances
         .createQueryBuilder('maintenance')
-        .where('maintenance.scheduledDate < CURRENT_DATE')
+        .where('maintenance.scheduledDate < :today', { today })
         .andWhere('maintenance.status IN (:...activeStatuses)', { activeStatuses })
         .getCount(),
       this.maintenances
         .createQueryBuilder('maintenance')
-        .where('maintenance.scheduledDate >= CURRENT_DATE')
-        .andWhere("maintenance.scheduledDate <= CURRENT_DATE + INTERVAL '14 days'")
+        .where('maintenance.scheduledDate >= :today', { today })
+        .andWhere('maintenance.scheduledDate <= :throughDate', { throughDate })
         .andWhere('maintenance.status IN (:...activeStatuses)', { activeStatuses })
         .getCount(),
     ]);
@@ -113,26 +118,30 @@ export class MaintenanceService {
   }
 
   async updateStatus(id: string, nextStatus: MaintenanceStatus): Promise<MaintenanceContract> {
-    const record = await this.maintenances.findOne({ where: { id } });
-    if (!record) throw new NotFoundException('Registro de manutenção não encontrado.');
-    if (record.status === nextStatus) return this.getContract(id);
-    const transitions: Record<MaintenanceStatus, MaintenanceStatus[]> = {
-      scheduled: ['in_progress', 'cancelled'],
-      in_progress: ['completed', 'cancelled'],
-      completed: [],
-      cancelled: [],
-    };
-    if (!transitions[record.status].includes(nextStatus)) {
-      throw new ConflictException('Transição de estado de manutenção inválida.');
-    }
-    record.status = nextStatus;
-    record.completedAt = nextStatus === 'completed' ? new Date() : null;
-    await this.maintenances.save(record);
-    await this.monitoringWrite.maintenanceChanged(id, 'maintenance.updated', {
-      status: record.status,
-      priority: record.priority,
-      scheduledDate: record.scheduledDate,
+    const events = await this.dataSource.transaction(async (manager) => {
+      const repository = manager.getRepository(MaintenanceEntity);
+      const record = await repository.findOne({ where: { id } });
+      if (!record) throw new NotFoundException('Registro de manutenção não encontrado.');
+      if (record.status === nextStatus) return [];
+      const transitions: Record<MaintenanceStatus, MaintenanceStatus[]> = {
+        scheduled: ['in_progress', 'cancelled'],
+        in_progress: ['completed', 'cancelled'],
+        completed: [],
+        cancelled: [],
+      };
+      if (!transitions[record.status].includes(nextStatus)) {
+        throw new ConflictException('Transição de estado de manutenção inválida.');
+      }
+      record.status = nextStatus;
+      record.completedAt = nextStatus === 'completed' ? new Date() : null;
+      await repository.save(record);
+      return this.monitoringWrite.maintenanceChanged(manager, id, 'maintenance.updated', {
+        status: record.status,
+        priority: record.priority,
+        scheduledDate: record.scheduledDate,
+      });
     });
+    this.monitoringWrite.publish(events);
     return this.getContract(id);
   }
 
@@ -159,7 +168,7 @@ export class MaintenanceService {
       scheduledDate: record.scheduledDate,
       completedAt: record.completedAt?.toISOString() ?? null,
       overdue:
-        record.scheduledDate < new Date().toISOString().slice(0, 10) &&
+        record.scheduledDate < operationalDateKey() &&
         ['scheduled', 'in_progress'].includes(record.status),
       createdAt: record.createdAt.toISOString(),
     };

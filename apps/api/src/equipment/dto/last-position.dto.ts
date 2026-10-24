@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import { IsDateString, IsLatitude, IsLongitude } from 'class-validator';
+import { IsRecordedAtWithinClockSkew } from '../../common/validators/recorded-at.validator.js';
 
 export class LastPositionDto {
   @Type(() => Number)
@@ -11,5 +12,6 @@ export class LastPositionDto {
   longitude!: number;
 
   @IsDateString()
+  @IsRecordedAtWithinClockSkew()
   recordedAt!: string;
 }

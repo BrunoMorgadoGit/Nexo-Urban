@@ -2,6 +2,15 @@ import type { EquipmentStatus } from '@fogo/contracts';
 
 export type EquipmentStatusCounts = Partial<Record<EquipmentStatus, number>>;
 
+export const stalePositionAfterMs = 15 * 60 * 1000;
+
+export function isPositionStale(recordedAt: Date, nowMs = Date.now()): boolean {
+  const recordedAtMs = recordedAt.getTime();
+  return !Number.isFinite(recordedAtMs)
+    || recordedAtMs > nowMs
+    || nowMs - recordedAtMs > stalePositionAfterMs;
+}
+
 export function calculateAvailability(counts: EquipmentStatusCounts): {
   totalEquipment: number;
   eligibleEquipment: number;

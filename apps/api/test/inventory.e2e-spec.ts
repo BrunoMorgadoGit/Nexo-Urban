@@ -106,6 +106,36 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
     expect(persisted.characteristics).toEqual({ speedLimitKmh: 50, lanes: 2, technology: 'doppler' });
   });
 
+  it('rolls back the resource when recording its operational event fails', async () => {
+    const rollbackSerial = `E2E-ROLLBACK-${randomUUID().slice(0, 8).toUpperCase()}`;
+    const appendEvent = vi.spyOn(app.get(MonitoringWriteService), 'appendEvent')
+      .mockRejectedValueOnce(new Error('Injected event persistence failure'));
+    try {
+      await request(app.getHttpServer())
+        .post('/api/v1/equipments')
+        .send(equipmentInput(rollbackSerial))
+        .expect(500);
+    } finally {
+      appendEvent.mockRestore();
+    }
+    expect(await dataSource.getRepository(EquipmentEntity).exists({ where: { serialNumber: rollbackSerial } })).toBe(false);
+  });
+
+  it('rolls back equipment when operational event persistence fails', async () => {
+    const rollbackSerial = `E2E-ROLLBACK-${randomUUID().slice(0, 8).toUpperCase()}`;
+    const appendEvent = vi.spyOn(app.get(MonitoringWriteService), 'appendEvent')
+      .mockRejectedValueOnce(new Error('Injected event persistence failure'));
+    try {
+      await request(app.getHttpServer())
+        .post('/api/v1/equipments')
+        .send(equipmentInput(rollbackSerial))
+        .expect(500);
+    } finally {
+      appendEvent.mockRestore();
+    }
+    expect(await dataSource.getRepository(EquipmentEntity).exists({ where: { serialNumber: rollbackSerial } })).toBe(false);
+  });
+
   it('rejects invalid DTOs and type characteristics without saving equipment', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/equipments')

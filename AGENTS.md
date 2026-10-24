@@ -6,10 +6,10 @@ Estas regras complementam o `AGENTS.md` global e as skills selecionadas conforme
 
 - Monorepo npm com `apps/web` (Angular), `apps/api` (NestJS), `packages/contracts` (tipos compartilhados estáveis) e `docs`.
 - O frontend cuida da apresentação, navegação e interação; o backend é a autoridade para regras de negócio, autenticação, autorização, validação e acesso a dados.
-- A API usa REST sob `/api/v1`; mantenha contratos aptos a evoluir para eventos SSE sem acoplar o cliente a detalhes internos.
+- A API usa REST sob `/api/v1` e SSE para eventos operacionais; mantenha contratos independentes de detalhes internos.
 - A camada de persistência pertence à API: TypeORM, PostgreSQL e migrations versionadas. `synchronize` deve permanecer desabilitado; não altere schema implicitamente em runtime.
 - Preserve fronteiras simples. Compartilhe em `packages/contracts` apenas tipos de transporte que sejam realmente usados por mais de um workspace; nunca compartilhe entidades ORM.
-- MapLibre e domínios do desafio serão introduzidos em etapas próprias, após definir requisitos e dados de inventário.
+- MapLibre, inventário, monitoramento e inteligência já fazem parte do produto; preserve suas integrações e escopos de dados.
 
 ## Angular
 

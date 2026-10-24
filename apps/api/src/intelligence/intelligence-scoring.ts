@@ -8,6 +8,7 @@ import type {
 } from '@fogo/contracts';
 import type { EquipmentStatus, MaintenancePriority } from '@fogo/contracts';
 import { equipmentStatuses } from '@fogo/contracts';
+import { addCalendarDays, operationalDateKey } from '../common/operational-date.js';
 
 export const INTELLIGENCE_METHOD_VERSION = 'risk-rules-v1';
 export const HISTORY_WINDOW_DAYS = 90;
@@ -213,12 +214,12 @@ export function prioritizeMaintenance(input: MaintenanceScoringInput): Predictiv
   const recentCount = failures.filter((event) => event.occurredAt >= recentStart).length;
   const previousCount = failures.filter((event) => event.occurredAt >= previousStart && event.occurredAt < recentStart).length;
   const activeMaintenance = input.maintenances.filter((maintenance) => ['scheduled', 'in_progress'].includes(maintenance.status));
-  const overdue = activeMaintenance.filter((maintenance) => maintenance.scheduledDate < referenceAt.toISOString().slice(0, 10));
+  const today = operationalDateKey(referenceAt);
+  const overdue = activeMaintenance.filter((maintenance) => maintenance.scheduledDate < today);
   const urgent = activeMaintenance.filter((maintenance) => maintenance.priority === 'immediate' || maintenance.kind === 'immediate');
-  const overdueNextDate = Boolean(equipment.nextMaintenanceDate && equipment.nextMaintenanceDate < referenceAt.toISOString().slice(0, 10));
-  const nextDate = equipment.nextMaintenanceDate ? new Date(`${equipment.nextMaintenanceDate}T00:00:00.000Z`) : null;
-  const nextMaintenanceSoon = Boolean(nextDate && nextDate >= new Date(`${referenceAt.toISOString().slice(0, 10)}T00:00:00.000Z`)
-    && nextDate.getTime() <= referenceAt.getTime() + 7 * dayMs);
+  const overdueNextDate = Boolean(equipment.nextMaintenanceDate && equipment.nextMaintenanceDate < today);
+  const nextDate = equipment.nextMaintenanceDate;
+  const nextMaintenanceSoon = Boolean(nextDate && nextDate >= today && nextDate <= addCalendarDays(today, 7));
   const daysSinceLastFailure = lastFailure ? Math.max(0, Math.floor((referenceAt.getTime() - lastFailure.getTime()) / dayMs)) : null;
   const severityScore = failures.reduce((highest, failure) => Math.max(highest, {
     low: 2, medium: 5, high: 8, critical: 12,

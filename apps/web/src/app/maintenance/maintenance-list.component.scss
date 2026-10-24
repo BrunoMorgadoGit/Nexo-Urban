@@ -5,7 +5,7 @@ h1 { margin: 0; font-size: clamp(1.75rem, 4vw, 2.25rem); font-weight: 620; lette
 .page-description { max-width: 50rem; margin: var(--space-2) 0 0; color: var(--color-text-secondary); font-size: var(--font-size-sm); line-height: 1.5; }
 .button { display: inline-flex; min-height: 2.6rem; align-items: center; justify-content: center; padding: 0 var(--space-4); border: 1px solid transparent; border-radius: var(--radius-sm); font-size: var(--font-size-sm); font-weight: 620; text-decoration: none; cursor: pointer; }
 .button:disabled { opacity: .55; cursor: not-allowed; }
-.button--primary { background: var(--color-accent); color: #10221b; }
+.button--primary { background: var(--color-accent); color: var(--color-accent-contrast); }
 .button--secondary { border-color: var(--color-border-strong); background: var(--color-surface); color: var(--color-text-primary); }
 .maintenance-panel { overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
 .toolbar { display: flex; flex-wrap: wrap; gap: var(--space-3); padding: var(--space-4); border-bottom: 1px solid var(--color-border); }
@@ -35,7 +35,7 @@ td small { display: block; margin-top: .3rem; color: var(--color-text-muted); fo
 .spinner { width: 1rem; height: 1rem; border: 2px solid var(--color-border-strong); border-top-color: var(--color-accent); border-radius: 50%; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); clip-path: inset(50%); white-space: nowrap; }
-.modal-scrim { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; overflow-y: auto; padding: var(--space-4); background: rgb(0 0 0 / 64%); }
+.modal-scrim { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; overflow-y: auto; padding: var(--space-4); background: var(--color-scrim); }
 .dialog { width: min(100%, 38rem); max-height: min(90dvh, 52rem); overflow-y: auto; padding: var(--space-6); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: 0 1rem 3rem rgb(0 0 0 / 34%); }
 .dialog-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
 .dialog-heading h2 { margin: 0; font-size: 1.25rem; }

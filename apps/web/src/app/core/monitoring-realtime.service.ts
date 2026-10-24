@@ -1,5 +1,6 @@
 import { DestroyRef, Injectable, signal } from '@angular/core';
 import type { OperationalEvent, OperationalEventType } from '@fogo/contracts';
+import { MONITORING_STREAM_PATH } from './api-base';
 
 export type RealtimeConnectionState = 'connecting' | 'connected' | 'disconnected';
 
@@ -32,7 +33,7 @@ export class MonitoringRealtimeService {
     }
     this.state.set('connecting');
     const params = this.lastEventId ? `?since=${encodeURIComponent(this.lastEventId)}` : '';
-    const source = new EventSource(`http://127.0.0.1:3000/api/v1/monitoring/events/stream${params}`);
+    const source = new EventSource(`${MONITORING_STREAM_PATH}${params}`);
     this.source = source;
     source.onopen = () => {
       this.state.set('connected');

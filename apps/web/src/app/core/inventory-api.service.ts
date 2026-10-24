@@ -1,5 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
+import { API_BASE_PATH } from './api-base';
 import type {
   AgentContract,
   AgentCategory,
@@ -110,155 +111,153 @@ export type MaintenanceWriteInput = {
   scheduledDate: string;
 };
 
-const API_BASE = 'http://127.0.0.1:3000/api/v1';
-
 @Injectable({ providedIn: 'root' })
 export class InventoryApiService {
   private readonly http = inject(HttpClient);
 
   listEquipment(filters: EquipmentFilters = {}): Observable<Page<EquipmentContract>> {
-    return this.http.get<Page<EquipmentContract>>(`${API_BASE}/equipments`, {
+    return this.http.get<Page<EquipmentContract>>(`${API_BASE_PATH}/equipments`, {
       params: this.toParams(filters),
     });
   }
 
   getEquipment(id: string): Observable<EquipmentContract> {
-    return this.http.get<EquipmentContract>(`${API_BASE}/equipments/${id}`);
+    return this.http.get<EquipmentContract>(`${API_BASE_PATH}/equipments/${id}`);
   }
 
   createEquipment(input: EquipmentWriteInput): Observable<EquipmentContract> {
-    return this.http.post<EquipmentContract>(`${API_BASE}/equipments`, input);
+    return this.http.post<EquipmentContract>(`${API_BASE_PATH}/equipments`, input);
   }
 
   updateEquipment(id: string, input: EquipmentWriteInput): Observable<EquipmentContract> {
-    return this.http.put<EquipmentContract>(`${API_BASE}/equipments/${id}`, input);
+    return this.http.put<EquipmentContract>(`${API_BASE_PATH}/equipments/${id}`, input);
   }
 
   deactivateEquipment(id: string): Observable<EquipmentContract> {
-    return this.http.delete<EquipmentContract>(`${API_BASE}/equipments/${id}`);
+    return this.http.delete<EquipmentContract>(`${API_BASE_PATH}/equipments/${id}`);
   }
 
   listAgents(filters: AgentFilters = {}): Observable<Page<AgentContract>> {
-    return this.http.get<Page<AgentContract>>(`${API_BASE}/agents`, {
+    return this.http.get<Page<AgentContract>>(`${API_BASE_PATH}/agents`, {
       params: this.toParams(filters),
     });
   }
 
   getAgent(id: string): Observable<AgentContract> {
-    return this.http.get<AgentContract>(`${API_BASE}/agents/${id}`);
+    return this.http.get<AgentContract>(`${API_BASE_PATH}/agents/${id}`);
   }
 
   createAgent(input: AgentWriteInput): Observable<AgentContract> {
-    return this.http.post<AgentContract>(`${API_BASE}/agents`, input);
+    return this.http.post<AgentContract>(`${API_BASE_PATH}/agents`, input);
   }
 
   updateAgent(id: string, input: AgentWriteInput): Observable<AgentContract> {
-    return this.http.put<AgentContract>(`${API_BASE}/agents/${id}`, input);
+    return this.http.put<AgentContract>(`${API_BASE_PATH}/agents/${id}`, input);
   }
 
   getEquipmentTypes(): Observable<EquipmentTypeContract[]> {
-    return this.http.get<EquipmentTypeContract[]>(`${API_BASE}/equipment-types`);
+    return this.http.get<EquipmentTypeContract[]>(`${API_BASE_PATH}/equipment-types`);
   }
 
   getOrganizations(): Observable<OrganizationContract[]> {
-    return this.http.get<OrganizationContract[]>(`${API_BASE}/organizations`);
+    return this.http.get<OrganizationContract[]>(`${API_BASE_PATH}/organizations`);
   }
 
   getRegions(): Observable<RegionContract[]> {
-    return this.http.get<RegionContract[]>(`${API_BASE}/regions`);
+    return this.http.get<RegionContract[]>(`${API_BASE_PATH}/regions`);
   }
 
   getSummary(): Observable<InventorySummary> {
-    return this.http.get<InventorySummary>(`${API_BASE}/inventory/summary`);
+    return this.http.get<InventorySummary>(`${API_BASE_PATH}/inventory/summary`);
   }
 
   getMonitoringOverview(): Observable<MonitoringOverview> {
-    return this.http.get<MonitoringOverview>(`${API_BASE}/monitoring/overview`);
+    return this.http.get<MonitoringOverview>(`${API_BASE_PATH}/monitoring/overview`);
   }
 
   getMonitoringMap(filters: MonitoringMapFilters = {}): Observable<MonitoringMapSnapshot> {
-    return this.http.get<MonitoringMapSnapshot>(`${API_BASE}/monitoring/map`, { params: this.toParams(filters) });
+    return this.http.get<MonitoringMapSnapshot>(`${API_BASE_PATH}/monitoring/map`, { params: this.toParams(filters) });
   }
 
   getMonitoringRegions(): Observable<MonitoringRegionSummary[]> {
-    return this.http.get<MonitoringRegionSummary[]>(`${API_BASE}/monitoring/regions`);
+    return this.http.get<MonitoringRegionSummary[]>(`${API_BASE_PATH}/monitoring/regions`);
   }
 
   getIntelligenceOverview(sourceScope: IntelligenceSourceScope = 'demo'): Observable<IntelligenceOverview> {
-    return this.http.get<IntelligenceOverview>(`${API_BASE}/intelligence/overview`, { params: this.toParams({ sourceScope }) });
+    return this.http.get<IntelligenceOverview>(`${API_BASE_PATH}/intelligence/overview`, { params: this.toParams({ sourceScope }) });
   }
 
   getIntelligenceRegions(sourceScope: IntelligenceSourceScope = 'demo'): Observable<RegionalRiskAssessment[]> {
-    return this.http.get<RegionalRiskAssessment[]>(`${API_BASE}/intelligence/regions`, { params: this.toParams({ sourceScope }) });
+    return this.http.get<RegionalRiskAssessment[]>(`${API_BASE_PATH}/intelligence/regions`, { params: this.toParams({ sourceScope }) });
   }
 
   getIntelligenceRegion(id: string, sourceScope: IntelligenceSourceScope = 'demo'): Observable<RegionIntelligenceDetail> {
-    return this.http.get<RegionIntelligenceDetail>(`${API_BASE}/intelligence/regions/${id}`, { params: this.toParams({ sourceScope }) });
+    return this.http.get<RegionIntelligenceDetail>(`${API_BASE_PATH}/intelligence/regions/${id}`, { params: this.toParams({ sourceScope }) });
   }
 
   getMaintenancePriorities(sourceScope: IntelligenceSourceScope = 'demo'): Observable<PredictiveMaintenancePriority[]> {
-    return this.http.get<PredictiveMaintenancePriority[]>(`${API_BASE}/intelligence/maintenance-priorities`, { params: this.toParams({ sourceScope }) });
+    return this.http.get<PredictiveMaintenancePriority[]>(`${API_BASE_PATH}/intelligence/maintenance-priorities`, { params: this.toParams({ sourceScope }) });
   }
 
   getIntelligenceTrends(sourceScope: IntelligenceSourceScope = 'demo'): Observable<IntelligenceTrendPoint[]> {
-    return this.http.get<IntelligenceTrendPoint[]>(`${API_BASE}/intelligence/trends`, { params: this.toParams({ sourceScope }) });
+    return this.http.get<IntelligenceTrendPoint[]>(`${API_BASE_PATH}/intelligence/trends`, { params: this.toParams({ sourceScope }) });
   }
 
   getIntelligenceValidation(sourceScope: IntelligenceSourceScope = 'demo'): Observable<IntelligenceBacktest> {
-    return this.http.get<IntelligenceBacktest>(`${API_BASE}/intelligence/validation`, { params: this.toParams({ sourceScope }) });
+    return this.http.get<IntelligenceBacktest>(`${API_BASE_PATH}/intelligence/validation`, { params: this.toParams({ sourceScope }) });
   }
 
   getMaintenanceAttention(): Observable<MaintenanceAttention[]> {
-    return this.http.get<MaintenanceAttention[]>(`${API_BASE}/monitoring/maintenance-alerts`);
+    return this.http.get<MaintenanceAttention[]>(`${API_BASE_PATH}/monitoring/maintenance-alerts`);
   }
 
   listMonitoringAlerts(filters: MonitoringAlertFilters = {}): Observable<Page<MonitoringAlert>> {
-    return this.http.get<Page<MonitoringAlert>>(`${API_BASE}/monitoring/alerts`, { params: this.toParams(filters) });
+    return this.http.get<Page<MonitoringAlert>>(`${API_BASE_PATH}/monitoring/alerts`, { params: this.toParams(filters) });
   }
 
   acknowledgeAlert(id: string): Observable<MonitoringAlert> {
-    return this.http.post<MonitoringAlert>(`${API_BASE}/monitoring/alerts/${id}/acknowledge`, {});
+    return this.http.post<MonitoringAlert>(`${API_BASE_PATH}/monitoring/alerts/${id}/acknowledge`, {});
   }
 
   addAlertNote(id: string, note: string): Observable<MonitoringAlert> {
-    return this.http.post<MonitoringAlert>(`${API_BASE}/monitoring/alerts/${id}/notes`, { note });
+    return this.http.post<MonitoringAlert>(`${API_BASE_PATH}/monitoring/alerts/${id}/notes`, { note });
   }
 
   resolveAlert(id: string): Observable<MonitoringAlert> {
-    return this.http.post<MonitoringAlert>(`${API_BASE}/monitoring/alerts/${id}/resolve`, {});
+    return this.http.post<MonitoringAlert>(`${API_BASE_PATH}/monitoring/alerts/${id}/resolve`, {});
   }
 
   getDemoScenario(): Observable<DemoScenario> {
-    return this.http.get<DemoScenario>(`${API_BASE}/monitoring/demo/scenario`);
+    return this.http.get<DemoScenario>(`${API_BASE_PATH}/monitoring/demo/scenario`);
   }
 
   getDemoTimeline(): Observable<DemoTimelineEntry[]> {
-    return this.http.get<DemoTimelineEntry[]>(`${API_BASE}/monitoring/demo/scenario/timeline`);
+    return this.http.get<DemoTimelineEntry[]>(`${API_BASE_PATH}/monitoring/demo/scenario/timeline`);
   }
 
   triggerDemoOutage(): Observable<DemoScenario> {
-    return this.http.post<DemoScenario>(`${API_BASE}/monitoring/demo/scenario/outage`, {});
+    return this.http.post<DemoScenario>(`${API_BASE_PATH}/monitoring/demo/scenario/outage`, {});
   }
 
   resetDemoScenario(): Observable<DemoScenario> {
-    return this.http.post<DemoScenario>(`${API_BASE}/monitoring/demo/scenario/reset`, {});
+    return this.http.post<DemoScenario>(`${API_BASE_PATH}/monitoring/demo/scenario/reset`, {});
   }
 
   listMaintenance(filters: MaintenanceFilters = {}): Observable<Page<MaintenanceContract>> {
-    return this.http.get<Page<MaintenanceContract>>(`${API_BASE}/maintenance`, {
+    return this.http.get<Page<MaintenanceContract>>(`${API_BASE_PATH}/maintenance`, {
       params: this.toParams(filters),
     });
   }
 
   createMaintenance(input: MaintenanceWriteInput): Observable<MaintenanceContract> {
-    return this.http.post<MaintenanceContract>(`${API_BASE}/maintenance`, input);
+    return this.http.post<MaintenanceContract>(`${API_BASE_PATH}/maintenance`, input);
   }
 
   updateMaintenanceStatus(
     id: string,
     status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled',
   ): Observable<MaintenanceContract> {
-    return this.http.patch<MaintenanceContract>(`${API_BASE}/maintenance/${id}/status`, { status });
+    return this.http.patch<MaintenanceContract>(`${API_BASE_PATH}/maintenance/${id}/status`, { status });
   }
 
   private toParams<T extends object>(filters: T): HttpParams {

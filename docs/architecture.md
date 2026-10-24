@@ -9,7 +9,7 @@
 
 ## Fluxo
 
-O Angular consome a API REST sob `/api/v1`. A API é a autoridade para validação, regras operacionais e persistência. Nesta demonstração ela atende somente no loopback; autenticação e autorização serão definidas quando os requisitos de acesso estiverem claros. SSE e MapLibre entram quando houver um caso de uso que os justifique.
+O Angular consome REST sob `/api/v1` e eventos operacionais por SSE. Requisições e SSE usam caminhos relativos `/api/v1`; no servidor Angular local, um proxy gerado em `.angular/` aponta para `API_PORT`. A API é a autoridade para validação, regras operacionais e persistência. Nesta demonstração ela atende somente no loopback e não possui autenticação de usuários. As rotas de simulação só são registradas com `NODE_ENV=development` e `DEMO_SCENARIO_ENABLED=true`. Uma implantação pública exige autenticação e autorização no servidor e um proxy configurado deliberadamente.
 
 ## Persistência e domínio
 
@@ -20,3 +20,7 @@ As entidades ORM ficam no backend. Os contratos compartilhados descrevem somente
 ## Ambiente local
 
 Node `22.23.3` via `.nvmrc`, npm workspaces e Docker Compose com PostgreSQL 18.6. O banco publica apenas em loopback e mantém dados em volume nomeado. A API também atende em `127.0.0.1` e limita CORS à origem web configurada.
+
+O teste E2E exige `E2E_DATABASE_URL` e `E2E_DATABASE_NAME` próprios, ambos destinados a um banco local cujo nome contenha `e2e` ou `test`. O runner compara o alvo com `DATABASE_URL` e consulta, sem escrita, o nome e usuário efetivos antes de iniciar Vitest. O usuário `POSTGRES_USER` do Compose também é usado localmente pela aplicação e pelas migrations; antes de qualquer implantação compartilhada, separe usuário de migração e usuário de runtime com privilégios mínimos.
+
+Na inicialização, a API reconcilia alertas existentes percorrendo os equipamentos em série; adequado ao conjunto demonstrativo atual, não dimensionado para inventários de grande escala. As consultas do mapa limitam cada categoria a 5.000 recursos, sem paginação geográfica.
