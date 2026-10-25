@@ -61,6 +61,7 @@ export class MissionControlComponent {
     const labels: Record<DemoTimelineEntry['eventType'], string> = {
       'equipment.updated': 'Equipamento atualizado',
       'agent.updated': 'Agente atualizado',
+      'agent.deleted': 'Agente excluído',
       'maintenance.created': 'Manutenção criada',
       'maintenance.updated': 'Manutenção atualizada',
       'alert.created': 'Alerta aberto',

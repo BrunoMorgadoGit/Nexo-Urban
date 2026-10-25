@@ -111,7 +111,8 @@
           <div><dt>Região</dt><dd>{{ item.regionZone ?? 'Não informado' }}</dd></div>
           <div><dt>Localização</dt><dd>{{ item.locationDescription ?? (item.latitude | number:'1.5-5') + ', ' + (item.longitude | number:'1.5-5') }}</dd></div>
           <div><dt>Referência geográfica</dt><dd>{{ positionLabel(item) }}</dd></div>
-          <div><dt>Posição registrada</dt><dd>{{ formatDate(item.positionRecordedAt) }}</dd></div>
+          @if (item.kind === 'agent' && item.linkedEquipmentLabel) { <div><dt>Equipamento vinculado</dt><dd>{{ item.linkedEquipmentLabel }}</dd></div> }
+          <div><dt>{{ item.positionSource === 'agent_base' ? 'Base cadastrada / atualizada' : 'Posição registrada' }}</dt><dd>{{ formatDate(item.positionRecordedAt) }}</dd></div>
           @if (item.positionStale) { <p class="stale-note">Posição antiga. Ela não representa localização em tempo real.</p> }
           @if (item.kind === 'equipment') {
             <div><dt>Prioridade de manutenção</dt><dd>{{ item.maintenancePriority }}</dd></div>
@@ -139,7 +140,9 @@
         <dl class="resource-details">
           <div><dt>Região</dt><dd>{{ item.regionName ?? 'Não informada' }}</dd></div>
           <div><dt>Tipo</dt><dd>{{ item.typeLabel }}</dd></div>
-          <div><dt>Última posição registrada</dt><dd>{{ formatDate(item.positionRecordedAt) }} · {{ positionLabel(item) }}</dd></div>
+          @if (item.kind === 'agent' && item.linkedEquipmentLabel) { <div><dt>Equipamento vinculado</dt><dd>{{ item.linkedEquipmentLabel }}</dd></div> }
+          <div><dt>Localização</dt><dd>{{ item.locationDescription ?? 'Não informada' }}</dd></div>
+          <div><dt>{{ item.positionSource === 'agent_base' ? 'Base cadastrada / atualizada' : 'Referência de localização' }}</dt><dd>{{ formatDate(item.positionRecordedAt) }} · {{ positionLabel(item) }}</dd></div>
         </dl>
         @if (item.positionStale) { <p class="stale-note">Posição antiga; não representa localização atual.</p> }
         <a class="resource-link" [routerLink]="item.detailPath">Consultar detalhes do recurso <span aria-hidden="true">→</span></a>

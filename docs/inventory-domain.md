@@ -10,9 +10,11 @@ Os estados de equipamento são `not_installed`, `operational`, `malfunctioning`,
 
 ## Agentes e localização
 
-O cadastro guarda somente nome demonstrativo, identificador funcional, categoria (`traffic_agent`, `municipal_guard`, `police_officer`), órgão e disponibilidade (`available`, `on_duty`, `unavailable`, `off_duty`). `agent_positions` mantém uma única posição conhecida e seu instante de coleta; não há histórico contínuo de GPS nem integração com dispositivos de telemetria.
+O cadastro guarda nome, identificador funcional único, categoria (`traffic_agent`, `municipal_guard`, `military_police_officer`, `civil_police_officer`, `other`; `police_officer` permanece para compatibilidade com registros antigos), órgão, situação (`available`, `on_duty`, `unavailable`, `off_duty`), observações operacionais opcionais e equipamento vinculado opcional. `agents.equipment_id` referencia um equipamento existente; vários agentes podem compartilhar o mesmo equipamento.
 
-Endereços de equipamento ficam em `equipment_locations`, ligados a `regions` com cidade e UF. Coordenadas são números decimais validados em longitude/latitude. Posições atuais de equipamentos e agentes ficam em tabelas próprias, evitando confundir a base fixa com deslocamento.
+`operational_bases` contém bases reutilizáveis com região e coordenadas opcionais. `agent_positions` mantém separadamente uma última posição conhecida e o instante de coleta. O Mapa Vivo usa a última posição informada do agente, a última posição conhecida do equipamento vinculado ou, na ausência dessas, as coordenadas fixas da base, identificando claramente a fonte. Uma base nunca é apresentada como localização atual; não há rastreamento contínuo de pessoas nem integração com dispositivos de telemetria.
+
+Endereços de equipamento ficam em `equipment_locations`, ligados a `regions` com cidade e UF. Coordenadas são números decimais validados em longitude/latitude. Posições de equipamentos e agentes ficam em tabelas próprias, evitando confundir a base fixa com deslocamento.
 
 ## Manutenção
 
@@ -24,4 +26,4 @@ O seed usa identificadores e nomes fictícios, bairros de referência e coordena
 
 ## API
 
-A API atende sob `/api/v1`, vinculada a `127.0.0.1` neste ambiente. DTOs rejeitam campos desconhecidos; JSONB técnico recebe validação por tipo; erros de banco retornam mensagens seguras. O esquema de domínio é criado somente pela migration `CreateInventoryDomain`; `synchronize` permanece desabilitado.
+A API atende sob `/api/v1`, vinculada a `127.0.0.1` neste ambiente. `GET/POST/PUT/DELETE /agents` executam o CRUD operacional, `GET /agents/operational-bases` lista bases reutilizáveis e `POST/PUT /agents` podem criar uma nova base junto com o agente. DTOs rejeitam campos desconhecidos; JSONB técnico recebe validação por tipo; erros de banco retornam mensagens seguras. A migration `ExtendOperationalAgents` adiciona bases, vínculo de equipamento, observações e categorias profissionais; `synchronize` permanece desabilitado.

@@ -17,7 +17,7 @@ export class InventoryService {
   ) {}
 
   async summary(): Promise<InventorySummary> {
-    const [totalEquipment, operationalEquipment, attentionEquipment, totalAgents, availableAgents, work] =
+    const [totalEquipment, operationalEquipment, attentionEquipment, totalAgents, availableAgents, agentsOnDuty, agentsOffDuty, unavailableAgents, work] =
       await Promise.all([
         this.equipment.count(),
         this.equipment.count({ where: { status: 'operational' } }),
@@ -27,6 +27,9 @@ export class InventoryService {
           .getCount(),
         this.agents.count(),
         this.agents.count({ where: { availability: 'available' } }),
+        this.agents.count({ where: { availability: 'on_duty' } }),
+        this.agents.count({ where: { availability: 'off_duty' } }),
+        this.agents.count({ where: { availability: 'unavailable' } }),
         this.maintenance.overview(),
       ]);
     return {
@@ -38,6 +41,9 @@ export class InventoryService {
       upcomingMaintenance: work.upcoming,
       totalAgents,
       availableAgents,
+      agentsOnDuty,
+      agentsOffDuty,
+      unavailableAgents,
     };
   }
 }

@@ -216,39 +216,69 @@ export class MonitoringReadService {
     const builder = this.dataSource.getRepository(AgentEntity)
       .createQueryBuilder('agent')
       .innerJoinAndSelect('agent.organization', 'organization')
-      .innerJoinAndSelect('agent.position', 'position')
-      .leftJoinAndSelect('position.region', 'region');
+      .leftJoinAndSelect('agent.position', 'position')
+      .leftJoinAndSelect('position.region', 'positionRegion')
+      .leftJoinAndSelect('agent.operationalBase', 'operationalBase')
+      .leftJoinAndSelect('operationalBase.region', 'baseRegion')
+      .leftJoinAndSelect('agent.linkedEquipment', 'linkedEquipment')
+      .leftJoinAndSelect('linkedEquipment.type', 'linkedEquipmentType')
+      .leftJoinAndSelect('linkedEquipment.lastPosition', 'linkedPosition')
+      .leftJoinAndSelect('linkedEquipment.location', 'equipmentLocation')
+      .leftJoinAndSelect('equipmentLocation.region', 'equipmentRegion');
+    const regionExpression = 'CASE WHEN position.id IS NOT NULL THEN position.regionId WHEN linkedPosition.id IS NOT NULL THEN equipmentLocation.regionId ELSE operationalBase.regionId END';
+    const latitudeExpression = 'COALESCE(position.latitude, linkedPosition.latitude, operationalBase.latitude)';
+    const longitudeExpression = 'COALESCE(position.longitude, linkedPosition.longitude, operationalBase.longitude)';
+    builder.andWhere('(position.id IS NOT NULL OR linkedPosition.id IS NOT NULL OR (operationalBase.latitude IS NOT NULL AND operationalBase.longitude IS NOT NULL))');
     if (status) builder.andWhere('agent.availability = :availability', { availability: status });
     if (query.organizationId) builder.andWhere('agent.organizationId = :organizationId', { organizationId: query.organizationId });
-    if (query.regionId) builder.andWhere('position.regionId = :regionId', { regionId: query.regionId });
-    if (query.regionZone) builder.andWhere('region.zone = :regionZone', { regionZone: query.regionZone });
-    this.applyBounds(builder, query, 'position.latitude', 'position.longitude');
+    if (query.regionId) builder.andWhere(`${regionExpression} = :regionId`, { regionId: query.regionId });
+    if (query.regionZone) builder.andWhere(`EXISTS (SELECT 1 FROM regions effective_region WHERE effective_region.id = ${regionExpression} AND effective_region.zone = :regionZone)`, { regionZone: query.regionZone });
+    this.applyBounds(builder, query, latitudeExpression, longitudeExpression);
     const records = await builder.orderBy('agent.identifier', 'ASC').take(5000).getMany();
     const now = Date.now();
-    return records.map((agent) => ({
-      id: agent.id,
-      kind: 'agent',
-      label: agent.name,
-      identifier: agent.identifier,
-      status: agent.availability,
-      typeCode: null,
-      typeLabel: this.agentCategoryLabel(agent.category),
-      organizationId: agent.organizationId,
-      organizationName: agent.organization.name,
-      regionId: agent.position?.regionId ?? null,
-      regionName: agent.position?.region?.name ?? null,
-      regionZone: agent.position?.region?.zone ?? null,
-      locationDescription: null,
-      latitude: agent.position!.latitude,
-      longitude: agent.position!.longitude,
-      positionRecordedAt: agent.position!.recordedAt.toISOString(),
-      positionSource: 'last_known',
-      positionStale: isPositionStale(agent.position!.recordedAt, now),
-      dataOrigin: agent.dataOrigin,
-      maintenancePriority: null,
-      nextMaintenanceDate: null,
-      detailPath: `/agents/${agent.id}`,
-    } satisfies MapResourceContract));
+    return records.map((agent) => {
+      const equipmentPosition = agent.linkedEquipment?.lastPosition ?? null;
+      const usesAgentPosition = Boolean(agent.position);
+      const usesEquipmentPosition = !usesAgentPosition && Boolean(equipmentPosition);
+      const usesBase = !usesAgentPosition && !usesEquipmentPosition;
+      const latitude = agent.position?.latitude ?? equipmentPosition?.latitude ?? agent.operationalBase!.latitude!;
+      const longitude = agent.position?.longitude ?? equipmentPosition?.longitude ?? agent.operationalBase!.longitude!;
+      const recordedAt = agent.position?.recordedAt ?? equipmentPosition?.recordedAt ?? agent.operationalBase!.updatedAt;
+      const region = usesAgentPosition
+        ? agent.position?.region
+        : usesEquipmentPosition
+          ? agent.linkedEquipment?.location?.region
+          : agent.operationalBase?.region;
+      return {
+        id: agent.id,
+        kind: 'agent',
+        label: agent.name,
+        identifier: agent.identifier,
+        status: agent.availability,
+        typeCode: null,
+        typeLabel: this.agentCategoryLabel(agent.category),
+        organizationId: agent.organizationId,
+        organizationName: agent.organization.name,
+        regionId: usesAgentPosition ? agent.position?.regionId ?? null : usesEquipmentPosition ? agent.linkedEquipment?.location?.regionId ?? null : agent.operationalBase?.regionId ?? null,
+        regionName: region?.name ?? null,
+        regionZone: region?.zone ?? null,
+        locationDescription: usesBase
+          ? `Base operacional: ${agent.operationalBase!.name}`
+          : usesEquipmentPosition
+            ? `Posição do equipamento ${agent.linkedEquipment!.serialNumber}`
+            : 'Última posição conhecida do agente',
+        linkedEquipmentLabel: agent.linkedEquipment ? `${agent.linkedEquipment.type?.label ?? agent.linkedEquipment.typeCode} · ${agent.linkedEquipment.serialNumber}` : null,
+        latitude,
+        longitude,
+        positionRecordedAt: recordedAt.toISOString(),
+        positionSource: usesAgentPosition ? 'last_known' : usesEquipmentPosition ? 'linked_equipment' : 'agent_base',
+        positionStale: !usesBase && isPositionStale(recordedAt, now),
+        dataOrigin: agent.dataOrigin,
+        maintenancePriority: null,
+        nextMaintenanceDate: null,
+        detailPath: `/agents/${agent.id}`,
+      } satisfies MapResourceContract;
+    });
   }
 
   private countAgentsWithoutPosition(query: MonitoringMapQueryDto, status?: string): Promise<number> {
@@ -256,7 +286,12 @@ export class MonitoringReadService {
     const builder = this.dataSource.getRepository(AgentEntity)
       .createQueryBuilder('agent')
       .leftJoin('agent.position', 'position')
-      .where('position.id IS NULL');
+      .leftJoin('agent.operationalBase', 'operationalBase')
+      .leftJoin('agent.linkedEquipment', 'linkedEquipment')
+      .leftJoin('linkedEquipment.lastPosition', 'linkedPosition')
+      .where('position.id IS NULL')
+      .andWhere('linkedPosition.id IS NULL')
+      .andWhere('(operationalBase.latitude IS NULL OR operationalBase.longitude IS NULL)');
     if (status) builder.andWhere('agent.availability = :availability', { availability: status });
     if (query.organizationId) builder.andWhere('agent.organizationId = :organizationId', { organizationId: query.organizationId });
     return builder.getCount();
@@ -293,6 +328,9 @@ export class MonitoringReadService {
       traffic_agent: 'Agente de trânsito',
       municipal_guard: 'Guarda municipal',
       police_officer: 'Policial',
-    })[category];
+      military_police_officer: 'Policial militar',
+      civil_police_officer: 'Policial civil',
+      other: 'Outro',
+    } as Record<string, string>)[category] ?? category;
   }
 }

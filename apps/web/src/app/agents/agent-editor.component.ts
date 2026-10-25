@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormField, applyWhen, form, max, maxLength, min, minLength, required, submit } from '@angular/forms/signals';
-import type { AgentAvailability, AgentCategory, AgentContract, OrganizationContract, RegionContract } from '@fogo/contracts';
+import type { AgentAvailability, AgentCategory, AgentContract, EquipmentContract, OperationalBaseContract, OrganizationContract, RegionContract } from '@fogo/contracts';
 import { InventoryApiService, apiErrorMessage, type AgentWriteInput } from '../core/inventory-api.service';
 import { dateTimeToLocalInputValue, localDateTimeInputValue } from '../core/date-time';
 import { firstValueFrom, forkJoin, of } from 'rxjs';
@@ -15,7 +15,16 @@ type AgentEditorModel = {
   availability: AgentAvailability;
   includePosition: boolean;
   position: { latitude: number; longitude: number; recordedAt: string; regionId: string };
+  operationalBaseSelection: string;
+  newBaseName: string;
+  newBaseRegionId: string;
+  newBaseLatitude: string;
+  newBaseLongitude: string;
+  equipmentId: string;
+  operationalNotes: string;
 };
+
+type EquipmentOption = Pick<EquipmentContract, 'id' | 'serialNumber'> & { label: string };
 
 function initialModel(): AgentEditorModel {
   return {
@@ -26,6 +35,13 @@ function initialModel(): AgentEditorModel {
     availability: 'available',
     includePosition: false,
     position: { latitude: 91, longitude: 181, recordedAt: localDateTimeInputValue(), regionId: '' },
+    operationalBaseSelection: '',
+    newBaseName: '',
+    newBaseRegionId: '',
+    newBaseLatitude: '',
+    newBaseLongitude: '',
+    equipmentId: '',
+    operationalNotes: '',
   };
 }
 
@@ -54,30 +70,56 @@ export class AgentEditorComponent {
     required(schema.category);
     required(schema.organizationId, { message: 'Selecione o órgão responsável.' });
     required(schema.availability);
+    maxLength(schema.operationalNotes, 500);
     applyWhen(schema, (context) => context.valueOf(schema.includePosition), (formSchema) => {
       min(formSchema.position.latitude, -90); max(formSchema.position.latitude, 90);
       min(formSchema.position.longitude, -180); max(formSchema.position.longitude, 180);
       required(formSchema.position.recordedAt, { message: 'Informe quando a posição foi registrada.' });
     });
+    applyWhen(schema, (context) => context.valueOf(schema.operationalBaseSelection) === 'new', (formSchema) => {
+      required(formSchema.newBaseName, { message: 'Informe o nome da base operacional.' });
+      minLength(formSchema.newBaseName, 2);
+      maxLength(formSchema.newBaseName, 120);
+    });
   });
   protected readonly organizations = signal<OrganizationContract[]>([]);
   protected readonly regions = signal<RegionContract[]>([]);
+  protected readonly operationalBases = signal<OperationalBaseContract[]>([]);
+  protected readonly equipmentOptions = signal<EquipmentOption[]>([]);
+  protected readonly equipmentSearch = signal('');
   protected readonly loading = signal(true);
   protected readonly loadError = signal(false);
   protected readonly saving = signal(false);
   protected readonly error = signal('');
   protected readonly pageTitle = this.id ? 'Editar agente' : 'Cadastrar agente';
+  private searchTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor() {
+    this.destroyRef.onDestroy(() => clearTimeout(this.searchTimer));
     forkJoin({
       organizations: this.api.getOrganizations(),
-    regions: this.api.getRegions(),
+      regions: this.api.getRegions(),
+      operationalBases: this.api.getOperationalBases(),
+      equipment: this.api.listEquipment({ pageSize: 20 }),
       agent: this.id ? this.api.getAgent(this.id) : of(null),
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: ({ organizations, regions, agent }) => {
+      next: ({ organizations, regions, operationalBases, equipment, agent }) => {
         this.organizations.set(organizations);
         this.regions.set(regions);
+        this.operationalBases.set(operationalBases);
+        this.equipmentOptions.set(equipment.items.map((item) => ({
+          id: item.id,
+          serialNumber: item.serialNumber,
+          label: `${item.typeLabel} · ${item.brand} ${item.model} · ${item.serialNumber}`,
+        })));
         if (agent) this.populate(agent);
+        if (agent?.linkedEquipment && !this.equipmentOptions().some(({ id }) => id === agent.linkedEquipment?.id)) {
+          this.equipmentOptions.update((items) => [...items, {
+            id: agent.linkedEquipment!.id,
+            serialNumber: agent.linkedEquipment!.serialNumber,
+            label: agent.linkedEquipment!.label,
+          }]);
+        }
         this.loading.set(false);
       },
       error: (error: unknown) => {
@@ -90,8 +132,39 @@ export class AgentEditorComponent {
 
   protected save(): void {
     this.error.set('');
+    const current = this.model();
+    if (current.operationalBaseSelection === 'new') {
+      const latitude = current.newBaseLatitude.trim() ? Number(current.newBaseLatitude) : undefined;
+      const longitude = current.newBaseLongitude.trim() ? Number(current.newBaseLongitude) : undefined;
+      if (current.newBaseName.trim().length < 2) {
+        this.error.set('Informe o nome da base operacional.');
+        return;
+      }
+      if (current.newBaseRegionId && !this.regions().some(({ id }) => id === current.newBaseRegionId)) {
+        this.error.set('Selecione uma região válida para a base.');
+        return;
+      }
+      if ((latitude === undefined) !== (longitude === undefined)) {
+        this.error.set('Informe latitude e longitude da base juntas.');
+        return;
+      }
+      if (latitude !== undefined && (!Number.isFinite(latitude) || latitude < -90 || latitude > 90)) {
+        this.error.set('A latitude da base deve estar entre -90 e 90.');
+        return;
+      }
+      if (longitude !== undefined && (!Number.isFinite(longitude) || longitude < -180 || longitude > 180)) {
+        this.error.set('A longitude da base deve estar entre -180 e 180.');
+        return;
+      }
+    } else if (current.operationalBaseSelection && !this.operationalBases().some(({ id }) => id === current.operationalBaseSelection)) {
+      this.error.set('Selecione uma base operacional válida.');
+      return;
+    }
+    if (current.equipmentId && !this.equipmentOptions().some(({ id }) => id === current.equipmentId)) {
+      this.error.set('Selecione um equipamento existente no inventário.');
+      return;
+    }
     void submit(this.agentForm, async () => {
-      const current = this.model();
       if (!this.organizations().some(({ id }) => id === current.organizationId)) {
         this.error.set('Selecione um órgão responsável válido.');
         return;
@@ -102,7 +175,21 @@ export class AgentEditorComponent {
         category: current.category,
         organizationId: current.organizationId,
         availability: current.availability,
+        operationalBaseId: current.operationalBaseSelection && current.operationalBaseSelection !== 'new'
+          ? current.operationalBaseSelection
+          : null,
+        equipmentId: current.equipmentId || null,
+        operationalNotes: current.operationalNotes.trim() || null,
       };
+      if (current.operationalBaseSelection === 'new') {
+        input.newOperationalBase = {
+          name: current.newBaseName.trim(),
+          ...(current.newBaseRegionId ? { regionId: current.newBaseRegionId } : {}),
+          ...(current.newBaseLatitude.trim() ? { latitude: Number(current.newBaseLatitude) } : {}),
+          ...(current.newBaseLongitude.trim() ? { longitude: Number(current.newBaseLongitude) } : {}),
+        };
+        delete input.operationalBaseId;
+      }
       if (current.includePosition) {
         input.position = {
           latitude: current.position.latitude,
@@ -136,6 +223,42 @@ export class AgentEditorComponent {
       position: agent.position
         ? { ...agent.position, regionId: agent.position.regionId ?? '', recordedAt: dateTimeToLocalInputValue(agent.position.recordedAt) }
         : initialModel().position,
+      operationalBaseSelection: agent.operationalBase?.id ?? '',
+      newBaseName: '',
+      newBaseRegionId: '',
+      newBaseLatitude: '',
+      newBaseLongitude: '',
+      equipmentId: agent.linkedEquipment?.id ?? '',
+      operationalNotes: agent.operationalNotes ?? '',
     });
+  }
+
+  protected equipmentSearchChanged(event: Event): void {
+    if (!(event.target instanceof HTMLInputElement)) return;
+    const search = event.target.value.trim();
+    this.equipmentSearch.set(event.target.value);
+    clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => {
+      this.searchTimer = undefined;
+      this.api.listEquipment({ search, pageSize: 20 }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: (page) => {
+          const selected = this.equipmentOptions().find(({ id }) => id === this.model().equipmentId);
+          const results = page.items.map((item) => ({
+            id: item.id,
+            serialNumber: item.serialNumber,
+            label: `${item.typeLabel} · ${item.brand} ${item.model} · ${item.serialNumber}`,
+          }));
+          this.equipmentOptions.set(selected && !results.some(({ id }) => id === selected.id) ? [selected, ...results] : results);
+        },
+        error: (error: unknown) => this.error.set(apiErrorMessage(error)),
+      });
+    }, 280);
+  }
+
+  protected categoryLabel(category: string): string {
+    return ({
+      traffic_agent: 'Agente de trânsito', municipal_guard: 'Guarda municipal', police_officer: 'Policial',
+      military_police_officer: 'Policial militar', civil_police_officer: 'Policial civil', other: 'Outro',
+    } as Record<string, string>)[category] ?? category;
   }
 }

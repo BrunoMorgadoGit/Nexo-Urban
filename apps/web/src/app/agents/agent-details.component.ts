@@ -40,6 +40,9 @@ export class AgentDetailsComponent {
   }
 
   protected categoryLabel(category: string): string {
-    return ({ traffic_agent: 'Agente de trânsito', municipal_guard: 'Guarda municipal', police_officer: 'Policial' } as Record<string, string>)[category] ?? category;
+    return ({
+      traffic_agent: 'Agente de trânsito', municipal_guard: 'Guarda municipal', police_officer: 'Policial',
+      military_police_officer: 'Policial militar', civil_police_officer: 'Policial civil', other: 'Outro',
+    } as Record<string, string>)[category] ?? category;
   }
 }

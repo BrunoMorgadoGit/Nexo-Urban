@@ -22,6 +22,9 @@ export const agentCategories = [
   'traffic_agent',
   'municipal_guard',
   'police_officer',
+  'military_police_officer',
+  'civil_police_officer',
+  'other',
 ] as const;
 export type AgentCategory = (typeof agentCategories)[number];
 
@@ -114,9 +117,27 @@ export type AgentContract = {
   organizationName: string;
   availability: AgentAvailability;
   position: (LastKnownPosition & { regionId: string | null; regionName: string | null }) | null;
+  operationalBase: OperationalBaseContract | null;
+  linkedEquipment: AgentEquipmentLinkContract | null;
+  operationalNotes: string | null;
   dataOrigin: 'manual' | 'demo';
   createdAt: string;
   updatedAt: string;
+};
+
+export type OperationalBaseContract = {
+  id: string;
+  name: string;
+  regionId: string | null;
+  regionName: string | null;
+  latitude: number | null;
+  longitude: number | null;
+};
+
+export type AgentEquipmentLinkContract = {
+  id: string;
+  serialNumber: string;
+  label: string;
 };
 
 export type Page<T> = {
@@ -136,6 +157,9 @@ export type InventorySummary = {
   upcomingMaintenance: number;
   totalAgents: number;
   availableAgents: number;
+  agentsOnDuty: number;
+  agentsOffDuty: number;
+  unavailableAgents: number;
 };
 
 export type MaintenanceContract = {
@@ -182,10 +206,11 @@ export type MapResourceContract = {
   regionName: string | null;
   regionZone: string | null;
   locationDescription: string | null;
+  linkedEquipmentLabel?: string | null;
   latitude: number;
   longitude: number;
   positionRecordedAt: string;
-  positionSource: 'fixed_location' | 'operational_base' | 'last_known';
+  positionSource: 'fixed_location' | 'operational_base' | 'agent_base' | 'linked_equipment' | 'last_known';
   positionStale: boolean;
   dataOrigin: 'manual' | 'demo';
   maintenancePriority: MaintenancePriority | null;
@@ -268,6 +293,7 @@ export type MaintenanceAttention = {
 export type OperationalEventType =
   | 'equipment.updated'
   | 'agent.updated'
+  | 'agent.deleted'
   | 'maintenance.created'
   | 'maintenance.updated'
   | 'alert.created'

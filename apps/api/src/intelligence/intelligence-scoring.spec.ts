@@ -63,6 +63,17 @@ describe('intelligence scoring', () => {
     expect(assessment.factors.reduce((sum, factor) => sum + factor.weight, 0)).toBeCloseTo(1);
   });
 
+  it('uses the current inventory state to replace the latest historical state', () => {
+    const observations = Array.from({ length: 10 }, (_, index) =>
+      event(index * 7, 'status_observation', 'asset-1', { status: 'operational' }));
+    const assessment = calculateRegionalRisk({
+      region, referenceAt, sourceScope: 'demo', events: observations, eligibleEquipmentCount: 1,
+      currentStatuses: [{ equipmentId: 'asset-1', status: 'malfunctioning' }], sourceComposition,
+    });
+
+    expect(assessment.factors.find((factor) => factor.code === 'unavailability')?.observedValue).toBe(1);
+  });
+
   it('prioritizes corrective failures separately from preventive inspection and does not forecast failure dates', () => {
     const recentFailures = [event(20, 'failure', 'asset-1', {}, 'high'), event(7, 'failure', 'asset-1', {}, 'critical')];
     const recommendation = prioritizeMaintenance({
@@ -79,5 +90,23 @@ describe('intelligence scoring', () => {
     expect(recommendation?.failureCount90d).toBe(2);
     expect(recommendation?.reasons.map((reason) => reason.code)).toContain('recurrent_failures');
     expect(recommendation).not.toHaveProperty('predictedFailureAt');
+  });
+
+  it('returns the latest completion date from current maintenance and history', () => {
+    const completedAt = new Date('2026-10-15T12:00:00.000Z');
+    const historicalCompletion = event(2, 'maintenance_completed', 'asset-1');
+    const recommendation = prioritizeMaintenance({
+      equipment: {
+        id: 'asset-1', serialNumber: 'DEMO-RAD-001', brand: 'Demo', model: 'Radar', typeCode: 'radar', typeLabel: 'Radar',
+        status: 'operational', organizationName: 'DSIN', regionId: region.id, regionName: region.name, regionZone: region.zone,
+        dataOrigin: 'demo', maintenancePriority: 'normal', nextMaintenanceDate: '2026-10-25', createdAt: referenceAt,
+      },
+      events: [historicalCompletion],
+      maintenances: [{ status: 'completed', kind: 'scheduled', priority: 'normal', scheduledDate: '2026-10-15', completedAt }],
+      referenceAt,
+    });
+
+    expect(recommendation?.reasons.map(({ code }) => code)).toContain('scheduled_maintenance');
+    expect(recommendation?.lastMaintenanceAt).toBe(historicalCompletion.occurredAt.toISOString());
   });
 });

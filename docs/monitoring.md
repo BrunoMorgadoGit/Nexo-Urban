@@ -24,7 +24,7 @@ Todos ficam sob `/api/v1`.
 | Método | Rota | Uso |
 | --- | --- | --- |
 | `GET` | `/monitoring/overview` | Indicadores do Centro de Comando e flag de modo demonstrativo |
-| `GET` | `/monitoring/map` | Equipamentos e agentes georreferenciados; filtros `resourceType`, `typeCode`, `status`, `organizationId`, `regionId` (bairro), `regionZone` e limites `west/south/east/north` |
+| `GET` | `/monitoring/map` | Equipamentos e agentes com posição disponível; filtro `resourceType` (`all`, `equipment`, `agent`), além de `typeCode`, `status`, `organizationId`, `regionId` (bairro), `regionZone` e limites `west/south/east/north` |
 | `GET` | `/monitoring/regions` | Resumo por região cadastrada, sem geometrias presumidas |
 | `GET` | `/monitoring/maintenance-alerts` | Manutenções imediatas, vencidas ou previstas em até sete dias |
 | `GET` | `/monitoring/alerts` | Alertas paginados; filtros `severity`, `code`, `status` (`active` inclui abertos e reconhecidos) e `resourceId` |
@@ -37,7 +37,9 @@ Todos ficam sob `/api/v1`.
 
 ### Eventos SSE
 
-O corpo de cada evento possui `id`, `type`, `source` (`api` ou `demo`), `resourceType`, `resourceId`, `payload` e `occurredAt`. Tipos publicados: `equipment.updated`, `agent.updated`, `maintenance.created`, `maintenance.updated`, `alert.created`, `alert.updated`, `alert.resolved` e `demo.scenario.changed`. `heartbeat` não possui identificador persistido.
+O corpo de cada evento possui `id`, `type`, `source` (`api` ou `demo`), `resourceType`, `resourceId`, `payload` e `occurredAt`. Tipos publicados: `equipment.updated`, `agent.updated`, `agent.deleted`, `maintenance.created`, `maintenance.updated`, `alert.created`, `alert.updated`, `alert.resolved` e `demo.scenario.changed`. `heartbeat` não possui identificador persistido.
+
+Agentes são mapeados com marcador distinto dos equipamentos. A referência geográfica informa se o ponto veio da última posição conhecida do agente, da posição conhecida do equipamento vinculado ou de coordenadas fixas da base operacional. O mapa não rastreia profissionais em tempo real e agentes sem coordenadas permanecem disponíveis no cadastro.
 
 Cada alteração grava o evento junto com as ações de alerta na transação de monitoramento; a publicação ao vivo acontece depois do commit. O navegador ignora identificadores duplicados e recarrega os snapshots REST ao conectar ou reconectar. O stream ao vivo usa um barramento em memória de processo único; a tabela `operational_events` permite recuperar eventos persistidos desde o cursor após reinício. O snapshot REST continua sendo a recuperação de estado autoritativa.
 

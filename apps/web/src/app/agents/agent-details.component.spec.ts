@@ -9,6 +9,7 @@ const agent: AgentContract = {
   id: 'agent-1', name: 'Equipe demonstrativa', identifier: 'EQ-01', category: 'traffic_agent',
   organizationId: 'org-1', organizationName: 'Mobilidade', availability: 'available',
   position: { latitude: -22.9, longitude: -47.06, recordedAt: '2026-10-24T12:00:00.000Z', regionId: 'region-1', regionName: 'Sousas' },
+  operationalBase: null, linkedEquipment: null, operationalNotes: null,
   dataOrigin: 'demo', createdAt: '2026-10-20T12:00:00.000Z', updatedAt: '2026-10-24T12:00:00.000Z',
 };
 

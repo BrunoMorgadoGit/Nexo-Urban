@@ -6,8 +6,10 @@ import { In } from 'typeorm';
 import request from 'supertest';
 import type { App } from 'supertest/types.js';
 import { AgentEntity } from '../src/agents/agent.entity.js';
+import { OperationalBaseEntity } from '../src/agents/operational-base.entity.js';
 import { AppModule } from '../src/app.module.js';
 import { ApiExceptionFilter } from '../src/common/api-exception.filter.js';
+import { addCalendarDays, operationalDateKey } from '../src/common/operational-date.js';
 import { EquipmentEntity } from '../src/equipment/equipment.entity.js';
 import { MaintenanceEntity } from '../src/maintenance/maintenance.entity.js';
 import { OrganizationEntity } from '../src/organizations/organization.entity.js';
@@ -27,6 +29,8 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
   let mobileEquipmentId: string;
   let agentId: string;
   let unlocatedAgentId: string;
+  let linkedAgentId: string;
+  let operationalBaseId: string;
   const maintenanceIds: string[] = [];
 
   beforeAll(async () => {
@@ -52,7 +56,7 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
         await dataSource.getRepository(EquipmentEntity).delete({ id });
       }
       for (const id of maintenanceIds) await dataSource.getRepository(MaintenanceEntity).delete({ id });
-      const resourceIds = [equipmentId, mobileEquipmentId, agentId, unlocatedAgentId, ...maintenanceIds]
+      const resourceIds = [equipmentId, mobileEquipmentId, agentId, unlocatedAgentId, linkedAgentId, ...maintenanceIds]
         .filter((value): value is string => Boolean(value));
       const relatedAlerts = resourceIds.length
         ? await dataSource.getRepository(OperationalAlertEntity).find({ where: { resourceId: In(resourceIds) } })
@@ -64,6 +68,8 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
       }
       if (agentId) await dataSource.getRepository(AgentEntity).delete({ id: agentId });
       if (unlocatedAgentId) await dataSource.getRepository(AgentEntity).delete({ id: unlocatedAgentId });
+      if (linkedAgentId) await dataSource.getRepository(AgentEntity).delete({ id: linkedAgentId });
+      if (operationalBaseId) await dataSource.getRepository(OperationalBaseEntity).delete({ id: operationalBaseId });
     }
     await app?.close();
   });
@@ -334,8 +340,66 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
       .expect(409);
   });
 
+  it('links agents to reusable bases and existing equipment, maps the location source accurately, updates and deletes', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/agents')
+      .send({
+        name: 'Policial Civil de Teste',
+        identifier: `${agentIdentifier}-LINK`,
+        category: 'civil_police_officer',
+        organizationId,
+        availability: 'on_duty',
+        newOperationalBase: { name: 'Base E2E', regionId, latitude: -22.9056, longitude: -47.0608 },
+        equipmentId: mobileEquipmentId,
+        operationalNotes: 'Turno da manhã',
+      })
+      .expect(201);
+    linkedAgentId = created.body.id as string;
+    operationalBaseId = created.body.operationalBase.id as string;
+    expect(created.body).toMatchObject({
+      category: 'civil_police_officer',
+      operationalNotes: 'Turno da manhã',
+      operationalBase: { id: operationalBaseId, name: 'Base E2E', regionName: 'Centro' },
+      linkedEquipment: { id: mobileEquipmentId },
+    });
+
+    const bases = await request(app.getHttpServer()).get('/api/v1/agents/operational-bases').expect(200);
+    expect(bases.body.some((base: { id: string }) => base.id === operationalBaseId)).toBe(true);
+    const equipmentMap = await request(app.getHttpServer()).get('/api/v1/monitoring/map').query({ resourceType: 'agent' }).expect(200);
+    expect(equipmentMap.body.items.find((item: { id: string }) => item.id === linkedAgentId)).toMatchObject({
+      positionSource: 'linked_equipment',
+      locationDescription: expect.stringContaining('Posição do equipamento'),
+    });
+
+    const updated = await request(app.getHttpServer())
+      .put(`/api/v1/agents/${linkedAgentId}`)
+      .send({
+        name: 'Policial Civil de Teste',
+        identifier: `${agentIdentifier}-LINK`,
+        category: 'civil_police_officer',
+        organizationId,
+        availability: 'off_duty',
+        operationalBaseId,
+        equipmentId: null,
+        operationalNotes: 'Turno encerrado',
+      })
+      .expect(200);
+    expect(updated.body).toMatchObject({ availability: 'off_duty', linkedEquipment: null, operationalNotes: 'Turno encerrado' });
+    const baseMap = await request(app.getHttpServer()).get('/api/v1/monitoring/map').query({ resourceType: 'agent' }).expect(200);
+    expect(baseMap.body.items.find((item: { id: string }) => item.id === linkedAgentId)).toMatchObject({
+      positionSource: 'agent_base',
+      locationDescription: 'Base operacional: Base E2E',
+    });
+
+    await request(app.getHttpServer()).delete(`/api/v1/agents/${linkedAgentId}`).expect(200);
+    await request(app.getHttpServer()).get(`/api/v1/agents/${linkedAgentId}`).expect(404);
+    expect(await dataSource.getRepository(OperationalEventEntity).exists({
+      where: { resourceId: linkedAgentId, eventType: 'agent.deleted' },
+    })).toBe(true);
+  });
+
   it('identifies overdue and upcoming maintenance and enforces lifecycle transitions', async () => {
-    const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+    const yesterday = addCalendarDays(operationalDateKey(), -1);
     const response = await request(app.getHttpServer())
       .post('/api/v1/maintenance')
       .send({

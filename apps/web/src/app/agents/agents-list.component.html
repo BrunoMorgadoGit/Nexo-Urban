@@ -1,21 +1,23 @@
-<section class="page" aria-label="Agentes">
+<section class="page" aria-labelledby="page-title">
   <header class="page-heading">
-    <div><p class="eyebrow">Equipe operacional</p></div>
+    <div><p class="eyebrow">Inventário inteligente</p><h1 id="page-title">Agentes Operacionais</h1><p class="page-description">Gerencie os profissionais responsáveis pelas operações de mobilidade e segurança.</p></div>
     <a class="button button--primary" routerLink="/agents/new">Cadastrar agente</a>
   </header>
 
   @if (summary(); as metrics) {
     <div class="metrics" aria-label="Resumo de agentes">
-      <article class="metric-card"><span>Agentes cadastrados</span><strong>{{ metrics.totalAgents }}</strong><small>identificações funcionais</small></article>
-      <article class="metric-card"><span>Disponíveis</span><strong>{{ metrics.availableAgents }}</strong><small>prontos para operação</small></article>
+      <article class="metric-card"><span>Total de agentes</span><strong>{{ metrics.totalAgents }}</strong><small>cadastros ativos</small></article>
+      <article class="metric-card"><span>Em serviço</span><strong>{{ metrics.agentsOnDuty }}</strong><small>em atividade</small></article>
+      <article class="metric-card"><span>Fora de serviço</span><strong>{{ metrics.agentsOffDuty }}</strong><small>fora da escala</small></article>
+      <article class="metric-card"><span>Indisponíveis</span><strong>{{ metrics.unavailableAgents }}</strong><small>sem disponibilidade</small></article>
     </div>
   }
 
   <section class="inventory-panel" aria-label="Lista de agentes">
     <div class="toolbar">
-      <label class="search-field"><span class="visually-hidden">Buscar agentes</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.5 4.5" /></svg><input type="search" placeholder="Buscar por nome, matrícula ou órgão" [value]="search()" (input)="searchChanged($event)" /></label>
+        <label class="search-field"><span class="visually-hidden">Buscar agentes</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.5 4.5" /></svg><input type="search" placeholder="Buscar por nome ou identificação funcional" [value]="search()" (input)="searchChanged($event)" /></label>
       <div class="filters" aria-label="Filtros">
-        <label><span class="visually-hidden">Categoria profissional</span><select [value]="category()" (change)="filterChanged($event, 'category')"><option value="">Todas as categorias</option><option value="traffic_agent">Agente de trânsito</option><option value="municipal_guard">Guarda municipal</option><option value="police_officer">Policial</option></select></label>
+        <label><span class="visually-hidden">Categoria profissional</span><select [value]="category()" (change)="filterChanged($event, 'category')"><option value="">Todas as categorias</option><option value="traffic_agent">Agente de trânsito</option><option value="municipal_guard">Guarda municipal</option><option value="police_officer">Policial</option><option value="military_police_officer">Policial militar</option><option value="civil_police_officer">Policial civil</option><option value="other">Outro</option></select></label>
         <label><span class="visually-hidden">Disponibilidade</span><select [value]="availability()" (change)="filterChanged($event, 'availability')"><option value="">Todas as situações</option><option value="available">Disponível</option><option value="on_duty">Em serviço</option><option value="unavailable">Indisponível</option><option value="off_duty">Fora de serviço</option></select></label>
         <label><span class="visually-hidden">Órgão responsável</span><select [value]="organizationId()" (change)="filterChanged($event, 'organizationId')"><option value="">Todos os órgãos</option>@for (organization of organizations(); track organization.id) { <option [value]="organization.id">{{ organization.name }}</option> }</select></label>
       </div>
@@ -25,17 +27,18 @@
     } @else if (loading()) {
       <div class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>Carregando agentes…</div>
     } @else if (!page()?.items?.length) {
-      <div class="empty-state"><span class="empty-state__icon" aria-hidden="true">—</span><h2>Nenhum agente encontrado</h2><p>Ajuste os filtros ou cadastre uma equipe demonstrativa.</p><a class="button button--secondary" routerLink="/agents/new">Cadastrar agente</a></div>
+      <div class="empty-state"><span class="empty-state__icon" aria-hidden="true">—</span><h2>Nenhum agente encontrado</h2><p>Ajuste os filtros ou cadastre um agente operacional.</p><a class="button button--secondary" routerLink="/agents/new">Cadastrar agente</a></div>
     } @else {
-      <div class="table-scroll"><table><thead><tr><th scope="col">Agente</th><th scope="col">Categoria</th><th scope="col">Órgão</th><th scope="col">Disponibilidade</th><th scope="col">Última posição</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead><tbody>
+      <div class="table-scroll"><table><thead><tr><th scope="col">Profissional</th><th scope="col">Categoria</th><th scope="col">Unidade</th><th scope="col">Situação</th><th scope="col">Base operacional</th><th scope="col">Equipamento vinculado</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead><tbody>
         @for (agent of page()?.items ?? []; track agent.id) {
           <tr>
-            <td data-label="Agente"><a class="agent-link" [routerLink]="['/agents', agent.id]"><strong>{{ agent.name }}</strong><small>{{ agent.identifier }}</small></a></td>
+            <td data-label="Profissional"><a class="agent-link" [routerLink]="['/agents', agent.id]"><strong>{{ agent.name }}</strong><small>{{ agent.identifier }}</small></a></td>
             <td data-label="Categoria">{{ categoryLabel(agent.category) }}</td>
-            <td data-label="Órgão">{{ agent.organizationName }}</td>
-            <td data-label="Disponibilidade"><app-state-badge [status]="agent.availability" /></td>
-            <td data-label="Última posição">@if (agent.position) { <strong>{{ agent.position.latitude | number:'1.4-6' }}, {{ agent.position.longitude | number:'1.4-6' }}</strong><small>{{ agent.position.recordedAt | date:'dd/MM/yyyy HH:mm':'UTC' }}</small> } @else { <span>Não informada</span> }</td>
-            <td class="actions-cell" data-label="Ações"><a class="text-action" [routerLink]="['/agents', agent.id]">Ver</a><a class="text-action" [routerLink]="['/agents', agent.id, 'edit']">Editar</a></td>
+            <td data-label="Unidade">{{ agent.organizationName }}</td>
+            <td data-label="Situação"><app-state-badge [status]="agent.availability" /></td>
+            <td data-label="Base operacional">@if (agent.operationalBase) { <strong>{{ agent.operationalBase.name }}</strong><small>{{ agent.operationalBase.regionName ?? 'Região não informada' }}</small> } @else { <span>Não definida</span> }</td>
+            <td data-label="Equipamento vinculado">{{ agent.linkedEquipment?.label ?? 'Nenhum' }}</td>
+            <td class="actions-cell" data-label="Ações"><a class="text-action" [routerLink]="['/agents', agent.id]">Visualizar</a><a class="text-action" [routerLink]="['/agents', agent.id, 'edit']">Editar</a><button class="text-action text-action--danger" type="button" [disabled]="deletingId() === agent.id" [attr.aria-label]="'Excluir ' + agent.name" (click)="deleteAgent(agent)">{{ deletingId() === agent.id ? 'Excluindo…' : 'Excluir' }}</button></td>
           </tr>
         }
       </tbody></table></div>

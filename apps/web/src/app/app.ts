@@ -70,7 +70,7 @@ export class App {
     if (path.startsWith('/live-map')) return 'Mapa Vivo';
     if (path.startsWith('/alerts')) return 'Alertas e Incidentes';
     if (path.startsWith('/equipments')) return 'Equipamentos';
-    if (path.startsWith('/agents')) return 'Agentes';
+    if (path.startsWith('/agents')) return 'Agentes Operacionais';
     if (path.startsWith('/maintenance')) return 'Manutenção';
     return 'Central de Operações';
   }
@@ -81,7 +81,7 @@ export class App {
     if (path.startsWith('/live-map')) return 'Localização dos recursos.';
     if (path.startsWith('/alerts')) return 'Ocorrências e atendimento.';
     if (path.startsWith('/equipments')) return 'Situação dos ativos.';
-    if (path.startsWith('/agents')) return 'Equipes em atividade.';
+    if (path.startsWith('/agents')) return 'Profissionais de mobilidade e segurança.';
     if (path.startsWith('/maintenance')) return 'Agenda e serviços.';
     return 'Situação e prioridades.';
   }

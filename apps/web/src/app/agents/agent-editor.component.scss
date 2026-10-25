@@ -92,7 +92,8 @@ h2 {
   color: var(--color-status-warning);
 }
 .field input,
-.field select {
+.field select,
+.field textarea {
   width: 100%;
   min-width: 0;
   min-height: 2.7rem;
@@ -102,6 +103,20 @@ h2 {
   background: var(--color-background);
   color: var(--color-text-primary);
   font-size: 0.8125rem;
+}
+.field textarea {
+  resize: vertical;
+  font: inherit;
+}
+.field--wide {
+  grid-column: 1 / -1;
+}
+.location-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
 }
 .field-error {
   color: var(--color-status-danger);

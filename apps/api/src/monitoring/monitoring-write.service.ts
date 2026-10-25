@@ -72,6 +72,16 @@ export class MonitoringWriteService implements OnApplicationBootstrap {
     })];
   }
 
+  async agentDeleted(manager: EntityManager, agentId: string, identifier: string): Promise<OperationalEventEntity> {
+    return this.appendEvent(manager, {
+      eventType: 'agent.deleted',
+      resourceType: 'agent',
+      resourceId: agentId,
+      payload: { identifier },
+      source: 'api',
+    });
+  }
+
   async maintenanceChanged(
     manager: EntityManager,
     maintenanceId: string,

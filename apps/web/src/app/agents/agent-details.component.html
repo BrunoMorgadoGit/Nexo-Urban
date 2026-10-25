@@ -4,7 +4,7 @@
   } @else if (error()) {
     <div class="feedback feedback--error" role="alert"><p>{{ error() }}</p><a class="button button--secondary" routerLink="/agents">Voltar aos agentes</a></div>
   } @else if (agent(); as item) {
-    <header class="page-heading"><div><a class="back-link" routerLink="/agents">← Voltar aos agentes</a><p class="eyebrow">Equipe operacional</p><h2 id="page-title">{{ item.name }}</h2><p class="page-description">Identificação {{ item.identifier }} · {{ categoryLabel(item.category) }}</p></div><a class="button button--secondary" [routerLink]="['/agents', item.id, 'edit']">Editar agente</a></header>
+    <header class="page-heading"><div><a class="back-link" routerLink="/agents">← Voltar aos agentes</a><p class="eyebrow">Agentes Operacionais</p><h2 id="page-title">{{ item.name }}</h2><p class="page-description">Identificação {{ item.identifier }} · {{ categoryLabel(item.category) }}</p></div><a class="button button--secondary" [routerLink]="['/agents', item.id, 'edit']">Editar agente</a></header>
     @if (notice()) { <div class="feedback feedback--success" role="status">{{ notice() }}</div> }
     <section class="detail-card" aria-labelledby="details-title">
       <header class="card-heading"><div><p class="eyebrow">Cadastro funcional</p><h2 id="details-title">Dados operacionais</h2></div><app-state-badge [status]="item.availability" /></header>
@@ -13,11 +13,17 @@
         <div><dt>Categoria</dt><dd>{{ categoryLabel(item.category) }}</dd></div>
         <div><dt>Órgão responsável</dt><dd>{{ item.organizationName }}</dd></div>
         <div><dt>Disponibilidade</dt><dd><app-state-badge [status]="item.availability" /></dd></div>
+        <div><dt>Base operacional</dt><dd>@if (item.operationalBase) { {{ item.operationalBase.name }}{{ item.operationalBase.regionName ? ' · ' + item.operationalBase.regionName : '' }} } @else { Não definida }</dd></div>
+        <div><dt>Equipamento vinculado</dt><dd>@if (item.linkedEquipment) { <a [routerLink]="['/equipments', item.linkedEquipment.id]">{{ item.linkedEquipment.label }} · {{ item.linkedEquipment.serialNumber }}</a> } @else { Nenhum }</dd></div>
+        @if (item.operationalNotes) { <div><dt>Observações operacionais</dt><dd>{{ item.operationalNotes }}</dd></div> }
         @if (item.position) {
           <div><dt>Última posição conhecida</dt><dd>{{ item.position.latitude | number:'1.4-6' }}, {{ item.position.longitude | number:'1.4-6' }}</dd></div>
           <div><dt>Atualizada em</dt><dd>{{ item.position.recordedAt | date:'dd/MM/yyyy HH:mm':'UTC' }}</dd></div>
           <div><dt>Bairro / região</dt><dd>{{ item.position.regionName ?? 'Não informado' }}</dd></div>
         } @else { <div><dt>Localização</dt><dd>Não informada</dd></div> }
+        @if (item.operationalBase?.latitude !== null && item.operationalBase?.latitude !== undefined && item.operationalBase?.longitude !== null && item.operationalBase?.longitude !== undefined) {
+          <div><dt>Coordenada da base</dt><dd>{{ item.operationalBase?.latitude | number:'1.4-6' }}, {{ item.operationalBase?.longitude | number:'1.4-6' }} · base fixa, não localização atual</dd></div>
+        }
         <div><dt>Cadastro criado em</dt><dd>{{ item.createdAt | date:'dd/MM/yyyy HH:mm':'UTC' }}</dd></div>
         <div><dt>Atualizado em</dt><dd>{{ item.updatedAt | date:'dd/MM/yyyy HH:mm':'UTC' }}</dd></div>
       </dl>

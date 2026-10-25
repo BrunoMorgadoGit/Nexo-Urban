@@ -18,6 +18,7 @@ import type {
   RegionContract,
   StructuredLocation,
   MaintenanceAttention,
+  OperationalBaseContract,
   MonitoringAlert,
   MonitoringMapSnapshot,
   MonitoringOverview,
@@ -53,6 +54,15 @@ export type AgentWriteInput = {
   category: AgentCategory;
   organizationId: string;
   availability: AgentAvailability;
+  operationalBaseId?: string | null;
+  newOperationalBase?: {
+    name: string;
+    regionId?: string | null;
+    latitude?: number;
+    longitude?: number;
+  };
+  equipmentId?: string | null;
+  operationalNotes?: string | null;
   position?: { latitude: number; longitude: number; recordedAt: string; regionId?: string | null };
 };
 
@@ -155,6 +165,14 @@ export class InventoryApiService {
 
   updateAgent(id: string, input: AgentWriteInput): Observable<AgentContract> {
     return this.http.put<AgentContract>(`${API_BASE_PATH}/agents/${id}`, input);
+  }
+
+  deleteAgent(id: string): Observable<void> {
+    return this.http.delete<void>(`${API_BASE_PATH}/agents/${id}`);
+  }
+
+  getOperationalBases(): Observable<OperationalBaseContract[]> {
+    return this.http.get<OperationalBaseContract[]>(`${API_BASE_PATH}/agents/operational-bases`);
   }
 
   getEquipmentTypes(): Observable<EquipmentTypeContract[]> {

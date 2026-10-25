@@ -73,7 +73,7 @@ describe('App', () => {
       ['/intelligence', 'Análise Preventiva', 'Riscos pelo histórico.'],
       ['/live-map', 'Mapa Vivo', 'Localização dos recursos.'],
       ['/equipments/asset-1', 'Equipamentos', 'Situação dos ativos.'],
-      ['/agents/agent-1', 'Agentes', 'Equipes em atividade.'],
+      ['/agents/agent-1', 'Agentes Operacionais', 'Profissionais de mobilidade e segurança.'],
       ['/maintenance', 'Manutenção', 'Agenda e serviços.'],
       ['/command', 'Central de Operações', 'Situação e prioridades.'],
     ] as const;

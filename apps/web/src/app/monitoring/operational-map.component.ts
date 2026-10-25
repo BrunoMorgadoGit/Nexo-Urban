@@ -90,6 +90,8 @@ export class OperationalMapComponent implements AfterViewInit, OnDestroy {
   protected positionLabel(item: MapResourceContract): string {
     if (item.positionSource === 'fixed_location') return 'Localização fixa';
     if (item.positionSource === 'operational_base') return 'Base operacional';
+    if (item.positionSource === 'agent_base') return 'Base operacional do agente (posição fixa)';
+    if (item.positionSource === 'linked_equipment') return 'Posição registrada do equipamento vinculado';
     return item.positionStale ? 'Última posição desatualizada' : 'Última posição conhecida';
   }
 

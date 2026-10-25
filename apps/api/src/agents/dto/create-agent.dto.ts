@@ -22,6 +22,28 @@ class AgentPositionDto {
   regionId?: string | null;
 }
 
+class OperationalBaseDto {
+  @IsString()
+  @Transform(({ value }: { value: unknown }) => typeof value === 'string' ? value.trim() : value)
+  @MinLength(2)
+  @MaxLength(120)
+  name!: string;
+
+  @IsOptional()
+  @IsUUID()
+  regionId?: string | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsLatitude()
+  latitude?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsLongitude()
+  longitude?: number;
+}
+
 export class CreateAgentDto {
   @IsString()
   @Transform(({ value }: { value: unknown }) => typeof value === 'string' ? value.trim() : value)
@@ -48,4 +70,23 @@ export class CreateAgentDto {
   @ValidateNested()
   @Type(() => AgentPositionDto)
   position?: AgentPositionDto | null;
+
+  @IsOptional()
+  @IsUUID()
+  operationalBaseId?: string | null;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => OperationalBaseDto)
+  newOperationalBase?: OperationalBaseDto | null;
+
+  @IsOptional()
+  @IsUUID()
+  equipmentId?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }: { value: unknown }) => typeof value === 'string' ? value.trim() : value)
+  @MaxLength(500)
+  operationalNotes?: string | null;
 }

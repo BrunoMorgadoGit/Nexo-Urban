@@ -18,6 +18,7 @@ export const testAgent: AgentContract = {
   id: 'agent-1', name: 'Equipe demonstrativa', identifier: 'EQ-01', category: 'traffic_agent',
   organizationId: testOrganization.id, organizationName: testOrganization.name, availability: 'available',
   position: { latitude: -22.9, longitude: -47.06, recordedAt: '2026-10-24T12:00:00.000Z', regionId: testRegion.id, regionName: testRegion.name },
+  operationalBase: null, linkedEquipment: null, operationalNotes: null,
   dataOrigin: 'demo', createdAt: '2026-10-20T12:00:00.000Z', updatedAt: '2026-10-24T12:00:00.000Z',
 };
 
@@ -51,4 +52,5 @@ export const testMaintenance: MaintenanceContract = {
 export const testSummary: InventorySummary = {
   totalEquipment: 1, operationalEquipment: 1, attentionEquipment: 0, immediateMaintenance: 0,
   overdueMaintenance: 0, upcomingMaintenance: 0, totalAgents: 1, availableAgents: 1,
+  agentsOnDuty: 0, agentsOffDuty: 0, unavailableAgents: 0,
 };

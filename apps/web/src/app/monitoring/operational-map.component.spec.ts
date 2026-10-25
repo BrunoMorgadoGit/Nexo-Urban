@@ -101,6 +101,8 @@ describe('OperationalMapComponent', () => {
     expect(component.statusLabel({ ...resource, status: 'malfunctioning' })).toBe('Mau funcionamento');
     expect(component.statusLabel({ ...resource, status: 'new-status' as MapResourceContract['status'] })).toBe('new-status');
     expect(component.positionLabel({ ...resource, positionSource: 'operational_base' })).toBe('Base operacional');
+    expect(component.positionLabel({ ...resource, positionSource: 'agent_base' })).toBe('Base operacional do agente (posição fixa)');
+    expect(component.positionLabel({ ...resource, positionSource: 'linked_equipment' })).toBe('Posição registrada do equipamento vinculado');
     expect(component.positionLabel({ ...resource, positionSource: 'last_known', positionStale: true })).toBe('Última posição desatualizada');
     expect(component.formatDate(null)).toBe('Sem previsão');
     component.runDemo('outage');

@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
-import { DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import type { AgentContract, InventorySummary, OrganizationContract, Page } from '@fogo/contracts';
@@ -9,7 +8,7 @@ import { catchError, map, of, Subject, switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-agents-list',
-  imports: [DatePipe, DecimalPipe, RouterLink, StateBadgeComponent],
+  imports: [RouterLink, StateBadgeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './agents-list.component.html',
   styleUrl: './agents-list.component.scss',
@@ -29,6 +28,7 @@ export class AgentsListComponent {
   protected readonly category = signal('');
   protected readonly availability = signal('');
   protected readonly organizationId = signal('');
+  protected readonly deletingId = signal('');
 
   constructor() {
     this.destroyRef.onDestroy(() => clearTimeout(this.searchTimer));
@@ -50,9 +50,7 @@ export class AgentsListComponent {
       next: (items) => this.organizations.set(items),
       error: (error: unknown) => this.error.set(apiErrorMessage(error)),
     });
-    this.api.getSummary().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (value) => this.summary.set(value),
-    });
+    this.refreshSummary();
     this.load();
   }
 
@@ -105,7 +103,33 @@ export class AgentsListComponent {
     if (next >= 1 && next <= current.totalPages) this.load(next);
   }
 
+  protected deleteAgent(agent: AgentContract): void {
+    if (!window.confirm(`Excluir o cadastro de ${agent.name} (${agent.identifier})? O histórico operacional será mantido.`)) return;
+    this.deletingId.set(agent.id);
+    this.error.set('');
+    this.api.deleteAgent(agent.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => {
+        this.deletingId.set('');
+        this.load(1);
+        this.refreshSummary();
+      },
+      error: (error: unknown) => {
+        this.deletingId.set('');
+        this.error.set(apiErrorMessage(error));
+      },
+    });
+  }
+
+  private refreshSummary(): void {
+    this.api.getSummary().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (value) => this.summary.set(value),
+    });
+  }
+
   protected categoryLabel(category: string): string {
-    return ({ traffic_agent: 'Agente de trânsito', municipal_guard: 'Guarda municipal', police_officer: 'Policial' } as Record<string, string>)[category] ?? category;
+    return ({
+      traffic_agent: 'Agente de trânsito', municipal_guard: 'Guarda municipal', police_officer: 'Policial',
+      military_police_officer: 'Policial militar', civil_police_officer: 'Policial civil', other: 'Outro',
+    } as Record<string, string>)[category] ?? category;
   }
 }

@@ -1,6 +1,6 @@
 <section class="page" aria-labelledby="page-title">
   <header class="page-heading">
-    <div><a class="back-link" routerLink="/agents">← Voltar aos agentes</a><p class="eyebrow">Equipe operacional</p><h2 id="page-title">{{ pageTitle }}</h2><p class="page-description">Use dados fictícios ou demonstrativos. Não informe dados pessoais desnecessários.</p></div>
+    <div><a class="back-link" routerLink="/agents">← Voltar aos agentes</a><p class="eyebrow">Agentes Operacionais</p><h2 id="page-title">{{ pageTitle }}</h2><p class="page-description">Registre os dados funcionais e operacionais necessários. Não informe dados pessoais desnecessários.</p></div>
   </header>
   @if (loading()) {
     <div class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>Carregando cadastro…</div>
@@ -11,17 +11,36 @@
       <section class="form-section" aria-labelledby="identity-title">
         <div class="section-heading"><span>01</span><div><h2 id="identity-title">Identificação profissional</h2><p>Dados funcionais necessários para a operação demonstrativa.</p></div></div>
         <div class="form-grid">
-          <label class="field"><span>Nome demonstrativo <b aria-hidden="true">*</b></span><input autocomplete="off" [formField]="agentForm.name" />@if (agentForm.name().touched() && agentForm.name().invalid()) { <small class="field-error">{{ agentForm.name().errors()[0]?.message }}</small> }</label>
+          <label class="field"><span>Nome completo <b aria-hidden="true">*</b></span><input autocomplete="off" [formField]="agentForm.name" />@if (agentForm.name().touched() && agentForm.name().invalid()) { <small class="field-error">{{ agentForm.name().errors()[0]?.message }}</small> }</label>
           <label class="field"><span>Matrícula ou identificação <b aria-hidden="true">*</b></span><input autocomplete="off" [formField]="agentForm.identifier" />@if (agentForm.identifier().touched() && agentForm.identifier().invalid()) { <small class="field-error">{{ agentForm.identifier().errors()[0]?.message }}</small> }</label>
-          <label class="field"><span>Categoria profissional <b aria-hidden="true">*</b></span><select [formField]="agentForm.category"><option value="traffic_agent">Agente de trânsito</option><option value="municipal_guard">Guarda municipal</option><option value="police_officer">Policial</option></select></label>
+          <label class="field"><span>Categoria profissional <b aria-hidden="true">*</b></span><select [formField]="agentForm.category"><option value="traffic_agent">Agente de trânsito</option><option value="municipal_guard">Guarda municipal</option><option value="military_police_officer">Policial militar</option><option value="civil_police_officer">Policial civil</option>@if (model().category === 'police_officer') { <option value="police_officer">Policial (cadastro existente)</option> }<option value="other">Outro</option></select></label>
           <label class="field"><span>Órgão responsável <b aria-hidden="true">*</b></span><select [formField]="agentForm.organizationId"><option value="">Selecione o órgão</option>@for (organization of organizations(); track organization.id) { <option [value]="organization.id">{{ organization.name }}</option> }</select>@if (agentForm.organizationId().touched() && agentForm.organizationId().invalid()) { <small class="field-error">{{ agentForm.organizationId().errors()[0]?.message }}</small> }</label>
           <label class="field"><span>Disponibilidade <b aria-hidden="true">*</b></span><select [formField]="agentForm.availability"><option value="available">Disponível</option><option value="on_duty">Em serviço</option><option value="unavailable">Indisponível</option><option value="off_duty">Fora de serviço</option></select></label>
         </div>
       </section>
 
+      <section class="form-section" aria-labelledby="operations-title">
+        <div class="section-heading"><span>02</span><div><h2 id="operations-title">Informações operacionais</h2><p>Vincule uma base e um equipamento existente, quando disponíveis.</p></div></div>
+        <div class="form-grid">
+          <label class="field"><span>Base operacional</span><select [formField]="agentForm.operationalBaseSelection"><option value="">Sem base definida</option>@for (base of operationalBases(); track base.id) { <option [value]="base.id">{{ base.name }}{{ base.regionName ? ' · ' + base.regionName : '' }}</option> }<option value="new">Cadastrar nova base</option></select></label>
+          <label class="field"><span>Equipamento vinculado</span><select [formField]="agentForm.equipmentId"><option value="">Nenhum equipamento</option>@for (equipment of equipmentOptions(); track equipment.id) { <option [value]="equipment.id">{{ equipment.label }}</option> }</select></label>
+          <label class="field field--wide"><span>Pesquisar equipamento</span><input type="search" placeholder="Patrimônio, marca ou modelo" [value]="equipmentSearch()" (input)="equipmentSearchChanged($event)" /><small>Os resultados usam equipamentos já cadastrados no inventário.</small></label>
+          <label class="field field--wide"><span>Observações operacionais</span><textarea rows="3" [formField]="agentForm.operationalNotes"></textarea><small>Até 500 caracteres. Não inclua dados pessoais sensíveis.</small></label>
+        </div>
+        @if (model().operationalBaseSelection === 'new') {
+          <div class="form-grid base-fields">
+            <label class="field"><span>Nome da base <b aria-hidden="true">*</b></span><input autocomplete="off" [formField]="agentForm.newBaseName" />@if (agentForm.newBaseName().touched() && agentForm.newBaseName().invalid()) { <small class="field-error">Informe ao menos 2 caracteres.</small> }</label>
+            <label class="field"><span>Bairro / região</span><select [formField]="agentForm.newBaseRegionId"><option value="">Não informado</option>@for (region of regions(); track region.id) { <option [value]="region.id">{{ region.name }}</option> }</select></label>
+            <label class="field"><span>Latitude da base</span><input type="number" step="any" [formField]="agentForm.newBaseLatitude" /></label>
+            <label class="field"><span>Longitude da base</span><input type="number" step="any" [formField]="agentForm.newBaseLongitude" /></label>
+            <p class="location-note">A coordenada identifica apenas a base fixa, nunca a localização atual do agente. Informe as duas coordenadas para exibir essa base no Mapa Vivo.</p>
+          </div>
+        }
+      </section>
+
       <section class="form-section" aria-labelledby="position-title">
-        <div class="section-heading"><span>02</span><div><h2 id="position-title">Localização conhecida</h2><p>Posição demonstrativa opcional. Acompanhamento em tempo real fica para etapa posterior.</p></div></div>
-        <label class="position-toggle"><input type="checkbox" [formField]="agentForm.includePosition" /><span>Registrar posição conhecida</span></label>
+        <div class="section-heading"><span>03</span><div><h2 id="position-title">Última posição conhecida do agente</h2><p>Registro pontual informado pelo operador; não representa rastreamento em tempo real. A base operacional e a posição do equipamento vinculado são exibidas separadamente.</p></div></div>
+        <label class="position-toggle"><input type="checkbox" [formField]="agentForm.includePosition" /><span>Informar última posição conhecida</span></label>
         @if (model().includePosition) {
           <div class="form-grid">
             <label class="field"><span>Latitude <b aria-hidden="true">*</b></span><input type="number" step="any" [formField]="agentForm.position.latitude" />@if (agentForm.position.latitude().touched() && agentForm.position.latitude().invalid()) { <small class="field-error">Coordenada entre -90 e 90.</small> }</label>
