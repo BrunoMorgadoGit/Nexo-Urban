@@ -36,31 +36,6 @@
   font-size: 0.9rem;
 }
 
-.map-filters {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-}
-.map-filters label {
-  display: grid;
-  gap: var(--space-2);
-  color: var(--color-text-muted);
-  font-size: 0.72rem;
-}
-.map-filters select {
-  width: 100%;
-  min-height: 2.55rem;
-  padding: 0 var(--space-3);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--color-background);
-  color: var(--color-text-primary);
-  font-size: 0.78rem;
-}
 select {
   appearance: none;
   padding-right: 2.25rem;
@@ -179,7 +154,7 @@ select {
   border-radius: var(--radius-sm);
   background: var(--color-surface-overlay);
   color: var(--color-text-secondary);
-  font-size: 0.68rem;
+  font-size: 0.78rem;
 }
 .map-legend span {
   display: inline-flex;
@@ -189,8 +164,8 @@ select {
 }
 .legend-dot {
   display: inline-grid;
-  width: 0.68rem;
-  height: 0.68rem;
+  width: 0.8rem;
+  height: 0.8rem;
   flex: 0 0 auto;
   place-items: center;
   border-radius: 50%;
@@ -212,14 +187,21 @@ select {
 .legend-dot--inactive {
   background: var(--color-status-neutral);
 }
-.legend-dot--agent {
+.legend-dot--agent,
+.legend-dot--equipment {
   width: 1rem;
   height: 1rem;
-  background: var(--color-status-info);
-  color: var(--color-status-info-contrast);
   font-size: 0.45rem;
   font-style: normal;
   font-weight: 800;
+}
+.legend-dot--agent {
+  background: var(--color-status-info);
+  color: var(--color-status-info-contrast);
+}
+.legend-dot--equipment {
+  background: var(--color-status-neutral);
+  color: #fff;
 }
 .map-position-note {
   position: absolute;
@@ -373,9 +355,6 @@ select {
 }
 
 @media (max-width: 1050px) {
-  .map-filters {
-    grid-template-columns: repeat(3, minmax(8rem, 1fr));
-  }
   .map-workspace--selected:not(.map-workspace--compact) {
     grid-template-columns: minmax(0, 1fr) minmax(15rem, 18rem);
   }
@@ -386,10 +365,6 @@ select {
   }
   .map-count {
     display: none;
-  }
-  .map-filters {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    padding: var(--space-3);
   }
   .map-workspace:not(.map-workspace--compact) {
     grid-template-columns: minmax(0, 1fr);
@@ -413,9 +388,6 @@ select {
   }
 }
 @media (max-width: 420px) {
-  .map-filters {
-    grid-template-columns: minmax(0, 1fr);
-  }
   .map-frame,
   .map-section--compact .map-frame {
     min-height: 26rem;

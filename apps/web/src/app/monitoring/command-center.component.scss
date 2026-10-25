@@ -5,6 +5,7 @@ app-command-center {
 .command-page {
   display: grid;
   gap: var(--space-5);
+  min-width: 0;
   .eyebrow {
     margin: 0 0 var(--space-2);
     color: var(--color-text-muted);
@@ -48,13 +49,17 @@ app-command-center {
   }
   .metrics {
     display: grid;
+    min-width: 0;
+    width: 100%;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: var(--space-3);
   }
   .metric {
     display: grid;
-    min-height: 6.4rem;
-    align-content: space-between;
+    min-width: 0;
+    min-height: 8.75rem;
+    grid-template-rows: minmax(2.1rem, auto) 1fr minmax(2.1rem, auto);
+    align-content: stretch;
     gap: var(--space-2);
     padding: var(--space-4);
     border: 1px solid var(--color-border);
@@ -62,19 +67,24 @@ app-command-center {
     background: var(--color-surface);
   }
   .metric > span {
+    min-height: 2.1rem;
     color: var(--color-text-muted);
     font-size: 0.7rem;
     line-height: 1.35;
   }
   .metric strong {
+    align-self: start;
     font-size: clamp(1.4rem, 1.8vw, 1.85rem);
     line-height: 1;
     letter-spacing: -0.04em;
     font-variant-numeric: tabular-nums;
   }
   .metric small {
+    min-height: 2.1rem;
+    align-self: end;
     color: var(--color-text-muted);
     font-size: 0.62rem;
+    line-height: 1.35;
   }
   .metric--success strong {
     color: var(--color-status-success);
@@ -669,7 +679,8 @@ app-command-center {
       gap: var(--space-2);
     }
     .metric {
-      min-height: 5.8rem;
+      min-height: 8.25rem;
+      grid-template-rows: minmax(2.1rem, auto) 1fr minmax(2.1rem, auto);
       padding: var(--space-3);
     }
     .metric > span {

@@ -5,33 +5,35 @@
     </header>
 
     <div class="map-filters" aria-label="Filtros do mapa">
-      <label>Recurso
-        <select [ngModel]="filters().resourceType ?? 'all'" (ngModelChange)="changeFilter('resourceType', $event)">
-          <option value="all">Todos</option><option value="equipment">Equipamentos</option><option value="agent">Agentes</option>
-        </select>
-      </label>
-      <label>Tipo
-        <select [ngModel]="filters().typeCode ?? ''" (ngModelChange)="changeFilter('typeCode', $event)">
-          <option value="">Todos os tipos</option>
-          @for (type of types(); track type.code) { <option [value]="type.code">{{ type.label }}</option> }
-        </select>
-      </label>
-      <label>Situação
-        <select [ngModel]="filters().status ?? ''" (ngModelChange)="changeFilter('status', $event)">
-          <option value="">Todas</option>
-          <optgroup label="Equipamentos">
-            <option value="operational">Operacional</option><option value="malfunctioning">Mau funcionamento</option>
-            <option value="maintenance">Em manutenção</option><option value="stolen">Furtado</option>
-            <option value="not_installed">Ainda não instalado</option><option value="deactivated">Desativado</option>
-          </optgroup>
-          <optgroup label="Agentes">
-            <option value="on_duty">Em atividade</option><option value="available">Disponível</option>
-            <option value="unavailable">Indisponível</option><option value="off_duty">Fora de serviço</option>
-          </optgroup>
-        </select>
-      </label>
+      <div class="map-filter-primary">
+        <label>Recurso
+          <select [ngModel]="filters().resourceType ?? 'all'" (ngModelChange)="changeFilter('resourceType', $event)">
+            <option value="all">Todos</option><option value="equipment">Equipamentos</option><option value="agent">Agentes</option>
+          </select>
+        </label>
+        <label>Tipo
+          <select [ngModel]="filters().typeCode ?? ''" (ngModelChange)="changeFilter('typeCode', $event)">
+            <option value="">Todos os tipos</option>
+            @for (type of types(); track type.code) { <option [value]="type.code">{{ type.label }}</option> }
+          </select>
+        </label>
+        <label>Situação
+          <select [ngModel]="filters().status ?? ''" (ngModelChange)="changeFilter('status', $event)">
+            <option value="">Todas</option>
+            <optgroup label="Equipamentos">
+              <option value="operational">Operacional</option><option value="malfunctioning">Mau funcionamento</option>
+              <option value="maintenance">Em manutenção</option><option value="stolen">Furtado</option>
+              <option value="not_installed">Ainda não instalado</option><option value="deactivated">Desativado</option>
+            </optgroup>
+            <optgroup label="Agentes">
+              <option value="on_duty">Em atividade</option><option value="available">Disponível</option>
+              <option value="unavailable">Indisponível</option><option value="off_duty">Fora de serviço</option>
+            </optgroup>
+          </select>
+        </label>
+      </div>
       <details class="map-filter-more">
-        <summary>Mais filtros</summary>
+        <summary><span>Mais filtros</span><span class="map-filter-more__hint">Órgão e localização</span></summary>
         <div class="map-filter-more__fields">
           <label>Órgão
             <select [ngModel]="filters().organizationId ?? ''" (ngModelChange)="changeFilter('organizationId', $event)">
@@ -82,6 +84,7 @@
         <span><i class="legend-dot legend-dot--warning"></i>Atenção</span>
         <span><i class="legend-dot legend-dot--problem">!</i>Falha ou furto</span>
         <span><i class="legend-dot legend-dot--inactive"></i>Inativo</span>
+        <span><i class="legend-dot legend-dot--equipment">EQ</i>Equipamento</span>
         <span><i class="legend-dot legend-dot--agent">AG</i>Agente</span>
       </div>
       @if (withoutPosition() > 0 && !compact()) {

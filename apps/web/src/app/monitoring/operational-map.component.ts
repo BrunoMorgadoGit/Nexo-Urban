@@ -211,12 +211,14 @@ export class OperationalMapComponent implements AfterViewInit, OnDestroy {
       this.syncGeoJson();
       setTimeout(() => map.resize(), 0);
     });
-    map.on('click', 'resource-points', (event: MapLayerMouseEvent) => {
+    const selectPoint = (event: MapLayerMouseEvent) => {
       const feature = event.features?.[0];
       const id = feature?.properties?.['id'];
       const resource = typeof id === 'string' ? this.items().find((item) => item.id === id) : undefined;
       if (resource) this.selectResource(resource);
-    });
+    };
+    map.on('click', 'resource-points', selectPoint);
+    map.on('click', 'resource-linked-agent-points', selectPoint);
     map.on('click', 'resource-clusters', (event: MapLayerMouseEvent) => {
       const feature = map.queryRenderedFeatures(event.point, { layers: ['resource-clusters'] })[0];
       const clusterId = feature?.properties?.['cluster_id'];
@@ -231,6 +233,8 @@ export class OperationalMapComponent implements AfterViewInit, OnDestroy {
     });
     map.on('mouseenter', 'resource-points', () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', 'resource-points', () => { map.getCanvas().style.cursor = ''; });
+    map.on('mouseenter', 'resource-linked-agent-points', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'resource-linked-agent-points', () => { map.getCanvas().style.cursor = ''; });
     map.on('mouseenter', 'resource-clusters', () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', 'resource-clusters', () => { map.getCanvas().style.cursor = ''; });
     map.on('error', (event: ErrorEvent) => {
@@ -261,7 +265,7 @@ export class OperationalMapComponent implements AfterViewInit, OnDestroy {
       data: this.asFeatureCollection(),
       cluster: true,
       clusterMaxZoom: 14,
-      clusterRadius: 44,
+      clusterRadius: 40,
       clusterProperties: {
         problem_count: ['+', ['case', ['boolean', ['get', 'problemSignal'], false], 1, 0]],
       },
@@ -269,35 +273,59 @@ export class OperationalMapComponent implements AfterViewInit, OnDestroy {
     map.addLayer({
       id: 'resource-clusters', type: 'circle', source: 'resources', filter: ['has', 'point_count'],
       paint: {
-        'circle-color': ['case', ['>', ['get', 'problem_count'], 0], '#b95858', '#b67c39'],
-        'circle-radius': ['step', ['get', 'point_count'], 17, 12, 21, 40, 26],
-        'circle-stroke-color': ['case', ['>', ['get', 'problem_count'], 0], '#f0aaaa', '#e4bd83'],
-        'circle-stroke-width': 1.5,
+        'circle-color': ['case', ['>', ['get', 'problem_count'], 0], '#bf4054', '#276f7c'],
+        'circle-radius': ['step', ['get', 'point_count'], 16, 12, 20, 40, 25],
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': 2.5,
       },
     });
     map.addLayer({
       id: 'resource-cluster-count', type: 'symbol', source: 'resources', filter: ['has', 'point_count'],
       layout: {
-        'text-field': ['concat', ['get', 'point_count_abbreviated'], ['case', ['>', ['get', 'problem_count'], 0], ' !', '']],
-        'text-size': 12,
+        'text-field': ['get', 'point_count_abbreviated'],
+        'text-size': 13,
         'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
       },
-      paint: { 'text-color': '#16191d' },
+      paint: { 'text-color': '#ffffff', 'text-halo-color': '#17353d', 'text-halo-width': 0.5 },
     });
     map.addLayer({
-      id: 'resource-points', type: 'circle', source: 'resources', filter: ['!', ['has', 'point_count']],
+      id: 'resource-points', type: 'circle', source: 'resources',
+      filter: ['all', ['!', ['has', 'point_count']], ['!', ['get', 'sharedPosition']]],
       paint: {
-        'circle-color': ['case', ['==', ['get', 'kind'], 'agent'], '#7eb6e8', ['==', ['get', 'status'], 'stolen'], '#f07878', ['==', ['get', 'status'], 'malfunctioning'], '#ef8f52', ['==', ['get', 'status'], 'maintenance'], '#ef8f52', ['==', ['get', 'status'], 'deactivated'], '#89939c', ['==', ['get', 'status'], 'not_installed'], '#89939c', ['in', ['get', 'maintenancePriority'], ['literal', ['high', 'immediate']]], '#e3ae58', ['==', ['get', 'status'], 'operational'], '#56c48e', '#89939c'],
-        'circle-radius': ['case', ['boolean', ['get', 'selected'], false], 10, 7],
+        'circle-color': ['case', ['==', ['get', 'kind'], 'agent'], '#24a5f5', ['==', ['get', 'status'], 'stolen'], '#ed475a', ['==', ['get', 'status'], 'malfunctioning'], '#f07832', ['==', ['get', 'status'], 'maintenance'], '#f07832', ['==', ['get', 'status'], 'deactivated'], '#7a8791', ['==', ['get', 'status'], 'not_installed'], '#7a8791', ['in', ['get', 'maintenancePriority'], ['literal', ['high', 'immediate']]], '#d48a16', ['==', ['get', 'status'], 'operational'], '#17a96b', '#7a8791'],
+        'circle-radius': ['case', ['boolean', ['get', 'selected'], false], 13, 10],
         'circle-opacity': ['case', ['boolean', ['get', 'stale'], false], 0.52, 0.96],
-        'circle-stroke-color': ['case', ['boolean', ['get', 'selected'], false], '#ffffff', ['boolean', ['get', 'problemSignal'], false], '#b95858', '#15191e'],
-        'circle-stroke-width': ['case', ['boolean', ['get', 'selected'], false], 2.5, 1.5],
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': ['case', ['boolean', ['get', 'selected'], false], 3, 2.5],
       },
     });
     map.addLayer({
-      id: 'resource-glyphs', type: 'symbol', source: 'resources', filter: ['!', ['has', 'point_count']],
-      layout: { 'text-field': ['get', 'glyph'], 'text-size': 8, 'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'], 'text-allow-overlap': true },
-      paint: { 'text-color': '#111519' },
+      id: 'resource-linked-agent-points', type: 'circle', source: 'resources',
+      filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'sharedPosition'], true]],
+      paint: {
+        'circle-color': '#24a5f5',
+        'circle-radius': ['case', ['boolean', ['get', 'selected'], false], 13, 10],
+        'circle-opacity': ['case', ['boolean', ['get', 'stale'], false], 0.52, 0.96],
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': ['case', ['boolean', ['get', 'selected'], false], 3, 2.5],
+        'circle-translate': [18, -14],
+        'circle-translate-anchor': 'viewport',
+      },
+    });
+    map.addLayer({
+      id: 'resource-glyphs', type: 'symbol', source: 'resources',
+      filter: ['all', ['!', ['has', 'point_count']], ['!', ['get', 'sharedPosition']]],
+      layout: { 'text-field': ['get', 'glyph'], 'text-size': 10, 'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'], 'text-allow-overlap': true, 'text-ignore-placement': true },
+      paint: { 'text-color': '#ffffff', 'text-halo-color': '#13202a', 'text-halo-width': 0.75 },
+    });
+    map.addLayer({
+      id: 'resource-linked-agent-glyphs', type: 'symbol', source: 'resources',
+      filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'sharedPosition'], true]],
+      layout: { 'text-field': ['get', 'glyph'], 'text-size': 10, 'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'], 'text-allow-overlap': true, 'text-ignore-placement': true },
+      paint: {
+        'text-color': '#ffffff', 'text-halo-color': '#13202a', 'text-halo-width': 0.75,
+        'text-translate': [18, -14], 'text-translate-anchor': 'viewport',
+      },
     });
   }
 
@@ -309,6 +337,9 @@ export class OperationalMapComponent implements AfterViewInit, OnDestroy {
 
   private asFeatureCollection(): FeatureCollection<Point> {
     const selectedId = this.selectedId();
+    const equipmentLocations = new Set(this.items()
+      .filter((item) => item.kind === 'equipment')
+      .map((item) => `${item.longitude}:${item.latitude}`));
     return {
       type: 'FeatureCollection',
       features: this.items().map((item) => ({
@@ -322,7 +353,10 @@ export class OperationalMapComponent implements AfterViewInit, OnDestroy {
           stale: item.positionStale,
           problemSignal: item.kind === 'equipment' && (item.status === 'malfunctioning' || item.status === 'stolen'),
           selected: item.id === selectedId,
-          glyph: item.kind === 'agent' ? 'AG' : item.typeCode?.slice(0, 2).toUpperCase() ?? 'EQ',
+          glyph: item.kind === 'agent' ? 'AG' : 'EQ',
+          sharedPosition: item.kind === 'agent'
+            && item.positionSource === 'linked_equipment'
+            && equipmentLocations.has(`${item.longitude}:${item.latitude}`),
           identifier: item.identifier,
         },
       })),
