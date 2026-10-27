@@ -151,6 +151,38 @@ h2 {
   font-weight: 450;
   line-height: 1.45;
 }
+.field-success {
+  color: var(--color-status-success);
+  font-size: 0.6875rem;
+  font-weight: 450;
+  line-height: 1.45;
+}
+.field-info {
+  color: var(--color-status-info);
+  font-size: 0.6875rem;
+  font-weight: 450;
+  line-height: 1.45;
+}
+.cep-field-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.cep-field-group input {
+  flex: 1;
+}
+.cep-button {
+  flex: 0 0 auto;
+  min-height: 2.7rem;
+  padding-inline: var(--space-3);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+.spinner--sm {
+  width: 0.8125rem;
+  height: 0.8125rem;
+  border-width: 2px;
+}
 .characteristics-panel,
 .position-panel {
   padding: var(--space-4);

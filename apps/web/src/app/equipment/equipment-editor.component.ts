@@ -3,9 +3,8 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormField, applyWhen, form, max, maxLength, min, pattern, required, submit } from '@angular/forms/signals';
 import type { EquipmentContract, EquipmentStatus, EquipmentTypeContract, MaintenancePriority, OrganizationContract, RegionContract } from '@fogo/contracts';
-import { InventoryApiService, type EquipmentWriteInput } from '../core/inventory-api.service';
-import { apiErrorMessage } from '../core/api-error-message';
-import { ErrorFeedback } from '../shared/error-feedback/error-feedback';
+import { InventoryApiService, apiErrorMessage, type EquipmentWriteInput } from '../core/inventory-api.service';
+import { ViaCepService } from '../core/viacep.service';
 import { dateTimeToLocalInputValue, localDateTimeInputValue } from '../core/date-time';
 import { forkJoin, firstValueFrom, of } from 'rxjs';
 
@@ -98,10 +97,17 @@ function emptyModel(): EquipmentEditorModel {
 })
 export class EquipmentEditorComponent {
   private readonly api = inject(InventoryApiService);
+  private readonly viaCep = inject(ViaCepService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   protected readonly id = this.route.snapshot.paramMap.get('id');
+
+  protected readonly cepLoading = signal(false);
+  protected readonly cepFeedback = signal<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
+  protected readonly fallbackCity = signal('');
+  protected readonly fallbackState = signal('');
+  private lastSearchedCep = '';
 
   protected readonly model = signal(emptyModel());
   protected readonly equipmentForm = form(this.model, (schema) => {
@@ -243,11 +249,115 @@ export class EquipmentEditorComponent {
   }
 
   protected locationCity(): string {
-    return this.regions().find(({ id }) => id === this.model().location.regionId)?.city ?? '';
+    return this.regions().find(({ id }) => id === this.model().location.regionId)?.city || this.fallbackCity();
   }
 
   protected locationState(): string {
-    return this.regions().find(({ id }) => id === this.model().location.regionId)?.state ?? '';
+    return this.regions().find(({ id }) => id === this.model().location.regionId)?.state || this.fallbackState();
+  }
+
+  protected onPostalCodeInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const clean = this.viaCep.cleanCep(input.value);
+    this.cepFeedback.set(null);
+    if (clean.length === 8 && clean !== this.lastSearchedCep) {
+      this.searchCep(input.value);
+    }
+  }
+
+  protected searchCep(explicitCep?: string): void {
+    const currentPostalCode = explicitCep ?? this.model().location.postalCode;
+    const clean = this.viaCep.cleanCep(currentPostalCode);
+    if (!clean) {
+      this.cepFeedback.set(null);
+      return;
+    }
+    if (clean.length !== 8) {
+      this.cepFeedback.set({ type: 'error', message: 'Informe um CEP válido com 8 dígitos para consultar.' });
+      return;
+    }
+    if (this.cepLoading()) {
+      return;
+    }
+
+    this.lastSearchedCep = clean;
+    this.cepLoading.set(true);
+    this.cepFeedback.set(null);
+
+    this.viaCep.lookupCep(clean).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (result) => {
+        this.cepLoading.set(false);
+        if (!result) {
+          this.cepFeedback.set({ type: 'error', message: 'CEP não encontrado no ViaCEP.' });
+          return;
+        }
+
+        const matchedRegion = this.findMatchingRegion(result.neighborhood);
+        this.fallbackCity.set(result.city);
+        this.fallbackState.set(result.state);
+
+        const hasCoords = typeof result.latitude === 'number' && typeof result.longitude === 'number';
+
+        this.model.update((current) => ({
+          ...current,
+          location: {
+            ...current.location,
+            postalCode: result.postalCode || current.location.postalCode,
+            street: result.street || current.location.street,
+            regionId: matchedRegion ? matchedRegion.id : current.location.regionId,
+            latitude: hasCoords ? result.latitude! : current.location.latitude,
+            longitude: hasCoords ? result.longitude! : current.location.longitude,
+          },
+        }));
+
+        const parts = [result.street, matchedRegion?.name || result.neighborhood, result.city].filter(Boolean);
+        const addressText = parts.join(', ');
+        const coordsText = hasCoords ? ` (Lat: ${result.latitude}, Lon: ${result.longitude})` : '';
+
+        if (matchedRegion) {
+          this.cepFeedback.set({
+            type: 'success',
+            message: `Endereço e coordenadas localizados: ${addressText}${coordsText}.`,
+          });
+        } else if (result.neighborhood) {
+          this.cepFeedback.set({
+            type: 'info',
+            message: `Endereço localizado (${addressText})${coordsText}. Selecione o bairro correspondente.`,
+          });
+        } else {
+          this.cepFeedback.set({
+            type: 'success',
+            message: `Endereço localizado com sucesso${coordsText}.`,
+          });
+        }
+      },
+      error: () => {
+        this.cepLoading.set(false);
+        this.cepFeedback.set({
+          type: 'error',
+          message: 'Não foi possível consultar o CEP no ViaCEP. Preencha os campos manualmente.',
+        });
+      },
+    });
+  }
+
+  protected findMatchingRegion(neighborhood: string): RegionContract | undefined {
+    if (!neighborhood) return undefined;
+    const normalize = (val: string) =>
+      val.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    const target = normalize(neighborhood);
+    const regions = this.regions();
+
+    const exact = regions.find((r) => normalize(r.name) === target);
+    if (exact) return exact;
+
+    const contains = regions.find((r) => {
+      const name = normalize(r.name);
+      return target.includes(name) || name.includes(target);
+    });
+    if (contains) return contains;
+
+    return regions.find((r) => normalize(r.code) === target);
   }
 
   protected characteristicOptionLabel(option: string): string {
@@ -330,6 +440,7 @@ export class EquipmentEditorComponent {
   }
 
   private populate(equipment: EquipmentContract): void {
+    this.lastSearchedCep = this.viaCep.cleanCep(equipment.location.postalCode);
     const characteristics = { ...emptyCharacteristics(), ...equipment.characteristics };
     this.model.set({
       typeCode: equipment.typeCode,
