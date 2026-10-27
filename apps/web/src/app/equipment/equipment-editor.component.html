@@ -60,23 +60,24 @@
         <div class="section-heading"><span>03</span><div><h2 id="location-heading">Localização</h2><p>Endereço base ou ponto fixo e coordenadas para integração geográfica.</p></div></div>
         @if (selectedType(); as type) { <p class="location-mode">{{ type.mobility === 'mobile' ? 'Para recursos móveis, informe a base e a última posição conhecida separadamente.' : 'Para equipamentos fixos, o endereço e as coordenadas indicam o ponto de instalação.' }}</p> }
         <div class="form-grid">
-          <label class="field">
-            <span>CEP <b aria-hidden="true">*</b></span>
+          <div class="field">
+            <label for="location-postal-code">CEP <b aria-hidden="true">*</b></label>
             <div class="cep-field-group">
               <input
+                id="location-postal-code"
                 autocomplete="postal-code"
                 inputmode="numeric"
+                placeholder="00000-000"
                 [formField]="equipmentForm.location.postalCode"
                 (input)="onPostalCodeInput($event)"
                 (blur)="searchCep()"
                 (keydown.enter)="$event.preventDefault(); searchCep()"
-                placeholder="00000-000"
               />
               <button
                 type="button"
                 class="button button--secondary cep-button"
-                (click)="searchCep()"
                 [disabled]="cepLoading()"
+                (click)="searchCep()"
                 aria-label="Buscar endereço pelo CEP"
               >
                 @if (cepLoading()) {
@@ -86,15 +87,18 @@
                 }
               </button>
             </div>
-            @if (cepFeedback(); as feedback) {
-              <small [class]="feedback.type === 'error' ? 'field-error' : (feedback.type === 'info' ? 'field-info' : 'field-success')">
-                {{ feedback.message }}
-              </small>
-            }
+            <small
+              class="cep-feedback"
+              role="status"
+              aria-live="polite"
+              [class.field-error]="cepFeedback()?.type === 'error'"
+              [class.field-info]="cepFeedback()?.type === 'info'"
+              [class.field-success]="cepFeedback()?.type === 'success'"
+            >{{ cepFeedback()?.message }}</small>
             @if (equipmentForm.location.postalCode().touched() && equipmentForm.location.postalCode().invalid()) {
               <small class="field-error">{{ equipmentForm.location.postalCode().errors()[0]?.message }}</small>
             }
-          </label>
+          </div>
           <label class="field"><span>Rua ou via <b aria-hidden="true">*</b></span><input autocomplete="address-line1" [formField]="equipmentForm.location.street" />@if (equipmentForm.location.street().touched() && equipmentForm.location.street().invalid()) { <small class="field-error">{{ equipmentForm.location.street().errors()[0]?.message }}</small> }</label>
           <label class="field"><span>Número ou referência <b aria-hidden="true">*</b></span><input autocomplete="address-line2" [formField]="equipmentForm.location.reference" />@if (equipmentForm.location.reference().touched() && equipmentForm.location.reference().invalid()) { <small class="field-error">{{ equipmentForm.location.reference().errors()[0]?.message }}</small> }</label>
           <label class="field"><span>Bairro <b aria-hidden="true">*</b></span><select [formField]="equipmentForm.location.regionId"><option value="">Selecione o bairro</option>@for (region of regions(); track region.id) { <option [value]="region.id">{{ region.name }} · {{ region.zone }}</option> }</select>@if (equipmentForm.location.regionId().touched() && equipmentForm.location.regionId().invalid()) { <small class="field-error">{{ equipmentForm.location.regionId().errors()[0]?.message }}</small> }</label>

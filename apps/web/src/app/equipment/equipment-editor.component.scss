@@ -163,6 +163,9 @@ h2 {
   font-weight: 450;
   line-height: 1.45;
 }
+.cep-feedback:empty {
+  display: none;
+}
 .cep-field-group {
   display: flex;
   align-items: center;
@@ -177,11 +180,6 @@ h2 {
   padding-inline: var(--space-3);
   font-size: 0.75rem;
   white-space: nowrap;
-}
-.spinner--sm {
-  width: 0.8125rem;
-  height: 0.8125rem;
-  border-width: 2px;
 }
 .characteristics-panel,
 .position-panel {
@@ -273,6 +271,11 @@ h2 {
   border-top-color: var(--color-accent);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
+}
+.spinner--sm {
+  width: 0.8125rem;
+  height: 0.8125rem;
+  border-width: 2px;
 }
 @keyframes spin {
   to {

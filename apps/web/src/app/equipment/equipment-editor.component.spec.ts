@@ -291,6 +291,41 @@ describe('EquipmentEditorComponent', () => {
       expect(component.cepFeedback()?.message).toContain('Endereço e coordenadas localizados');
     });
 
+    it('asks for manual coordinates when the address is found but geocoding has no result', async () => {
+      const mockResult: ViaCepResult = {
+        postalCode: '13010-000',
+        street: 'Praça Bento Quirino',
+        neighborhood: 'Sousas',
+        city: 'Campinas',
+        state: 'SP',
+        complement: '',
+      };
+      const lookupCep = vi.fn(() => of(mockResult));
+      const viaCepMock = { ...defaultMockViaCep, lookupCep };
+
+      await TestBed.configureTestingModule({
+        imports: [EquipmentEditorComponent],
+        providers: [
+          provideRouter([]),
+          { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({}) } } },
+          { provide: InventoryApiService, useValue: {
+            getEquipmentTypes: () => of([testEquipmentType]), getOrganizations: () => of([testOrganization]), getRegions: () => of([testRegion]),
+          } },
+          { provide: ViaCepService, useValue: viaCepMock },
+        ],
+      }).compileComponents();
+      const fixture = TestBed.createComponent(EquipmentEditorComponent);
+      await fixture.whenStable();
+      const component = fixture.componentInstance as unknown as EquipmentEditorHarness;
+
+      component.searchCep('13010-000');
+      await fixture.whenStable();
+
+      expect(component.model().location.regionId).toBe(testRegion.id);
+      expect(component.cepFeedback()?.type).toBe('info');
+      expect(component.cepFeedback()?.message).toContain('Informe as coordenadas manualmente');
+    });
+
     it('shows error feedback when CEP is not found on ViaCEP', async () => {
       const lookupCep = vi.fn(() => of(null));
       const viaCepMock = { ...defaultMockViaCep, lookupCep };

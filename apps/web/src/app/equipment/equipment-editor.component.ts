@@ -3,8 +3,10 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormField, applyWhen, form, max, maxLength, min, pattern, required, submit } from '@angular/forms/signals';
 import type { EquipmentContract, EquipmentStatus, EquipmentTypeContract, MaintenancePriority, OrganizationContract, RegionContract } from '@fogo/contracts';
-import { InventoryApiService, apiErrorMessage, type EquipmentWriteInput } from '../core/inventory-api.service';
+import { InventoryApiService, type EquipmentWriteInput } from '../core/inventory-api.service';
+import { apiErrorMessage } from '../core/api-error-message';
 import { ViaCepService } from '../core/viacep.service';
+import { ErrorFeedback } from '../shared/error-feedback/error-feedback';
 import { dateTimeToLocalInputValue, localDateTimeInputValue } from '../core/date-time';
 import { forkJoin, firstValueFrom, of } from 'rxjs';
 
@@ -257,11 +259,11 @@ export class EquipmentEditorComponent {
   }
 
   protected onPostalCodeInput(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const clean = this.viaCep.cleanCep(input.value);
+    if (!(event.target instanceof HTMLInputElement)) return;
+    const clean = this.viaCep.cleanCep(event.target.value);
     this.cepFeedback.set(null);
     if (clean.length === 8 && clean !== this.lastSearchedCep) {
-      this.searchCep(input.value);
+      this.searchCep(event.target.value);
     }
   }
 
@@ -297,6 +299,8 @@ export class EquipmentEditorComponent {
         this.fallbackState.set(result.state);
 
         const hasCoords = typeof result.latitude === 'number' && typeof result.longitude === 'number';
+        const latitude = result.latitude ?? this.model().location.latitude;
+        const longitude = result.longitude ?? this.model().location.longitude;
 
         this.model.update((current) => ({
           ...current,
@@ -305,29 +309,39 @@ export class EquipmentEditorComponent {
             postalCode: result.postalCode || current.location.postalCode,
             street: result.street || current.location.street,
             regionId: matchedRegion ? matchedRegion.id : current.location.regionId,
-            latitude: hasCoords ? result.latitude! : current.location.latitude,
-            longitude: hasCoords ? result.longitude! : current.location.longitude,
+            latitude,
+            longitude,
           },
         }));
 
         const parts = [result.street, matchedRegion?.name || result.neighborhood, result.city].filter(Boolean);
         const addressText = parts.join(', ');
-        const coordsText = hasCoords ? ` (Lat: ${result.latitude}, Lon: ${result.longitude})` : '';
+        const coordsText = hasCoords ? ` (Lat: ${latitude}, Lon: ${longitude})` : '';
 
-        if (matchedRegion) {
+        if (matchedRegion && hasCoords) {
           this.cepFeedback.set({
             type: 'success',
             message: `Endereço e coordenadas localizados: ${addressText}${coordsText}.`,
           });
+        } else if (matchedRegion) {
+          this.cepFeedback.set({
+            type: 'info',
+            message: `Endereço localizado: ${addressText}. Informe as coordenadas manualmente.`,
+          });
         } else if (result.neighborhood) {
           this.cepFeedback.set({
             type: 'info',
-            message: `Endereço localizado (${addressText})${coordsText}. Selecione o bairro correspondente.`,
+            message: `Endereço localizado (${addressText})${coordsText}. Selecione o bairro correspondente${hasCoords ? '' : ' e informe as coordenadas'}.`,
           });
-        } else {
+        } else if (hasCoords) {
           this.cepFeedback.set({
             type: 'success',
             message: `Endereço localizado com sucesso${coordsText}.`,
+          });
+        } else {
+          this.cepFeedback.set({
+            type: 'info',
+            message: 'Endereço localizado. Selecione o bairro e informe as coordenadas.',
           });
         }
       },
@@ -343,21 +357,21 @@ export class EquipmentEditorComponent {
 
   protected findMatchingRegion(neighborhood: string): RegionContract | undefined {
     if (!neighborhood) return undefined;
-    const normalize = (val: string) =>
-      val.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    const normalize = (value: string) =>
+      value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
     const target = normalize(neighborhood);
     const regions = this.regions();
 
-    const exact = regions.find((r) => normalize(r.name) === target);
+    const exact = regions.find((region) => normalize(region.name) === target);
     if (exact) return exact;
 
-    const contains = regions.find((r) => {
-      const name = normalize(r.name);
+    const contains = regions.find((region) => {
+      const name = normalize(region.name);
       return target.includes(name) || name.includes(target);
     });
     if (contains) return contains;
 
-    return regions.find((r) => normalize(r.code) === target);
+    return regions.find((region) => normalize(region.code) === target);
   }
 
   protected characteristicOptionLabel(option: string): string {
