@@ -44,7 +44,7 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import type { MapResourceContract } from '@fogo/contracts';
-import { of } from 'rxjs';
+import { of, Subject } from 'rxjs';
 import { InventoryApiService } from '../core/inventory-api.service';
 import { MonitoringRealtimeService } from '../core/monitoring-realtime.service';
 import { OperationalMapComponent } from './operational-map.component';
@@ -54,10 +54,18 @@ type TestMap = { trigger(event: string, ...args: unknown[]): void };
 const resource: MapResourceContract = {
   id: 'equipment-1', kind: 'equipment', label: 'Radar demonstrativo', identifier: 'DEMO-RAD-001',
   status: 'operational', typeCode: 'speed_radar', typeLabel: 'Radar de velocidade',
+  categoryCode: null,
   organizationId: 'org-1', organizationName: 'Mobilidade', regionId: 'region-1', regionName: 'Sousas', regionZone: 'Leste',
   locationDescription: 'Rua Central, 100', latitude: -22.9, longitude: -47.06,
   positionRecordedAt: '2026-10-24T12:00:00.000Z', positionSource: 'fixed_location', positionStale: false,
   dataOrigin: 'demo', maintenancePriority: 'normal', nextMaintenanceDate: null, detailPath: '/equipments/equipment-1',
+};
+
+const agentResource: MapResourceContract = {
+  ...resource,
+  id: 'agent-1', kind: 'agent', label: 'Agente demonstrativo', identifier: 'AG-DEMO-001',
+  status: 'on_duty', typeCode: null, categoryCode: 'traffic_agent', typeLabel: 'Agente de trânsito',
+  positionSource: 'agent_base', detailPath: '/agents/agent-1',
 };
 
 describe('OperationalMapComponent', () => {
@@ -71,7 +79,7 @@ describe('OperationalMapComponent', () => {
   });
 
   it('loads map resources, updates GeoJSON and opens the selected resource details', async () => {
-    const getMonitoringMap = vi.fn(() => of({ items: [resource], withoutPosition: 1, demoMode: true, generatedAt: '2026-10-24T12:00:00.000Z' }));
+    const getMonitoringMap = vi.fn(() => of({ items: [resource, agentResource], withoutPosition: 1, demoMode: true, generatedAt: '2026-10-24T12:00:00.000Z' }));
     const triggerDemoOutage = vi.fn(() => of(undefined));
     const resetDemoScenario = vi.fn(() => of(undefined));
     await TestBed.configureTestingModule({
@@ -119,7 +127,12 @@ describe('OperationalMapComponent', () => {
     expect(root.textContent).toContain('Localização fixa');
     expect(root.textContent).toContain('1 agente(s) sem posição conhecida');
     expect(mapRuntime.setData).toHaveBeenCalled();
-    expect(mapRuntime.lastGeoJson).toMatchObject({ type: 'FeatureCollection', features: [{ geometry: { coordinates: [-47.06, -22.9] } }] });
+    expect(mapRuntime.lastGeoJson).toMatchObject({ type: 'FeatureCollection', features: [
+      { geometry: { coordinates: [-47.06, -22.9] }, properties: { glyph: 'RD' } },
+      { properties: { glyph: 'AT' } },
+    ] });
+    expect(root.textContent).toContain('Radar de velocidade');
+    expect(root.textContent).toContain('Agente de trânsito');
 
     mapRuntime.clusterFeature = { properties: { cluster_id: 3 }, geometry: { type: 'Point', coordinates: [-47.06, -22.9] } };
     (mapRuntime.instance as TestMap).trigger('click:resource-clusters', { point: { x: 4, y: 8 } });
@@ -137,6 +150,40 @@ describe('OperationalMapComponent', () => {
     await Promise.resolve();
     expect(mapRuntime.setData.mock.calls.length).toBeGreaterThan(priorUpdates);
     expect(component.mapError()).toContain('Não foi possível atualizar os marcadores.');
+  });
+
+  it('keeps the newest filter response when an older map request finishes later', async () => {
+    const requests: Array<Subject<{ items: MapResourceContract[]; withoutPosition: number; demoMode: boolean; generatedAt: string }>> = [];
+    const getMonitoringMap = vi.fn(() => {
+      const response = new Subject<{ items: MapResourceContract[]; withoutPosition: number; demoMode: boolean; generatedAt: string }>();
+      requests.push(response);
+      return response;
+    });
+    await TestBed.configureTestingModule({
+      imports: [OperationalMapComponent],
+      providers: [
+        provideRouter([]),
+        { provide: InventoryApiService, useValue: {
+          getMonitoringMap, getEquipmentTypes: () => of([]), getOrganizations: () => of([]), getRegions: () => of([]),
+        } },
+        { provide: MonitoringRealtimeService, useValue: { acquire: vi.fn(), refreshVersion: signal(0) } },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(OperationalMapComponent);
+    await fixture.whenStable();
+    const component = fixture.componentInstance as unknown as {
+      changeFilter(key: 'status', value: string): void;
+      items(): MapResourceContract[];
+    };
+    const olderRequest = requests.at(-1)!;
+
+    component.changeFilter('status', 'operational');
+    const newestRequest = requests.at(-1)!;
+    newestRequest.next({ items: [{ ...resource, id: 'new-filter-result', label: 'Resultado atual' }], withoutPosition: 0, demoMode: false, generatedAt: '2026-10-27T12:00:00.000Z' });
+    olderRequest.next({ items: [{ ...resource, id: 'old-filter-result', label: 'Resultado antigo' }], withoutPosition: 0, demoMode: false, generatedAt: '2026-10-27T12:00:00.000Z' });
+
+    expect(component.items().map(({ id }) => id)).toEqual(['new-filter-result']);
+    fixture.destroy();
   });
 
   it('renders compact resource details and clears the selected resource on request', async () => {

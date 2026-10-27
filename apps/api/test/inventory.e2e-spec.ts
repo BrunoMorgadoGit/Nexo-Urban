@@ -34,6 +34,8 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
   let unlocatedAgentId: string;
   let linkedAgentId: string;
   let operationalBaseId: string;
+  let regionalBaseAgentId: string;
+  let regionalBaseId: string;
   const maintenanceIds: string[] = [];
 
   beforeAll(async () => {
@@ -59,7 +61,7 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
         await dataSource.getRepository(EquipmentEntity).delete({ id });
       }
       for (const id of maintenanceIds) await dataSource.getRepository(MaintenanceEntity).delete({ id });
-      const resourceIds = [equipmentId, crossCityEquipmentId, mobileEquipmentId, agentId, unlocatedAgentId, linkedAgentId, ...maintenanceIds]
+      const resourceIds = [equipmentId, crossCityEquipmentId, mobileEquipmentId, agentId, unlocatedAgentId, linkedAgentId, regionalBaseAgentId, ...maintenanceIds]
         .filter((value): value is string => Boolean(value));
       const relatedAlerts = resourceIds.length
         ? await dataSource.getRepository(OperationalAlertEntity).find({ where: { resourceId: In(resourceIds) } })
@@ -72,7 +74,9 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
       if (agentId) await dataSource.getRepository(AgentEntity).delete({ id: agentId });
       if (unlocatedAgentId) await dataSource.getRepository(AgentEntity).delete({ id: unlocatedAgentId });
       if (linkedAgentId) await dataSource.getRepository(AgentEntity).delete({ id: linkedAgentId });
+      if (regionalBaseAgentId) await dataSource.getRepository(AgentEntity).delete({ id: regionalBaseAgentId });
       if (operationalBaseId) await dataSource.getRepository(OperationalBaseEntity).delete({ id: operationalBaseId });
+      if (regionalBaseId) await dataSource.getRepository(OperationalBaseEntity).delete({ id: regionalBaseId });
     }
     await app?.close();
   });
@@ -435,6 +439,34 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
     expect(await dataSource.getRepository(OperationalEventEntity).exists({
       where: { resourceId: linkedAgentId, eventType: 'agent.deleted' },
     })).toBe(true);
+  });
+
+  it('counts on-duty agents by their operational base when they have no personal position', async () => {
+    const before = await request(app.getHttpServer()).get('/api/v1/monitoring/regions').expect(200);
+    const countBefore = before.body.find((region: { id: string }) => region.id === regionId).agentsOnDuty as number;
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/agents')
+      .send({
+        name: 'Agente Base Regional',
+        identifier: `${agentIdentifier}-BASE`,
+        category: 'traffic_agent',
+        organizationId,
+        availability: 'on_duty',
+        newOperationalBase: { name: `Base Regional ${randomUUID().slice(0, 8)}`, regionId, latitude: -22.9056, longitude: -47.0608 },
+      })
+      .expect(201);
+    regionalBaseAgentId = created.body.id as string;
+    regionalBaseId = created.body.operationalBase.id as string;
+
+    const [map, after] = await Promise.all([
+      request(app.getHttpServer()).get('/api/v1/monitoring/map').query({ resourceType: 'agent' }).expect(200),
+      request(app.getHttpServer()).get('/api/v1/monitoring/regions').expect(200),
+    ]);
+    expect(map.body.items.find((item: { id: string }) => item.id === regionalBaseAgentId)).toMatchObject({
+      categoryCode: 'traffic_agent', regionId, positionSource: 'agent_base',
+    });
+    const regionAfter = after.body.find((region: { id: string }) => region.id === regionId);
+    expect(regionAfter.agentsOnDuty).toBe(countBefore + 1);
   });
 
   it('identifies overdue and upcoming maintenance and enforces lifecycle transitions', async () => {

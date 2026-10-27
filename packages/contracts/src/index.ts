@@ -199,6 +199,7 @@ export type MapResourceContract = {
   identifier: string;
   status: EquipmentStatus | AgentAvailability;
   typeCode: string | null;
+  categoryCode: AgentCategory | null;
   typeLabel: string;
   organizationId: string;
   organizationName: string;

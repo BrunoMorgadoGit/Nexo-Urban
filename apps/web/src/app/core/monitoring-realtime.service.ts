@@ -13,7 +13,7 @@ export class MonitoringRealtimeService {
   private lastEventId = '';
   private readonly seenIds = new Set<string>();
   private readonly eventTypes: OperationalEventType[] = [
-    'equipment.updated', 'agent.updated', 'maintenance.created', 'maintenance.updated',
+    'equipment.updated', 'agent.updated', 'agent.deleted', 'maintenance.created', 'maintenance.updated',
     'alert.created', 'alert.updated', 'alert.resolved', 'demo.scenario.changed',
   ];
 

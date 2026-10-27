@@ -25,6 +25,20 @@ describe('equipment characteristics schemas', () => {
     expect(validateEquipmentCharacteristics('speed_radar', input)).toEqual(input);
   });
 
+  it('supports the radar, camera and public-transport variants from the challenge examples', () => {
+    expect(validateEquipmentCharacteristics('speed_radar', {
+      speedLimitKmh: 50, lanes: 3, technology: 'doppler', enforcementMode: 'prohibited_turn',
+    })).toMatchObject({ enforcementMode: 'prohibited_turn' });
+    expect(validateEquipmentCharacteristics('surveillance_camera', {
+      resolution: '4k', nightVision: true, panTiltZoom: false, imageMode: 'monochrome',
+    })).toMatchObject({ imageMode: 'monochrome' });
+    for (const vehicleClass of ['taxi', 'motorcycle_taxi', 'school_bus']) {
+      expect(validateEquipmentCharacteristics('transit_vehicle', {
+        vehicleClass, passengerCapacity: 4, accessible: false,
+      })).toMatchObject({ vehicleClass });
+    }
+  });
+
   it.each([
     ['speed_radar', { speedLimitKmh: 50, lanes: 3, technology: 'doppler' }],
     ['surveillance_camera', { resolution: '4k', nightVision: true, panTiltZoom: false }],

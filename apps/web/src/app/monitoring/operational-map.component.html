@@ -84,8 +84,9 @@
         <span><i class="legend-dot legend-dot--warning"></i>Atenção</span>
         <span><i class="legend-dot legend-dot--problem">!</i>Falha ou furto</span>
         <span><i class="legend-dot legend-dot--inactive"></i>Inativo</span>
-        <span><i class="legend-dot legend-dot--equipment">EQ</i>Equipamento</span>
-        <span><i class="legend-dot legend-dot--agent">AG</i>Agente</span>
+        @for (marker of markerLegend(); track marker.glyph + marker.label) {
+          <span><i class="legend-dot legend-dot--marker" aria-hidden="true">{{ marker.glyph }}</i>{{ marker.label }}</span>
+        }
       </div>
       @if (withoutPosition() > 0 && !compact()) {
         <p class="map-position-note">{{ withoutPosition() }} agente(s) sem posição conhecida não aparecem no mapa.</p>
@@ -99,7 +100,7 @@
       <aside class="resource-panel" aria-label="Detalhes do recurso selecionado">
         <div class="resource-panel__heading">
           <div>
-            <p class="eyebrow">{{ item.kind === 'agent' ? 'Agente operacional' : item.typeLabel }}</p>
+            <p class="eyebrow">{{ item.typeLabel }}</p>
             <h2>{{ item.label }}</h2>
           </div>
           <button type="button" class="icon-button" aria-label="Fechar detalhes" (click)="clearSelection()">×</button>

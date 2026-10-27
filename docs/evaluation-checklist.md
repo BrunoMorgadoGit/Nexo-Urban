@@ -2,14 +2,27 @@
 
 ## Escopo da matriz
 
-O texto integral do edital/enunciado original da DSIN não está versionado neste repositório nem foi fornecido como arquivo nesta tarefa. Para não inventar requisitos, a matriz abaixo cobre os requisitos funcionais das três partes descritos nas etapas de Inventário Inteligente, Central de Operações e Cidade Preditiva passadas pelo solicitante. Antes da submissão, compare esta matriz com o documento oficial da organização e ajuste a redação literal se necessário.
+O PDF oficial foi comparado na auditoria de 27/10/2026, mas não está versionado neste repositório. A matriz abaixo cobre os requisitos funcionais das três partes e mantém as limitações verificáveis; use a cópia oficial da organização para conferir a redação final antes da submissão.
+
+## Estado corrente — 27/10/2026
+
+Esta seção prevalece sobre fotografias históricas abaixo. Os testes E2E de API usam o banco PostgreSQL dedicado protegido pelo runner; os E2E web interceptam a API e verificam comportamento de interface, não integração ao banco.
+
+| Verificação | Evidência corrente |
+| --- | --- |
+| Unitários | `npm test`: 169 testes web e 130 testes API passaram. |
+| E2E PostgreSQL | `npm run test:e2e`: 22 testes passaram em quatro arquivos, incluindo localização de agente pela base operacional. |
+| E2E web | `npm run test:web:e2e`: 8 cenários Chromium passaram; um valida o retorno do detalhe do equipamento ao inventário. |
+| Lint/build | `npm run lint` e `npm run build` passaram. O build mantém nove avisos de orçamento CSS, sem erro de compilação. |
+| Inteligência | Regras explicáveis e backtest permanecem demonstrativos. O histórico é sintético; métricas não comprovam eficácia em operação real. |
+| Demonstração | O vídeo bônus ainda precisa ser gravado e assistido. O mapa depende de tiles OSM e a aplicação não oferece autenticação; mantenha a API em loopback. |
 
 ## Parte 1 — Inventário Inteligente da Cidade
 
 | Requisito do escopo | Implementação | Tela ou endpoint | Evidência | Limitação declarada |
 | --- | --- | --- | --- | --- |
 | Cadastro e consulta de equipamentos urbanos | CRUD, filtros, paginação, detalhe e desativação lógica | `/equipments`; `/api/v1/equipments` | E2E de inventário e persistência PostgreSQL | Tipos e dados de demonstração são mantidos por seed versionado |
-| Categorias de radares, câmeras, balanças, veículos, cancelas, transporte, totens, patinetes, motos e viaturas | Tipos cadastrados; características JSONB validadas por esquema do tipo | Formulário de equipamento; `/api/v1/equipment-types` | Testes de contrato/tipos e validação de características | Novo tipo exige descritor e esquema no backend, mas não exige coluna nova |
+| Categorias de radares, câmeras, balanças, veículos, cancelas, transporte, totens, patinetes, motos e viaturas | Tipos cadastrados; radar aceita modalidade de avanço de sinal/conversão proibida, câmera aceita imagem colorida/preto e branco e transporte aceita táxi, mototáxi e escolar | Formulário de equipamento; `/api/v1/equipment-types` | Testes de contrato/tipos e validação de características | Variantes novas são opcionais e exigem reexecutar `npm run db:seed` para atualizar catálogos locais existentes; novo tipo exige descritor e esquema no backend |
 | Número de série único, marca/modelo, órgão e estado operacional | Campos persistidos com constraints e DTOs | Formulário/detalhe; `/api/v1/equipments` | E2E de criação, consulta e atualização | Autenticação de usuários não faz parte da aplicação demonstrativa |
 | Endereço, bairro/região e coordenadas | Localização estruturada e ponto GPS; cidade/UF do endereço; localização fixa/base separada de posição móvel | Formulário, detalhe e mapa | E2E de localização e filtros geográficos | CEP e coordenadas usam ViaCEP/OpenStreetMap como apoio opcional; o cadastro manual continua disponível sem eles |
 | Agentes de trânsito, guardas municipais, policiais militares/civis e outros | CRUD, identificação funcional única, situação, unidade, base reutilizável, observações e vínculo real com equipamento | Agentes Operacionais; `/api/v1/agents`, `/api/v1/agents/operational-bases` | E2E de persistência, vínculo, localização, atualização e exclusão | Posições são registros conhecidos; não há rastreamento em tempo real nem coleta de dados pessoais desnecessários |
@@ -20,7 +33,7 @@ O texto integral do edital/enunciado original da DSIN não está versionado nest
 | Requisito do escopo | Implementação | Tela ou endpoint | Evidência | Limitação declarada |
 | --- | --- | --- | --- | --- |
 | Centro de comando com disponibilidade, equipamentos, agentes, alertas e vencimentos | Indicadores calculados pela API com fórmulas documentadas | Central de Operações; `/api/v1/monitoring/overview` | E2E e navegação no navegador | Sem fonte externa de telemetria física |
-| Mapa operacional de recursos e agentes | MapLibre com GeoJSON, agrupamento, filtros e detalhe real | Mapa Vivo; `/api/v1/monitoring/map` | Validação de filtros e inspeção desktop/mobile | Regiões são exibidas sem polígonos inventados; tiles dependem do provedor OSM |
+| Mapa operacional de recursos e agentes | MapLibre com GeoJSON, agrupamento, filtros e detalhe real; marcadores mostram siglas por tipo de equipamento/categoria de agente e legenda sincronizada com os recursos visíveis | Mapa Vivo; `/api/v1/monitoring/map` | Unitários do GeoJSON e E2E de filtros/navegação | Regiões são exibidas sem polígonos inventados; tiles dependem do provedor OSM; não representa telemetria física |
 | Atualização de alterações em tempo real | SSE com ID persistido, recuperação por cursor e refresh do snapshot | `/api/v1/monitoring/events/stream` | E2E de eventos SSE e cenário Mission Control | Barramento ao vivo é local ao processo; replay entre reinícios usa eventos persistidos e snapshot |
 | Alertas com severidade, reconhecimento, observação e resolução | Alertas/actions persistidos, deduplicação de condição ativa e resolução após normalização | Alertas; `/api/v1/monitoring/alerts/*` | E2E de ciclo de alerta e demonstração | Sem despacho automático de agentes |
 | Simular ocorrência e observar a resposta ponta a ponta | Painel Mission Control usa `DEMO-RAD-001`, altera estado persistente, gera alerta, publica SSE e mantém timeline | Central de Operações; `/api/v1/monitoring/demo/scenario/*` | E2E PostgreSQL e cenário no navegador sem recarregar | Endpoint existe somente com `NODE_ENV=development`; a timeline é somente leitura, sem replay visual |

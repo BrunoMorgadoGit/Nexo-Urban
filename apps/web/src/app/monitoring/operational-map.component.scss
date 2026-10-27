@@ -166,17 +166,17 @@
 .legend-dot--inactive {
   background: var(--color-status-neutral);
 }
-.legend-dot--agent,
-.legend-dot--equipment {
-  width: 1rem;
+.legend-dot--marker {
+  width: 1.25rem;
   height: 1rem;
-  font-size: 0.45rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 0.3rem;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: 0.48rem;
   font-style: normal;
   font-weight: 800;
-}
-.legend-dot--agent {
-  background: var(--color-status-info);
-  color: var(--color-status-info-contrast);
+  line-height: 1;
 }
 .legend-dot--equipment {
   background: var(--color-status-neutral);

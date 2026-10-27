@@ -6,7 +6,10 @@
   } @else if (equipment(); as item) {
     <header class="page-heading">
       <div>
-        <a class="back-link" routerLink="/equipments">← Voltar ao inventário</a>
+        <a class="button button--secondary back-link" routerLink="/equipments">
+          <span aria-hidden="true">←</span>
+          <span>Voltar ao inventário</span>
+        </a>
         <p class="eyebrow">{{ item.typeLabel }}</p>
         <h2 id="page-title">{{ item.brand }} {{ item.model }}</h2>
         <p class="page-description">Série {{ item.serialNumber }} · {{ item.organizationName }}</p>
