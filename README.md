@@ -103,9 +103,12 @@ npm run db:migrations:show
 npm run build
 npm run lint
 npm test
+npm run test:web:e2e
 npm run test:e2e
 npm audit --audit-level=high
 ```
+
+`npm run test:web:e2e` executa os fluxos de navegador com respostas de API controladas e requer Chrome instalado. `npm run test:e2e` cobre a API e exige um PostgreSQL local dedicado, conforme as instruções abaixo.
 
 Os E2E usam exclusivamente PostgreSQL local dedicado. Crie previamente um banco cujo nome contenha `_e2e` ou `_test`. Configure as variáveis apenas no seu shell:
 
@@ -136,6 +139,12 @@ Todos os endpoints abaixo usam o prefixo `/api/v1`.
 | Inteligência | `GET /intelligence/overview`, `/regions`, `/regions/:id`, `/maintenance-priorities`, `/trends`, `/validation` |
 
 Políticas operacionais e detalhes SSE: [docs/monitoring.md](docs/monitoring.md). Fórmulas, critérios de qualidade e backtest: [docs/intelligence.md](docs/intelligence.md). Decisões de arquitetura: [docs/architecture.md](docs/architecture.md).
+
+## Uso de IA
+
+OpenAI Codex foi usado como apoio nesta etapa para revisar o fluxo de erros, separar a apresentação das mensagens da camada de API e criar testes unitários e de navegador. O formatador preserva mensagens seguras da API e fornece alternativas por status HTTP; o componente compartilhado só apresenta a mensagem e emite o pedido de repetição, sem fazer chamadas HTTP. Rotas desconhecidas levam à página 404. O e2e web verifica esse fluxo e uma falha 503 com retry usando respostas de API controladas.
+
+Na apresentação, a pessoa responsável pela entrega deve explicar essas decisões, os limites dos dados sintéticos e por que a API permanece restrita a loopback sem autenticação.
 
 ## Limitações conhecidas
 
