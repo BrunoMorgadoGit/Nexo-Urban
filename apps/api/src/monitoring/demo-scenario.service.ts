@@ -9,6 +9,12 @@ import { MonitoringWriteService } from './monitoring-write.service.js';
 const scenarioSerial = 'DEMO-RAD-001';
 const initialNextMaintenanceDate = '2026-11-10';
 
+function isUserFacingEvent(
+  event: OperationalEventEntity,
+): event is OperationalEventEntity & { eventType: OperationalEventType } {
+  return event.eventType !== 'equipment.observed';
+}
+
 @Injectable()
 export class DemoScenarioService {
   constructor(
@@ -30,13 +36,15 @@ export class DemoScenarioService {
     const query = this.dataSource.getRepository(OperationalEventEntity).createQueryBuilder('event')
       .where('(event.resourceType IN (:...resourceTypes) AND event.resourceId = :equipmentId)', {
         resourceTypes: ['equipment', 'demo_scenario'], equipmentId: equipment.id,
-      });
+      })
+      .andWhere("event.eventType <> 'equipment.observed'");
     if (alerts.length) {
       query.orWhere('(event.resourceType = :alertType AND event.resourceId IN (:...alertIds))', {
         alertType: 'alert', alertIds: alerts.map(({ id }) => id),
       });
     }
-    const events = await query.orderBy('event.createdAt', 'DESC').addOrderBy('event.id', 'DESC').take(40).getMany();
+    const events = (await query.orderBy('event.createdAt', 'DESC').addOrderBy('event.id', 'DESC').take(40).getMany())
+      .filter(isUserFacingEvent);
     return events.reverse().map((event) => {
       const payload = event.payload;
       const action = typeof payload.action === 'string' ? payload.action : '';
@@ -49,7 +57,7 @@ export class DemoScenarioService {
         id: event.id,
         occurredAt: event.createdAt.toISOString(),
         serialNumber: equipment.serialNumber,
-        eventType: event.eventType as OperationalEventType,
+        eventType: event.eventType,
         source: event.source,
         status,
         description: this.describeTimelineEvent(event.eventType, action, payload),

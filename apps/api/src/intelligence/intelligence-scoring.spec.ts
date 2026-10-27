@@ -1,8 +1,8 @@
-import { calculateRegionalRisk, prioritizeMaintenance, type HistoricalIntelligenceEvent } from './intelligence-scoring.js';
+import { calculateRegionalRisk, prioritizeMaintenance, summarizeIntelligenceSources, type HistoricalIntelligenceEvent } from './intelligence-scoring.js';
 
 const referenceAt = new Date('2026-10-23T12:00:00.000Z');
 const region = { id: 'region-1', code: 'centro', name: 'Centro', zone: 'Central', city: 'Campinas', state: 'SP' };
-const sourceComposition = { syntheticObservations: 28, syntheticIncidents: 5, manualIncidents: 0 };
+const sourceComposition = { syntheticObservations: 28, syntheticIncidents: 5, manualObservations: 0, manualIncidents: 0 };
 
 function event(
   daysAgo: number,
@@ -22,6 +22,35 @@ function event(
 }
 
 describe('intelligence scoring', () => {
+  it('reports operational observations separately from synthetic history', () => {
+    const events = [
+      event(0, 'status_observation', 'manual-equipment', { status: 'operational', origin: 'manual' }),
+      event(2, 'failure', 'manual-equipment', { origin: 'manual' }),
+      event(4, 'status_observation', 'demo-equipment', { status: 'operational' }),
+      event(6, 'failure', 'demo-equipment'),
+    ];
+
+    expect(summarizeIntelligenceSources(events)).toEqual({
+      syntheticObservations: 1, syntheticIncidents: 1, manualObservations: 1, manualIncidents: 1,
+    });
+  });
+
+  it('allows manual regional risk only after the operational history covers the minimum window', () => {
+    const observations = Array.from({ length: 10 }, (_, index) =>
+      event(index * 7, 'status_observation', `manual-equipment-${index}`, { status: 'operational', origin: 'manual' }));
+    const assessment = calculateRegionalRisk({
+      region,
+      referenceAt,
+      sourceScope: 'manual',
+      events: observations,
+      eligibleEquipmentCount: observations.length,
+      sourceComposition: summarizeIntelligenceSources(observations),
+    });
+
+    expect(assessment).toMatchObject({ observationCount: 10, coverageDays: 63, classification: 'low' });
+    expect(assessment.sourceComposition.manualObservations).toBe(10);
+  });
+
   it('normalizes recent event rates by the eligible equipment count', () => {
     const inputs = [
       event(0, 'failure', 'asset-1', {}, 'high'),
@@ -108,5 +137,20 @@ describe('intelligence scoring', () => {
 
     expect(recommendation?.reasons.map(({ code }) => code)).toContain('scheduled_maintenance');
     expect(recommendation?.lastMaintenanceAt).toBe(historicalCompletion.occurredAt.toISOString());
+  });
+
+  it('ignores legacy inventory urgency that matches a completed work order', () => {
+    const recommendation = prioritizeMaintenance({
+      equipment: {
+        id: 'asset-1', serialNumber: 'RAD-01', brand: 'Marca', model: 'Radar', typeCode: 'radar', typeLabel: 'Radar',
+        status: 'operational', organizationName: 'DSIN', regionId: region.id, regionName: region.name, regionZone: region.zone,
+        dataOrigin: 'manual', maintenancePriority: 'immediate', nextMaintenanceDate: '2026-10-20', createdAt: referenceAt,
+      },
+      events: [],
+      maintenances: [{ status: 'completed', kind: 'scheduled', priority: 'immediate', scheduledDate: '2026-10-20', completedAt: referenceAt }],
+      referenceAt,
+    });
+
+    expect(recommendation).toBeNull();
   });
 });

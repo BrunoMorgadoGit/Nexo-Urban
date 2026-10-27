@@ -83,10 +83,10 @@
         </header>
         @if (data.maintenance.length) {
           <ul class="maintenance-list">
-            @for (entry of data.maintenance; track entry.maintenance.id) {
+            @for (entry of data.maintenance; track entry.maintenanceId ?? entry.equipmentId) {
               <li>
                 <span [class]="'urgency-pill urgency-pill--' + entry.urgency">{{ urgencyLabel(entry.urgency) }}</span>
-                <div><strong>{{ entry.maintenance.serialNumber }}</strong><span>{{ entry.maintenance.typeLabel }} · {{ entry.maintenance.scheduledDate | date:'dd/MM/yyyy' }}</span><small>{{ entry.maintenance.description }}</small></div>
+                <div><strong>{{ entry.serialNumber }}</strong><span>{{ entry.typeLabel }} · {{ entry.scheduledDate ? (entry.scheduledDate | date:'dd/MM/yyyy') : 'Data não definida' }}</span><small>{{ entry.description }} @if (entry.source === 'inventory_schedule') { · Agenda do inventário }</small></div>
               </li>
             }
           </ul>

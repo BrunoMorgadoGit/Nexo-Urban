@@ -1,6 +1,8 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 import type { OperationalEventType } from '@fogo/contracts';
 
+type PersistedOperationalEventType = OperationalEventType | 'equipment.observed';
+
 @Entity({ name: 'operational_events' })
 @Index('idx_operational_events_created_at', ['createdAt'])
 @Index('idx_operational_events_resource', ['resourceType', 'resourceId', 'id'])
@@ -9,7 +11,7 @@ export class OperationalEventEntity {
   id!: string;
 
   @Column({ name: 'event_type', type: 'varchar', length: 50 })
-  eventType!: OperationalEventType;
+  eventType!: PersistedOperationalEventType;
 
   @Column({ name: 'resource_type', type: 'varchar', length: 24 })
   resourceType!: 'equipment' | 'agent' | 'maintenance' | 'alert' | 'demo_scenario';

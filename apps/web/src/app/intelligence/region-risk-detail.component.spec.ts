@@ -10,7 +10,7 @@ const detail: RegionIntelligenceDetail = {
     horizonHours: 24, historyWindowDays: 90, observationCount: 12, latestObservationAt: '2026-10-24T12:00:00.000Z',
     failureCount: 3, eligibleEquipmentCount: 5, unavailableEquipmentCount: 1, dataQuality: 'sufficient',
     coverageDays: 80, sourceScope: 'all',
-    sourceComposition: { syntheticObservations: 10, syntheticIncidents: 2, manualIncidents: 1 },
+    sourceComposition: { syntheticObservations: 10, syntheticIncidents: 2, manualObservations: 0, manualIncidents: 1 },
     methodVersion: 'risk-rules-v1', factors: [{ code: 'recent_failures', label: 'Falhas recentes', observedValue: 2, normalizedValue: 60, weight: 0.4, contribution: 24, explanation: 'Duas falhas recentes.' }],
     recommendations: ['Programar uma inspeção.'],
   },

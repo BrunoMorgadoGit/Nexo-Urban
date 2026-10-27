@@ -27,6 +27,7 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
   let serialNumber: string;
   let agentIdentifier: string;
   let equipmentId: string;
+  let inventoryScheduleEquipmentId: string;
   let crossCityEquipmentId: string;
   let mobileEquipmentId: string;
   let agentId: string;
@@ -53,7 +54,7 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
 
   afterAll(async () => {
     if (dataSource?.isInitialized) {
-      for (const id of [equipmentId, crossCityEquipmentId, mobileEquipmentId].filter((value): value is string => Boolean(value))) {
+      for (const id of [equipmentId, inventoryScheduleEquipmentId, crossCityEquipmentId, mobileEquipmentId].filter((value): value is string => Boolean(value))) {
         await dataSource.getRepository(MaintenanceEntity).delete({ equipmentId: id });
         await dataSource.getRepository(EquipmentEntity).delete({ id });
       }
@@ -129,6 +130,25 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
       .findOneByOrFail({ equipmentId: crossCityEquipmentId });
     expect(persisted.city).toBe('São Paulo');
     expect(persisted.state).toBe('SP');
+  });
+
+  it('shows an inventory-only maintenance date in the operational attention queue', async () => {
+    const scheduledDate = addCalendarDays(operationalDateKey(), -365);
+    const input = equipmentInput(`E2E-SCHEDULE-${randomUUID().slice(0, 8).toUpperCase()}`);
+    input.nextMaintenanceDate = scheduledDate;
+    input.maintenancePriority = 'normal';
+
+    const created = await request(app.getHttpServer()).post('/api/v1/equipments').send(input).expect(201);
+    inventoryScheduleEquipmentId = created.body.id as string;
+
+    const attention = await request(app.getHttpServer()).get('/api/v1/monitoring/maintenance-alerts').expect(200);
+    expect(attention.body.find((item: { equipmentId: string }) => item.equipmentId === inventoryScheduleEquipmentId))
+      .toMatchObject({
+        source: 'inventory_schedule',
+        maintenanceId: null,
+        scheduledDate,
+        urgency: 'overdue',
+      });
   });
 
   it('rolls back the resource when recording its operational event fails', async () => {
@@ -419,6 +439,10 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
 
   it('identifies overdue and upcoming maintenance and enforces lifecycle transitions', async () => {
     const yesterday = addCalendarDays(operationalDateKey(), -1);
+    await request(app.getHttpServer())
+      .put(`/api/v1/equipments/${equipmentId}`)
+      .send({ ...equipmentInput(), maintenancePriority: 'normal', nextMaintenanceDate: null })
+      .expect(200);
     const response = await request(app.getHttpServer())
       .post('/api/v1/maintenance')
       .send({
@@ -431,6 +455,16 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
       .expect(201);
     maintenanceIds.push(response.body.id as string);
     expect(response.body.overdue).toBe(true);
+    const equipmentWithActiveOrder = await request(app.getHttpServer())
+      .get(`/api/v1/equipments/${equipmentId}`).expect(200);
+    expect(equipmentWithActiveOrder.body).toMatchObject({
+      nextMaintenanceDate: yesterday,
+      maintenancePriority: 'immediate',
+    });
+    const workOrderAttention = await request(app.getHttpServer())
+      .get('/api/v1/monitoring/maintenance-alerts').expect(200);
+    expect(workOrderAttention.body.find((item: { maintenanceId: string }) => item.maintenanceId === response.body.id))
+      .toMatchObject({ source: 'work_order', urgency: 'overdue', status: 'scheduled' });
     await request(app.getHttpServer())
       .get('/api/v1/maintenance')
       .query({ equipmentId, overdueOnly: true })
@@ -440,11 +474,29 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
       .patch(`/api/v1/maintenance/${response.body.id}/status`)
       .send({ status: 'in_progress' })
       .expect(200);
+    const manualAnalysis = await request(app.getHttpServer())
+      .get('/api/v1/intelligence/overview?sourceScope=manual').expect(200);
+    expect(manualAnalysis.body.sourceComposition.manualObservations).toBeGreaterThan(0);
+    expect(manualAnalysis.body.sourceComposition.manualIncidents).toBeGreaterThan(0);
+    expect(manualAnalysis.body.sourceComposition.syntheticObservations).toBe(0);
+    expect(manualAnalysis.body.sourceComposition.syntheticIncidents).toBe(0);
+    const predictedActiveAsset = manualAnalysis.body.maintenancePriorities.find((item: { equipmentId: string }) => item.equipmentId === equipmentId);
+    expect(predictedActiveAsset).toBeTruthy();
+    expect(predictedActiveAsset.urgentMaintenanceCount).toBeGreaterThan(0);
+    expect(predictedActiveAsset.reasons.map((reason: { code: string }) => reason.code)).toContain('urgent_maintenance');
     await request(app.getHttpServer())
       .patch(`/api/v1/maintenance/${response.body.id}/status`)
       .send({ status: 'completed' })
       .expect(200)
       .expect(({ body }) => expect(body.completedAt).toBeTruthy());
+    const equipmentAfterCompletion = await request(app.getHttpServer())
+      .get(`/api/v1/equipments/${equipmentId}`).expect(200);
+    expect(equipmentAfterCompletion.body).toMatchObject({ nextMaintenanceDate: null, maintenancePriority: 'normal' });
+    const completedAssetPriorities = await request(app.getHttpServer())
+      .get('/api/v1/intelligence/maintenance-priorities?sourceScope=manual').expect(200);
+    const completedAssetPriority = completedAssetPriorities.body.find((item: { equipmentId: string }) => item.equipmentId === equipmentId);
+    expect(completedAssetPriority?.reasons.map((reason: { code: string }) => reason.code))
+      .not.toEqual(expect.arrayContaining(['urgent_maintenance', 'overdue_maintenance', 'immediate_priority']));
     const maintenanceAlerts = await request(app.getHttpServer()).get('/api/v1/monitoring/alerts')
       .query({ resourceId: response.body.id, status: 'resolved' }).expect(200);
     expect(maintenanceAlerts.body.items.some((alert: { code: string }) => alert.code === 'maintenance_immediate')).toBe(true);

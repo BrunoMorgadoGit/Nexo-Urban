@@ -24,7 +24,7 @@
       <div class="analysis-intro__status"><span class="source-mark"></span><div><strong>{{ scopeLabel(data.overview.sourceScope) }}</strong><small>Analisado em {{ data.overview.evaluatedAt | date:'dd/MM/yyyy HH:mm:ss' }}</small></div></div>
       <div class="analysis-intro__context"><span>{{ data.overview.historyWindowDays }} dias observados</span><span>·</span><span>Método {{ data.overview.methodVersion }}</span><span>·</span><span>Qualidade {{ qualityLabel(data.overview.dataQuality) }}</span></div>
       <p>Os índices de 0 a 100 organizam prioridades; <strong>não são probabilidades calibradas</strong>. Dados sintéticos e operacionais permanecem identificados.</p>
-      <div class="source-counts"><span>{{ data.overview.sourceComposition.syntheticObservations }} observações sintéticas</span><span>{{ data.overview.sourceComposition.syntheticIncidents }} incidentes sintéticos</span><span>{{ data.overview.sourceComposition.manualIncidents }} incidentes operacionais</span></div>
+      <div class="source-counts"><span>{{ data.overview.sourceComposition.syntheticObservations }} observações sintéticas</span><span>{{ data.overview.sourceComposition.manualObservations }} observações operacionais</span><span>{{ data.overview.sourceComposition.syntheticIncidents }} incidentes sintéticos</span><span>{{ data.overview.sourceComposition.manualIncidents }} incidentes operacionais</span></div>
     </section>
 
     <section class="maintenance-section" aria-labelledby="maintenance-title">

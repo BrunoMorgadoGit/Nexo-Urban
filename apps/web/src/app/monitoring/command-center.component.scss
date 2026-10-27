@@ -271,10 +271,6 @@ app-command-center {
     gap: var(--space-4);
     min-width: 0;
   }
-  .distribution-panel,
-  .priority-panel {
-    min-height: 100%;
-  }
   .distribution-content {
     display: grid;
     grid-template-columns: minmax(9rem, 0.65fr) minmax(12rem, 1fr);

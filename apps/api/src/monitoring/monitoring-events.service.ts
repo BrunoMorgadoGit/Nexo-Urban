@@ -24,6 +24,7 @@ export class MonitoringEventsService {
       const queued: OperationalEventEntity[] = [];
 
       const emit = (event: OperationalEventEntity): void => {
+        if (event.eventType === 'equipment.observed') return;
         const eventId = BigInt(event.id);
         if (eventId <= lastSent || subscriber.closed) return;
         lastSent = eventId;
@@ -66,6 +67,7 @@ export class MonitoringEventsService {
         void this.dataSource.getRepository(OperationalEventEntity)
           .createQueryBuilder('event')
           .where('event.id > :cursor', { cursor })
+          .andWhere("event.eventType <> 'equipment.observed'")
           .orderBy('event.id', 'ASC')
           .getMany()
           .then((events) => {

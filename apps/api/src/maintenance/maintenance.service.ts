@@ -11,6 +11,7 @@ import { EquipmentEntity } from '../equipment/equipment.entity.js';
 import { CreateMaintenanceDto } from './dto/create-maintenance.dto.js';
 import { ListMaintenanceDto } from './dto/list-maintenance.dto.js';
 import { MaintenanceEntity, MaintenanceStatus } from './maintenance.entity.js';
+import { syncEquipmentMaintenanceSummary } from './maintenance-summary.js';
 import { MonitoringWriteService } from '../monitoring/monitoring-write.service.js';
 import { addCalendarDays, operationalDateKey } from '../common/operational-date.js';
 
@@ -34,10 +35,14 @@ export class MaintenanceService {
       throw new BadRequestException('Equipamento indisponível para agendamento.');
     }
     const result = await this.dataSource.transaction(async (manager) => {
-      await manager.getRepository(EquipmentEntity).update(equipment.id, {
-        nextMaintenanceDate: input.scheduledDate,
-        maintenancePriority: input.priority,
+      const equipmentRepository = manager.getRepository(EquipmentEntity);
+      const lockedEquipment = await equipmentRepository.findOne({
+        where: { id: equipment.id },
+        lock: { mode: 'pessimistic_write' },
       });
+      if (!lockedEquipment || lockedEquipment.status === 'deactivated' || lockedEquipment.status === 'stolen') {
+        throw new BadRequestException('Equipamento indisponível para agendamento.');
+      }
       const record = await manager.getRepository(MaintenanceEntity).save(
         manager.getRepository(MaintenanceEntity).create({
           equipmentId: equipment.id,
@@ -50,6 +55,7 @@ export class MaintenanceService {
           completedAt: null,
         }),
       );
+      await syncEquipmentMaintenanceSummary(manager, equipment.id);
       const events = await this.monitoringWrite.maintenanceChanged(manager, record.id, 'maintenance.created', {
         status: record.status,
         priority: record.priority,
@@ -120,6 +126,14 @@ export class MaintenanceService {
   async updateStatus(id: string, nextStatus: MaintenanceStatus): Promise<MaintenanceContract> {
     const events = await this.dataSource.transaction(async (manager) => {
       const repository = manager.getRepository(MaintenanceEntity);
+      const initialRecord = await repository.findOne({ where: { id } });
+      if (!initialRecord) throw new NotFoundException('Registro de manutenção não encontrado.');
+      const equipmentRepository = manager.getRepository(EquipmentEntity);
+      const equipment = await equipmentRepository.findOne({
+        where: { id: initialRecord.equipmentId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!equipment) throw new NotFoundException('Equipamento da manutenção não encontrado.');
       const record = await repository.findOne({ where: { id } });
       if (!record) throw new NotFoundException('Registro de manutenção não encontrado.');
       if (record.status === nextStatus) return [];
@@ -135,6 +149,7 @@ export class MaintenanceService {
       record.status = nextStatus;
       record.completedAt = nextStatus === 'completed' ? new Date() : null;
       await repository.save(record);
+      await syncEquipmentMaintenanceSummary(manager, record.equipmentId, record);
       return this.monitoringWrite.maintenanceChanged(manager, id, 'maintenance.updated', {
         status: record.status,
         priority: record.priority,

@@ -26,13 +26,14 @@ function makeHarness(options: {
   insertedIds?: Array<string | undefined>;
   agent?: AgentEntity | null;
   changedMaintenance?: MaintenanceEntity | null;
+  equipmentIds?: string[];
 } = {}) {
   const equipment = options.equipment === undefined
     ? { id: 'equipment-1', status: 'operational', serialNumber: 'RAD-01' } as EquipmentEntity
     : options.equipment;
   const equipmentRepository = {
     findOne: vi.fn().mockResolvedValue(equipment),
-    find: vi.fn().mockResolvedValue([{ id: 'equipment-1' }, { id: 'equipment-2' }]),
+    find: vi.fn().mockResolvedValue((options.equipmentIds ?? ['equipment-1', 'equipment-2']).map((id) => ({ id }))),
   };
   const maintenanceRepository = {
     find: vi.fn().mockResolvedValue(options.maintenances ?? []),
@@ -73,6 +74,7 @@ function makeHarness(options: {
   };
   const agentRepository = { findOne: vi.fn().mockResolvedValue(options.agent ?? null) };
   const manager = {
+    query: vi.fn().mockResolvedValue([]),
     getRepository: vi.fn((entity: unknown) => {
       if (entity === EquipmentEntity) return equipmentRepository;
       if (entity === MaintenanceEntity) return maintenanceRepository;
@@ -84,6 +86,7 @@ function makeHarness(options: {
   };
   const dataSource = {
     getRepository: vi.fn().mockReturnValue(equipmentRepository),
+    query: vi.fn().mockResolvedValue([]),
     transaction: vi.fn(async (operation: (manager: EntityManager) => unknown) => operation(manager as unknown as EntityManager)),
   };
   const service = new MonitoringWriteService(dataSource as unknown as DataSource);
@@ -91,6 +94,8 @@ function makeHarness(options: {
 }
 
 describe('MonitoringWriteService', () => {
+  afterEach(() => vi.useRealTimers());
+
   it.each([
     ['malfunctioning', 'equipment_malfunctioning'],
     ['stolen', 'equipment_stolen'],
@@ -244,6 +249,32 @@ describe('MonitoringWriteService', () => {
     await harness.service.onApplicationBootstrap();
 
     expect(harness.equipmentRepository.find).toHaveBeenCalledWith({ select: { id: true } });
-    expect(harness.dataSource.transaction).toHaveBeenCalledTimes(2);
+    expect(harness.dataSource.transaction).toHaveBeenCalledTimes(3);
+    expect(harness.manager.query).toHaveBeenNthCalledWith(1, 'SELECT pg_advisory_xact_lock($1, $2)', [0x464f474f, 1]);
+    expect(harness.manager.query.mock.calls[1]?.[0]).toContain("'equipment.observed'");
+    expect(harness.manager.query.mock.calls[1]?.[0]).toContain("observed.payload ->> 'observationDate' = $1");
+    expect(harness.manager.query.mock.calls[1]?.[1]).toEqual([operationalDateKey()]);
+    harness.service.onApplicationShutdown();
+  });
+
+  it('reconciles date-based alerts after the operational day changes', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-27T02:59:00.000Z'));
+    const scheduledDate = operationalDateKey();
+    const harness = makeHarness({
+      equipmentIds: ['equipment-1'],
+      maintenances: [maintenance({ scheduledDate })],
+    });
+
+    await harness.service.onApplicationBootstrap();
+    expect(harness.insertBuilder.values).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(60_000);
+
+    expect(harness.dataSource.transaction).toHaveBeenCalledTimes(4);
+    expect(harness.insertBuilder.values).toHaveBeenCalledWith(expect.objectContaining({
+      code: 'maintenance_overdue', resourceType: 'maintenance', resourceId: 'maintenance-1',
+    }));
+    harness.service.onApplicationShutdown();
   });
 });
