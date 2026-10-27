@@ -17,6 +17,7 @@ import { CreateEquipmentDto } from './dto/create-equipment.dto.js';
 import { ListEquipmentDto } from './dto/list-equipment.dto.js';
 import { EquipmentEntity } from './equipment.entity.js';
 import { MonitoringWriteService } from '../monitoring/monitoring-write.service.js';
+import { syncEquipmentMaintenanceSummary } from '../maintenance/maintenance-summary.js';
 
 @Injectable()
 export class EquipmentService {
@@ -164,8 +165,13 @@ export class EquipmentService {
       const equipmentRepository = manager.getRepository(EquipmentEntity);
       const locationRepository = manager.getRepository(EquipmentLocationEntity);
       const positionRepository = manager.getRepository(EquipmentPositionEntity);
+      const lockedCurrent = await equipmentRepository.findOne({
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!lockedCurrent) throw new NotFoundException('Equipamento não encontrado.');
       await equipmentRepository.save({
-        id: current.id,
+        id: lockedCurrent.id,
         typeCode: related.type.code,
         status: input.status,
         serialNumber,
@@ -207,7 +213,8 @@ export class EquipmentService {
       } else if (position) {
         await positionRepository.remove(position);
       }
-      return this.monitoringWrite.equipmentChanged(manager, id, current.status);
+      await syncEquipmentMaintenanceSummary(manager, id);
+      return this.monitoringWrite.equipmentChanged(manager, id, lockedCurrent.status);
     });
     this.monitoringWrite.publish(events);
     return this.get(id);

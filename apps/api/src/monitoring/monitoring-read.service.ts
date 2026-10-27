@@ -131,35 +131,81 @@ export class MonitoringReadService {
   async maintenanceAlerts(): Promise<MaintenanceAttention[]> {
     const today = operationalDateKey();
     const throughDate = addCalendarDays(today, 7);
-    const rows = await this.dataSource.getRepository(MaintenanceEntity)
-      .createQueryBuilder('maintenance')
-      .innerJoinAndSelect('maintenance.equipment', 'equipment')
-      .innerJoinAndSelect('equipment.type', 'type')
-      .where('maintenance.status IN (:...statuses)', { statuses: ['scheduled', 'in_progress'] })
-      .andWhere('(maintenance.scheduledDate <= :throughDate OR maintenance.priority = \'immediate\')', { throughDate })
-      .orderBy('maintenance.scheduledDate', 'ASC')
-      .take(12)
-      .getMany();
-    return rows.map((maintenance) => ({
-      maintenance: {
-        id: maintenance.id,
-        equipmentId: maintenance.equipmentId,
-        serialNumber: maintenance.equipment.serialNumber,
-        typeLabel: maintenance.equipment.type.label,
-        kind: maintenance.kind,
-        status: maintenance.status,
-        priority: maintenance.priority,
-        description: maintenance.description,
-        scheduledDate: maintenance.scheduledDate,
-        completedAt: maintenance.completedAt?.toISOString() ?? null,
-        overdue: maintenance.scheduledDate < today,
-        createdAt: maintenance.createdAt.toISOString(),
-      },
-      urgency: maintenance.scheduledDate < today
-        ? 'overdue'
-        : maintenance.priority === 'immediate' || maintenance.kind === 'immediate'
-          ? 'immediate'
-          : 'upcoming',
+    const rows = await this.dataSource.query(`
+      SELECT attention.* FROM (
+        SELECT
+          'work_order'::text AS source,
+          maintenance.id AS maintenance_id,
+          equipment.id AS equipment_id,
+          equipment.serial_number,
+          type.label AS type_label,
+          to_char(maintenance.scheduled_date, 'YYYY-MM-DD') AS scheduled_date,
+          maintenance.description,
+          maintenance.priority,
+          maintenance.status,
+          CASE
+            WHEN maintenance.scheduled_date < $1 THEN 'overdue'
+            WHEN maintenance.priority = 'immediate' OR maintenance.kind = 'immediate' THEN 'immediate'
+            ELSE 'upcoming'
+          END AS urgency
+        FROM maintenances maintenance
+        JOIN equipment ON equipment.id = maintenance.equipment_id
+        JOIN equipment_types type ON type.code = equipment.type_code
+        WHERE maintenance.status IN ('scheduled', 'in_progress')
+          AND (maintenance.scheduled_date <= $2 OR maintenance.priority = 'immediate' OR maintenance.kind = 'immediate')
+
+        UNION ALL
+
+        SELECT
+          'inventory_schedule'::text AS source,
+          NULL::uuid AS maintenance_id,
+          equipment.id AS equipment_id,
+          equipment.serial_number,
+          type.label AS type_label,
+          to_char(equipment.next_maintenance_date, 'YYYY-MM-DD') AS scheduled_date,
+          'Próxima manutenção registrada no inventário.'::text AS description,
+          equipment.maintenance_priority AS priority,
+          NULL::varchar AS status,
+          CASE
+            WHEN equipment.next_maintenance_date < $1 THEN 'overdue'
+            WHEN equipment.maintenance_priority = 'immediate' THEN 'immediate'
+            ELSE 'upcoming'
+          END AS urgency
+        FROM equipment
+        JOIN equipment_types type ON type.code = equipment.type_code
+        WHERE (equipment.next_maintenance_date <= $2 OR equipment.maintenance_priority = 'immediate')
+          AND NOT EXISTS (
+            SELECT 1 FROM maintenances active
+            WHERE active.equipment_id = equipment.id
+              AND active.status IN ('scheduled', 'in_progress')
+          )
+      ) attention
+      ORDER BY CASE attention.urgency WHEN 'overdue' THEN 0 WHEN 'immediate' THEN 1 ELSE 2 END,
+        attention.scheduled_date ASC NULLS FIRST, attention.serial_number ASC
+      LIMIT 12
+    `, [today, throughDate]) as Array<{
+      source: MaintenanceAttention['source'];
+      maintenance_id: string | null;
+      equipment_id: string;
+      serial_number: string;
+      type_label: string;
+      scheduled_date: string | null;
+      description: string;
+      priority: MaintenanceAttention['priority'];
+      status: 'scheduled' | 'in_progress' | null;
+      urgency: MaintenanceAttention['urgency'];
+    }>;
+    return rows.map((row) => ({
+      source: row.source,
+      maintenanceId: row.maintenance_id,
+      equipmentId: row.equipment_id,
+      serialNumber: row.serial_number,
+      typeLabel: row.type_label,
+      scheduledDate: row.scheduled_date,
+      description: row.description,
+      priority: row.priority,
+      status: row.status,
+      urgency: row.urgency,
     }));
   }
 

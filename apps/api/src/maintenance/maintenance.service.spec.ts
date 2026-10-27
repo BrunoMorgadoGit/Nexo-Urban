@@ -40,6 +40,7 @@ function makeService(options: {
   equipmentRecord?: EquipmentEntity | null;
   record?: MaintenanceEntity | null;
   current?: MaintenanceEntity | null;
+  activeMaintenances?: MaintenanceEntity[];
   listQuery?: ReturnType<typeof listBuilder>;
 } = {}) {
   const persisted = options.record ?? maintenanceRecord();
@@ -48,12 +49,23 @@ function makeService(options: {
     createQueryBuilder: vi.fn().mockReturnValue(options.listQuery ?? listBuilder()),
   };
   const equipmentRepository = { findOne: vi.fn().mockResolvedValue(options.equipmentRecord === undefined ? equipment : options.equipmentRecord) };
+  const storedMaintenances = [...(options.activeMaintenances ?? []), ...(options.current ? [options.current] : [])];
   const transactionRepository = {
     create: vi.fn((values: Partial<MaintenanceEntity>) => values),
-    save: vi.fn(async (values: Partial<MaintenanceEntity>) => Object.assign({}, persisted, values)),
-    findOne: vi.fn().mockResolvedValue(options.current === undefined ? persisted : options.current),
+    save: vi.fn(async (values: Partial<MaintenanceEntity>) => {
+      const saved = Object.assign({}, persisted, values) as MaintenanceEntity;
+      const index = storedMaintenances.findIndex((record) => record.id === saved.id);
+      if (index < 0) storedMaintenances.push(saved);
+      else storedMaintenances[index] = saved;
+      return saved;
+    }),
+    findOne: vi.fn(async ({ where }: { where: { id: string } }) => storedMaintenances.find(({ id }) => id === where.id) ?? null),
+    find: vi.fn(async ({ where }: { where: { equipmentId: string } }) => storedMaintenances.filter(({ equipmentId }) => equipmentId === where.equipmentId)),
   };
-  const transactionEquipmentRepository = { update: vi.fn().mockResolvedValue({ affected: 1 }) };
+  const transactionEquipmentRepository = {
+    findOne: vi.fn().mockResolvedValue(options.equipmentRecord === undefined ? equipment : options.equipmentRecord),
+    update: vi.fn().mockResolvedValue({ affected: 1 }),
+  };
   const manager = {
     getRepository: vi.fn((entity: unknown) => entity === MaintenanceEntity ? transactionRepository : transactionEquipmentRepository),
   };
@@ -89,6 +101,22 @@ describe('MaintenanceService', () => {
       description: 'Inspeção preventiva', status: 'scheduled', completedAt: null,
     }));
     expect(harness.monitoringWrite.publish).toHaveBeenCalledWith([]);
+  });
+
+  it('summarizes the earliest date and strongest priority across active work orders', async () => {
+    const earlierDate = addCalendarDays(operationalDateKey(), 2);
+    const existing = maintenanceRecord({
+      id: 'maintenance-existing', status: 'in_progress', priority: 'high',
+      scheduledDate: addCalendarDays(operationalDateKey(), 5),
+    });
+    const harness = makeService({ activeMaintenances: [existing] });
+
+    await harness.service.create(input({ priority: 'normal', scheduledDate: earlierDate }));
+
+    expect(harness.transactionEquipmentRepository.update).toHaveBeenCalledWith(equipment.id, {
+      nextMaintenanceDate: earlierDate,
+      maintenancePriority: 'high',
+    });
   });
 
   it.each([
@@ -164,6 +192,82 @@ describe('MaintenanceService', () => {
     });
     const saved = harness.transactionRepository.save.mock.calls[0]?.[0];
     expect(saved?.completedAt).toBeInstanceOf(Date);
+  });
+
+  it('clears stale equipment urgency when its only maintenance order is completed', async () => {
+    const scheduledDate = addCalendarDays(operationalDateKey(), -1);
+    const current = maintenanceRecord({ status: 'in_progress', priority: 'immediate', scheduledDate });
+    const equipmentWithOrder = Object.assign({}, equipment, {
+      nextMaintenanceDate: scheduledDate,
+      maintenancePriority: 'immediate',
+    }) as EquipmentEntity;
+    const harness = makeService({
+      current,
+      record: Object.assign({}, current, { status: 'completed', completedAt: timestamp }) as MaintenanceEntity,
+      equipmentRecord: equipmentWithOrder,
+    });
+
+    await harness.service.updateStatus(current.id, 'completed');
+
+    expect(harness.transactionEquipmentRepository.update).toHaveBeenCalledWith(equipment.id, {
+      nextMaintenanceDate: null,
+      maintenancePriority: 'normal',
+    });
+  });
+
+  it('clears the projected maintenance summary when the only order is cancelled', async () => {
+    const scheduledDate = addCalendarDays(operationalDateKey(), -1);
+    const current = maintenanceRecord({ status: 'scheduled', priority: 'immediate', scheduledDate });
+    const equipmentWithOrder = Object.assign({}, equipment, {
+      nextMaintenanceDate: scheduledDate,
+      maintenancePriority: 'immediate',
+    }) as EquipmentEntity;
+    const harness = makeService({
+      current,
+      record: Object.assign({}, current, { status: 'cancelled' }) as MaintenanceEntity,
+      equipmentRecord: equipmentWithOrder,
+    });
+
+    await harness.service.updateStatus(current.id, 'cancelled');
+
+    expect(harness.transactionEquipmentRepository.update).toHaveBeenCalledWith(equipment.id, {
+      nextMaintenanceDate: null,
+      maintenancePriority: 'normal',
+    });
+  });
+
+  it('preserves an independent inventory schedule when it differs from a completed work order', async () => {
+    const current = maintenanceRecord({ status: 'in_progress', scheduledDate: '2026-10-20' });
+    const inventorySchedule = Object.assign({}, equipment, {
+      nextMaintenanceDate: '2026-11-20',
+      maintenancePriority: 'high',
+    }) as EquipmentEntity;
+    const harness = makeService({
+      current,
+      record: Object.assign({}, current, { status: 'completed', completedAt: timestamp }) as MaintenanceEntity,
+      equipmentRecord: inventorySchedule,
+    });
+
+    await harness.service.updateStatus(current.id, 'completed');
+
+    expect(harness.transactionEquipmentRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('recalculates equipment maintenance fields from other active orders', async () => {
+    const current = maintenanceRecord({ status: 'in_progress', priority: 'immediate' });
+    const remaining = maintenanceRecord({ id: 'maintenance-2', status: 'scheduled', priority: 'high', scheduledDate: addCalendarDays(operationalDateKey(), 4) });
+    const harness = makeService({
+      current,
+      activeMaintenances: [remaining],
+      record: Object.assign({}, current, { status: 'completed', completedAt: timestamp }) as MaintenanceEntity,
+    });
+
+    await harness.service.updateStatus(current.id, 'completed');
+
+    expect(harness.transactionEquipmentRepository.update).toHaveBeenCalledWith(equipment.id, {
+      nextMaintenanceDate: remaining.scheduledDate,
+      maintenancePriority: 'high',
+    });
   });
 
   it('does not rewrite a record when it already has the requested status', async () => {

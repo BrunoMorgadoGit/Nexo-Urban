@@ -20,10 +20,10 @@ function liveEvent(id: string): OperationalEvent {
   };
 }
 
-function storedEvent(id: string): OperationalEventEntity {
+function storedEvent(id: string, eventType: OperationalEventEntity['eventType'] = 'equipment.updated'): OperationalEventEntity {
   return {
     id,
-    eventType: 'equipment.updated',
+    eventType,
     resourceType: 'equipment',
     resourceId: 'equipment-1',
     source: 'api',
@@ -36,6 +36,7 @@ function makeService(getMany: () => Promise<OperationalEventEntity[]> = () => Pr
   const events$ = new Subject<OperationalEvent>();
   const query = {
     where: vi.fn().mockReturnThis(),
+    andWhere: vi.fn().mockReturnThis(),
     orderBy: vi.fn().mockReturnThis(),
     getMany: vi.fn(getMany),
   };
@@ -78,7 +79,21 @@ describe('MonitoringEventsService', () => {
     subscription.unsubscribe();
 
     expect(query.where).toHaveBeenCalledWith('event.id > :cursor', { cursor: '4' });
+    expect(query.andWhere).toHaveBeenCalledWith("event.eventType <> 'equipment.observed'");
     expect(query.orderBy).toHaveBeenCalledWith('event.id', 'ASC');
+  });
+
+  it('keeps daily status observations out of the user-facing event replay', async () => {
+    const { service } = makeService(() => Promise.resolve([
+      storedEvent('5', 'equipment.observed'),
+      storedEvent('6'),
+    ]));
+    const received: MessageEvent[] = [];
+    const subscription = service.stream('4').subscribe((event) => received.push(event));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    subscription.unsubscribe();
+
+    expect(received.map(({ id }) => id)).toEqual(['6']);
   });
 
   it('replays history before live events received during the database query', async () => {

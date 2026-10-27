@@ -22,6 +22,7 @@ import {
   HISTORY_WINDOW_DAYS,
   INTELLIGENCE_METHOD_VERSION,
   prioritizeMaintenance,
+  summarizeIntelligenceSources,
   type HistoricalIntelligenceEvent,
 } from './intelligence-scoring.js';
 
@@ -233,7 +234,7 @@ export class IntelligenceService {
   private async computeSnapshot(sourceScope: IntelligenceSourceScope): Promise<IntelligenceSnapshotData> {
     const referenceAt = new Date();
     const windowStart = new Date(referenceAt.getTime() - HISTORY_WINDOW_DAYS * dayMs);
-    const [regions, equipment, syntheticEvents, manualAlerts] = await Promise.all([
+    const [regions, equipment, syntheticEvents, manualAlerts, manualObservations] = await Promise.all([
       this.dataSource.getRepository(RegionEntity).find({ order: { name: 'ASC' } }),
       this.dataSource.getRepository(EquipmentEntity).createQueryBuilder('equipment')
         .innerJoinAndSelect('equipment.type', 'type')
@@ -252,8 +253,31 @@ export class IntelligenceService {
         INNER JOIN equipment ON equipment.id = alert.resource_id AND alert.resource_type = 'equipment'
         INNER JOIN equipment_locations location ON location.equipment_id = equipment.id
         WHERE equipment.data_origin = 'manual' AND alert.created_at <= $1 AND alert.created_at >= $2
-          AND alert.code IN ('equipment_malfunctioning', 'equipment_unavailable', 'equipment_stolen', 'maintenance_immediate', 'maintenance_overdue')
+          AND alert.code IN ('equipment_malfunctioning', 'equipment_unavailable', 'equipment_stolen')
+
+        UNION ALL
+
+        SELECT maintenance.equipment_id AS "equipmentId", location.region_id AS "regionId",
+          alert.created_at AS "occurredAt", alert.code, alert.severity
+        FROM operational_alerts alert
+        INNER JOIN maintenances maintenance ON maintenance.id = alert.resource_id AND alert.resource_type = 'maintenance'
+        INNER JOIN equipment ON equipment.id = maintenance.equipment_id AND equipment.data_origin = 'manual'
+        INNER JOIN equipment_locations location ON location.equipment_id = equipment.id
+        WHERE alert.created_at <= $1 AND alert.created_at >= $2
+          AND alert.code IN ('maintenance_immediate', 'maintenance_overdue')
       `, [referenceAt, windowStart]) as Promise<Array<{ equipmentId: string; regionId: string; occurredAt: Date; code: string; severity: 'low' | 'medium' | 'high' | 'critical' }>>,
+      this.dataSource.query(`
+        SELECT event.resource_id AS "equipmentId", location.region_id AS "regionId",
+          event.created_at AS "occurredAt", event.payload ->> 'status' AS status
+        FROM operational_events event
+        INNER JOIN equipment ON equipment.id = event.resource_id
+          AND event.resource_type = 'equipment' AND equipment.data_origin = 'manual'
+        INNER JOIN equipment_locations location ON location.equipment_id = equipment.id
+        WHERE event.event_type IN ('equipment.updated', 'equipment.observed') AND event.source = 'api'
+          AND event.payload ? 'status'
+          AND event.created_at <= $1 AND event.created_at >= $2
+        ORDER BY event.created_at ASC
+      `, [referenceAt, windowStart]) as Promise<Array<{ equipmentId: string; regionId: string; occurredAt: Date; status: string }>>,
     ]);
     const scopedEquipment = equipment.filter((asset) => sourceScope === 'all'
       || (sourceScope === 'demo' ? asset.dataOrigin === 'demo' : asset.dataOrigin === 'manual'));
@@ -265,7 +289,15 @@ export class IntelligenceService {
       severity: event.severity,
       details: event.details,
     }));
-    const manualHistory: HistoricalIntelligenceEvent[] = manualAlerts.map((alert) => ({
+    const manualStatusHistory: HistoricalIntelligenceEvent[] = manualObservations.map((observation) => ({
+      occurredAt: new Date(observation.occurredAt),
+      equipmentId: observation.equipmentId,
+      regionId: observation.regionId,
+      eventType: 'status_observation',
+      severity: null,
+      details: { status: observation.status, origin: 'manual' },
+    }));
+    const manualIncidentHistory: HistoricalIntelligenceEvent[] = manualAlerts.map((alert) => ({
       occurredAt: new Date(alert.occurredAt),
       equipmentId: alert.equipmentId,
       regionId: alert.regionId,
@@ -273,6 +305,7 @@ export class IntelligenceService {
       severity: alert.severity,
       details: { code: alert.code, origin: 'manual' },
     }));
+    const manualHistory = [...manualStatusHistory, ...manualIncidentHistory];
     const selectedEvents = [
       ...(sourceScope === 'manual' ? [] : demoHistory),
       ...(sourceScope === 'demo' ? [] : manualHistory),
@@ -440,11 +473,7 @@ export class IntelligenceService {
   }
 
   private sourceComposition(events: HistoricalIntelligenceEvent[]): IntelligenceSourceComposition {
-    return {
-      syntheticObservations: events.filter((event) => event.eventType === 'status_observation').length,
-      syntheticIncidents: events.filter((event) => ['failure', 'maintenance_due'].includes(event.eventType) && event.details.origin !== 'manual').length,
-      manualIncidents: events.filter((event) => event.details.origin === 'manual').length,
-    };
+    return summarizeIntelligenceSources(events);
   }
 
   private toRegionContract(region: RegionEntity): RegionContract {

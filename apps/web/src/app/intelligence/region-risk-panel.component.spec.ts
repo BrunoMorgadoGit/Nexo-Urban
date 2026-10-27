@@ -23,7 +23,7 @@ const assessment = (regionId: string, riskScore: number | null, classification: 
   dataQuality: 'limited',
   coverageDays: 60,
   sourceScope: 'demo',
-  sourceComposition: { syntheticObservations: 10, syntheticIncidents: 1, manualIncidents: 0 },
+  sourceComposition: { syntheticObservations: 10, syntheticIncidents: 1, manualObservations: 0, manualIncidents: 0 },
   methodVersion: 'risk-rules-v1',
   factors: [],
   recommendations: [],

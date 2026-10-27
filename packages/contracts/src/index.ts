@@ -286,7 +286,15 @@ export type MonitoringAlert = {
 };
 
 export type MaintenanceAttention = {
-  maintenance: MaintenanceContract;
+  maintenanceId: string | null;
+  equipmentId: string;
+  serialNumber: string;
+  typeLabel: string;
+  scheduledDate: string | null;
+  description: string;
+  priority: MaintenancePriority;
+  status: 'scheduled' | 'in_progress' | null;
+  source: 'work_order' | 'inventory_schedule';
   urgency: 'overdue' | 'immediate' | 'upcoming';
 };
 
@@ -351,6 +359,7 @@ export type IntelligenceRiskFactor = {
 export type IntelligenceSourceComposition = {
   syntheticObservations: number;
   syntheticIncidents: number;
+  manualObservations: number;
   manualIncidents: number;
 };
 

@@ -21,7 +21,7 @@ type IntelligenceHarness = {
 const testOverview: IntelligenceOverview = {
   sourceScope: 'demo', evaluatedAt: '2026-10-23T12:00:00.000Z', referenceAt: '2026-10-23T12:00:00.000Z',
   windowStart: '2026-07-25T12:00:00.000Z', horizonHours: 24, historyWindowDays: 90, methodVersion: 'risk-rules-v1',
-  dataQuality: 'sufficient', sourceComposition: { syntheticObservations: 2, syntheticIncidents: 1, manualIncidents: 0 },
+  dataQuality: 'sufficient', sourceComposition: { syntheticObservations: 2, syntheticIncidents: 1, manualObservations: 0, manualIncidents: 0 },
   regionCount: 0, insufficientRegionCount: 0, highestRiskRegions: [], maintenancePriorities: [], trendSummary: [],
 };
 
@@ -55,7 +55,7 @@ const testRegion: RegionalRiskAssessment = {
   windowStart: '2026-07-25T12:00:00.000Z', horizonHours: 24, historyWindowDays: 90, observationCount: 20,
   latestObservationAt: '2026-10-23T12:00:00.000Z', failureCount: 2, eligibleEquipmentCount: 3,
   unavailableEquipmentCount: 1, dataQuality: 'sufficient', coverageDays: 90, sourceScope: 'demo',
-  sourceComposition: { syntheticObservations: 20, syntheticIncidents: 2, manualIncidents: 0 },
+  sourceComposition: { syntheticObservations: 20, syntheticIncidents: 2, manualObservations: 0, manualIncidents: 0 },
   methodVersion: 'risk-rules-v1', factors: [], recommendations: [],
 };
 
@@ -82,7 +82,7 @@ describe('IntelligenceComponent', () => {
     overview.flush({
       sourceScope: 'demo', evaluatedAt: '2026-10-23T12:00:00.000Z', referenceAt: '2026-10-23T12:00:00.000Z',
       windowStart: '2026-07-25T12:00:00.000Z', horizonHours: 24, historyWindowDays: 90, methodVersion: 'risk-rules-v1',
-      dataQuality: 'insufficient', sourceComposition: { syntheticObservations: 2, syntheticIncidents: 0, manualIncidents: 0 },
+      dataQuality: 'insufficient', sourceComposition: { syntheticObservations: 2, syntheticIncidents: 0, manualObservations: 0, manualIncidents: 0 },
       regionCount: 1, insufficientRegionCount: 1, highestRiskRegions: [], maintenancePriorities: [], trendSummary: [],
     });
     regions.flush([{
@@ -90,7 +90,7 @@ describe('IntelligenceComponent', () => {
       classification: 'insufficient_data', evaluatedAt: '2026-10-23T12:00:00.000Z', referenceAt: '2026-10-23T12:00:00.000Z',
       windowStart: '2026-07-25T12:00:00.000Z', horizonHours: 24, historyWindowDays: 90, observationCount: 2,
       failureCount: 0, eligibleEquipmentCount: 1, unavailableEquipmentCount: 0, dataQuality: 'insufficient', coverageDays: 70, latestObservationAt: '2026-10-23T12:00:00.000Z',
-      sourceScope: 'demo', sourceComposition: { syntheticObservations: 2, syntheticIncidents: 0, manualIncidents: 0 },
+      sourceScope: 'demo', sourceComposition: { syntheticObservations: 2, syntheticIncidents: 0, manualObservations: 0, manualIncidents: 0 },
       methodVersion: 'risk-rules-v1', factors: [], recommendations: ['Ampliar a coleta histórica.'],
       locationCenter: { latitude: -22.9, longitude: -47.0, equipmentCount: 1 },
     }]);
@@ -114,7 +114,7 @@ describe('IntelligenceComponent', () => {
         classification: 'insufficient_data', evaluatedAt: '2026-10-23T12:00:00.000Z', referenceAt: '2026-10-23T12:00:00.000Z',
         windowStart: '2026-07-25T12:00:00.000Z', horizonHours: 24, historyWindowDays: 90, observationCount: 2,
         failureCount: 0, eligibleEquipmentCount: 1, unavailableEquipmentCount: 0, dataQuality: 'insufficient', coverageDays: 70, latestObservationAt: '2026-10-23T12:00:00.000Z',
-        sourceScope: 'demo', sourceComposition: { syntheticObservations: 2, syntheticIncidents: 0, manualIncidents: 0 },
+        sourceScope: 'demo', sourceComposition: { syntheticObservations: 2, syntheticIncidents: 0, manualObservations: 0, manualIncidents: 0 },
         methodVersion: 'risk-rules-v1', factors: [], recommendations: ['Ampliar a coleta histórica.'],
       }, trend: [],
     });

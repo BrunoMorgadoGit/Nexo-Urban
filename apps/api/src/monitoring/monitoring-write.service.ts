@@ -1,4 +1,4 @@
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
 import { Subject } from 'rxjs';
 import type { OperationalEvent, OperationalEventType } from '@fogo/contracts';
 import { DataSource, EntityManager } from 'typeorm';
@@ -28,19 +28,76 @@ type AlertCondition = {
   resourceId: string;
 };
 
+const dailyObservationLockNamespace = 0x464f474f;
+
 @Injectable()
-export class MonitoringWriteService implements OnApplicationBootstrap {
+export class MonitoringWriteService implements OnApplicationBootstrap, OnApplicationShutdown {
+  private readonly logger = new Logger(MonitoringWriteService.name);
   private readonly liveEvents = new Subject<OperationalEvent>();
   readonly events$ = this.liveEvents.asObservable();
+  private reconciliationTimer: ReturnType<typeof setTimeout> | null = null;
+  private lastReconciledDate: string | null = null;
+  private shuttingDown = false;
 
   constructor(private readonly dataSource: DataSource) {}
 
   async onApplicationBootstrap(): Promise<void> {
+    this.lastReconciledDate = operationalDateKey();
+    await this.reconcileAllEquipment();
+    await this.recordDailyStatusObservations(this.lastReconciledDate);
+    this.scheduleDateRolloverCheck();
+  }
+
+  onApplicationShutdown(): void {
+    this.shuttingDown = true;
+    if (this.reconciliationTimer) clearTimeout(this.reconciliationTimer);
+    this.reconciliationTimer = null;
+  }
+
+  private async reconcileAllEquipment(): Promise<void> {
     const ids = await this.dataSource.getRepository(EquipmentEntity).find({ select: { id: true } });
     for (const { id } of ids) {
       const events = await this.dataSource.transaction((manager) => this.reconcileEquipment(manager, id));
       this.publish(events);
     }
+  }
+
+  private scheduleDateRolloverCheck(): void {
+    if (this.shuttingDown) return;
+    this.reconciliationTimer = setTimeout(() => {
+      this.reconciliationTimer = null;
+      void this.reconcileDateRollover()
+        .catch(() => this.logger.error('A reconciliação diária de alertas falhou; haverá nova tentativa.'))
+        .finally(() => this.scheduleDateRolloverCheck());
+    }, 60_000);
+  }
+
+  private async reconcileDateRollover(): Promise<void> {
+    const currentDate = operationalDateKey();
+    if (currentDate === this.lastReconciledDate) return;
+    await this.reconcileAllEquipment();
+    await this.recordDailyStatusObservations(currentDate);
+    this.lastReconciledDate = currentDate;
+  }
+
+  private async recordDailyStatusObservations(observationDate: string): Promise<void> {
+    await this.dataSource.transaction(async (manager) => {
+      await manager.query('SELECT pg_advisory_xact_lock($1, $2)', [dailyObservationLockNamespace, 1]);
+      await manager.query(`
+        INSERT INTO operational_events (event_type, resource_type, resource_id, payload, source)
+        SELECT 'equipment.observed', 'equipment', equipment.id,
+          jsonb_build_object('status', equipment.status, 'observationDate', $1::text), 'api'
+        FROM equipment
+        WHERE equipment.data_origin = 'manual'
+          AND NOT EXISTS (
+            SELECT 1 FROM operational_events observed
+            WHERE observed.event_type = 'equipment.observed'
+              AND observed.resource_type = 'equipment'
+              AND observed.resource_id = equipment.id
+              AND observed.payload ->> 'observationDate' = $1
+          )
+      `, [observationDate]);
+    });
   }
 
   async equipmentChanged(
@@ -272,6 +329,7 @@ export class MonitoringWriteService implements OnApplicationBootstrap {
 
   publish(events: OperationalEventEntity[]): void {
     for (const event of events) {
+      if (event.eventType === 'equipment.observed') continue;
       this.liveEvents.next({
         id: String(event.id),
         type: event.eventType,

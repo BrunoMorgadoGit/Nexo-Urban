@@ -1,6 +1,7 @@
 import type {
   IntelligenceRiskClassification,
   IntelligenceRiskFactor,
+  IntelligenceSourceComposition,
   IntelligenceSourceScope,
   PredictiveMaintenancePriority,
   RegionContract,
@@ -22,6 +23,15 @@ export type HistoricalIntelligenceEvent = {
   severity: 'low' | 'medium' | 'high' | 'critical' | null;
   details: Record<string, unknown>;
 };
+
+export function summarizeIntelligenceSources(events: HistoricalIntelligenceEvent[]): IntelligenceSourceComposition {
+  return {
+    syntheticObservations: events.filter((event) => event.eventType === 'status_observation' && event.details.origin !== 'manual').length,
+    syntheticIncidents: events.filter((event) => ['failure', 'maintenance_due'].includes(event.eventType) && event.details.origin !== 'manual').length,
+    manualObservations: events.filter((event) => event.eventType === 'status_observation' && event.details.origin === 'manual').length,
+    manualIncidents: events.filter((event) => ['failure', 'maintenance_due'].includes(event.eventType) && event.details.origin === 'manual').length,
+  };
+}
 
 export type CurrentStatusSnapshot = { equipmentId: string; status: EquipmentStatus };
 
@@ -217,8 +227,11 @@ export function prioritizeMaintenance(input: MaintenanceScoringInput): Predictiv
   const today = operationalDateKey(referenceAt);
   const overdue = activeMaintenance.filter((maintenance) => maintenance.scheduledDate < today);
   const urgent = activeMaintenance.filter((maintenance) => maintenance.priority === 'immediate' || maintenance.kind === 'immediate');
-  const overdueNextDate = Boolean(equipment.nextMaintenanceDate && equipment.nextMaintenanceDate < today);
-  const nextDate = equipment.nextMaintenanceDate;
+  const inventoryDateMatchesTerminalOrder = Boolean(equipment.nextMaintenanceDate && input.maintenances.some((maintenance) =>
+    ['completed', 'cancelled'].includes(maintenance.status) && maintenance.scheduledDate === equipment.nextMaintenanceDate));
+  const inventoryPriority = inventoryDateMatchesTerminalOrder ? 'normal' : equipment.maintenancePriority;
+  const nextDate = inventoryDateMatchesTerminalOrder ? null : equipment.nextMaintenanceDate;
+  const overdueNextDate = Boolean(nextDate && nextDate < today);
   const nextMaintenanceSoon = Boolean(nextDate && nextDate >= today && nextDate <= addCalendarDays(today, 7));
   const daysSinceLastFailure = lastFailure ? Math.max(0, Math.floor((referenceAt.getTime() - lastFailure.getTime()) / dayMs)) : null;
   const severityScore = failures.reduce((highest, failure) => Math.max(highest, {
@@ -237,7 +250,7 @@ export function prioritizeMaintenance(input: MaintenanceScoringInput): Predictiv
     + (nextMaintenanceSoon ? 8 : 0)
     + Math.min(severityScore, 12)
     + (daysSinceLastFailure !== null && daysSinceLastFailure < 60 ? Math.floor((60 - daysSinceLastFailure) / 10) : 0)
-    + (equipment.maintenancePriority === 'immediate' ? 18 : 0)
+    + (inventoryPriority === 'immediate' ? 18 : 0)
     + (statusWeight[equipment.status] ?? 0));
   const reasons: PredictiveMaintenancePriority['reasons'] = [];
   if (equipment.status === 'malfunctioning') reasons.push({ code: 'currently_malfunctioning', label: 'Falha atual', evidence: 'Equipamento está marcado como mau funcionamento no inventário.' });
@@ -246,9 +259,9 @@ export function prioritizeMaintenance(input: MaintenanceScoringInput): Predictiv
   if (recentCount > previousCount && recentCount > 0) reasons.push({ code: 'deteriorating_trend', label: 'Aumento recente', evidence: `${recentCount} falha(s) nos últimos 30 dias contra ${previousCount} nos 30 dias anteriores.` });
   if (overdue.length || overdueNextDate) reasons.push({ code: 'overdue_maintenance', label: 'Manutenção vencida', evidence: `${Math.max(overdue.length, Number(overdueNextDate))} manutenção(ões) vencida(s) identificada(s).` });
   if (urgent.length) reasons.push({ code: 'urgent_maintenance', label: 'Manutenção urgente', evidence: `${urgent.length} manutenção(ões) ativa(s) com prioridade imediata.` });
-  if (equipment.maintenancePriority === 'immediate' && !urgent.length) reasons.push({ code: 'immediate_priority', label: 'Prioridade imediata', evidence: 'Cadastro do equipamento indica prioridade imediata de manutenção.' });
+  if (inventoryPriority === 'immediate' && !urgent.length) reasons.push({ code: 'immediate_priority', label: 'Prioridade imediata', evidence: 'Cadastro do equipamento indica prioridade imediata de manutenção.' });
   if (equipment.status === 'maintenance') reasons.push({ code: 'maintenance_in_progress', label: 'Em manutenção', evidence: 'Equipamento está com estado operacional de manutenção.' });
-  if (nextMaintenanceSoon) reasons.push({ code: 'scheduled_maintenance', label: 'Manutenção próxima', evidence: `Próxima manutenção cadastrada para ${equipment.nextMaintenanceDate}.` });
+  if (nextMaintenanceSoon) reasons.push({ code: 'scheduled_maintenance', label: 'Manutenção próxima', evidence: `Próxima manutenção cadastrada para ${nextDate}.` });
   if (lastFailure) reasons.push({ code: 'last_failure', label: 'Falha mais recente', evidence: `Registro em ${lastFailure.toISOString()}.` });
   if (reasons.length === 0 && score < 20) return null;
   const recommendationType = equipment.status === 'malfunctioning' || urgent.length > 0 || overdue.some((maintenance) => maintenance.priority === 'immediate')
@@ -277,7 +290,7 @@ export function prioritizeMaintenance(input: MaintenanceScoringInput): Predictiv
       ...events.filter((event) => event.eventType === 'maintenance_completed').map((event) => event.occurredAt),
     ].reduce<Date | null>((latest, completedAt) => !latest || latest < completedAt ? completedAt : latest, null)
       ?.toISOString() ?? null,
-    nextMaintenanceDate: equipment.nextMaintenanceDate,
+    nextMaintenanceDate: nextDate,
     overdueMaintenanceCount: overdue.length + Number(overdueNextDate),
     urgentMaintenanceCount: urgent.length,
     reasons,
