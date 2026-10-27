@@ -4,9 +4,11 @@ import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormField, form, pattern, required, submit } from '@angular/forms/signals';
 import type { EquipmentContract, MaintenanceContract, Page } from '@fogo/contracts';
-import { InventoryApiService, apiErrorMessage, type MaintenanceWriteInput } from '../core/inventory-api.service';
+import { InventoryApiService, type MaintenanceWriteInput } from '../core/inventory-api.service';
+import { apiErrorMessage } from '../core/api-error-message';
 import { localDateInputValue } from '../core/date-time';
 import { StateBadgeComponent } from '../shared/state-badge.component';
+import { ErrorFeedback } from '../shared/error-feedback/error-feedback';
 import { catchError, firstValueFrom, map, of, Subject, switchMap } from 'rxjs';
 import type { MaintenanceFilters } from '../core/inventory-api.service';
 
@@ -24,7 +26,7 @@ function emptyModel(): MaintenanceFormModel {
 
 @Component({
   selector: 'app-maintenance-list',
-  imports: [DatePipe, FormField, RouterLink, StateBadgeComponent],
+  imports: [DatePipe, FormField, RouterLink, StateBadgeComponent, ErrorFeedback],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './maintenance-list.component.html',
   styleUrl: './maintenance-list.component.scss',

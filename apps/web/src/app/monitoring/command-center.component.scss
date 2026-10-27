@@ -24,24 +24,6 @@ app-command-center {
   .alert-open-link:hover {
     filter: brightness(1.14);
   }
-  .command-error {
-    display: flex;
-    justify-content: space-between;
-    gap: var(--space-3);
-    padding: var(--space-3) var(--space-4);
-    border: 1px solid rgb(240 120 120 / 25%);
-    border-radius: var(--radius-sm);
-    background: rgb(240 120 120 / 7%);
-    color: var(--color-status-danger);
-    font-size: 0.8rem;
-  }
-  .command-error button {
-    border: 0;
-    background: transparent;
-    color: inherit;
-    text-decoration: underline;
-    cursor: pointer;
-  }
   .command-loading {
     padding: var(--space-8);
     color: var(--color-text-muted);

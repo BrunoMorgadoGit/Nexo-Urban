@@ -1,6 +1,6 @@
 <section class="command-page" aria-label="Central de Operações">
   @if (error()) {
-    <div class="command-error" role="alert"><span>{{ error() }}</span><button type="button" (click)="reload()">Tentar novamente</button></div>
+    <app-error-feedback [message]="error()" title="Não foi possível atualizar a Central de Operações" retryLabel="Tentar novamente" (retry)="reload()" />
   }
 
   @if (loading() && !snapshot()) {

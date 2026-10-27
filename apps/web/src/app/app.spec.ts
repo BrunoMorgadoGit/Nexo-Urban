@@ -70,6 +70,7 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     const router = TestBed.inject(Router);
     const routes = [
+      ['/not-found', 'Página não encontrada', 'O endereço informado não corresponde a uma tela disponível.'],
       ['/intelligence', 'Análise Preventiva', 'Riscos pelo histórico.'],
       ['/live-map', 'Mapa Vivo', 'Localização dos recursos.'],
       ['/equipments/asset-1', 'Equipamentos', 'Situação dos ativos.'],

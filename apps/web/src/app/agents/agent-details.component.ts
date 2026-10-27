@@ -3,12 +3,14 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import type { AgentContract } from '@fogo/contracts';
-import { InventoryApiService, apiErrorMessage } from '../core/inventory-api.service';
+import { InventoryApiService } from '../core/inventory-api.service';
+import { apiErrorMessage } from '../core/api-error-message';
 import { StateBadgeComponent } from '../shared/state-badge.component';
+import { ErrorFeedback } from '../shared/error-feedback/error-feedback';
 
 @Component({
   selector: 'app-agent-details',
-  imports: [DatePipe, DecimalPipe, RouterLink, StateBadgeComponent],
+  imports: [DatePipe, DecimalPipe, RouterLink, StateBadgeComponent, ErrorFeedback],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './agent-details.component.html',
   styleUrl: './agent-details.component.scss',

@@ -4,8 +4,10 @@ import { Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import type { DemoScenario, DemoTimelineEntry, MaintenanceAttention, MonitoringAlert, MonitoringOverview, MonitoringRegionSummary, Page } from '@fogo/contracts';
 import { catchError, forkJoin, map, of, switchMap, type Observable } from 'rxjs';
-import { apiErrorMessage, InventoryApiService } from '../core/inventory-api.service';
+import { InventoryApiService } from '../core/inventory-api.service';
+import { apiErrorMessage } from '../core/api-error-message';
 import { MonitoringRealtimeService } from '../core/monitoring-realtime.service';
+import { ErrorFeedback } from '../shared/error-feedback/error-feedback';
 import { MissionControlComponent } from './mission-control.component';
 import { OperationalMapComponent } from './operational-map.component';
 import { equipmentDistribution } from './equipment-distribution';
@@ -25,7 +27,7 @@ type CommandSnapshot = {
   selector: 'app-command-center',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, RouterLink, MissionControlComponent, OperationalMapComponent],
+  imports: [CommonModule, RouterLink, MissionControlComponent, OperationalMapComponent, ErrorFeedback],
   templateUrl: './command-center.component.html',
 })
 export class CommandCenterComponent {

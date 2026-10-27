@@ -3,13 +3,15 @@ import { DatePipe, DecimalPipe, KeyValuePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import type { EquipmentContract, EquipmentTypeContract, MaintenanceContract } from '@fogo/contracts';
-import { InventoryApiService, apiErrorMessage } from '../core/inventory-api.service';
+import { InventoryApiService } from '../core/inventory-api.service';
+import { apiErrorMessage } from '../core/api-error-message';
 import { StateBadgeComponent } from '../shared/state-badge.component';
+import { ErrorFeedback } from '../shared/error-feedback/error-feedback';
 import { forkJoin } from 'rxjs';
 
 @Component({
   selector: 'app-equipment-details',
-  imports: [DatePipe, DecimalPipe, KeyValuePipe, RouterLink, StateBadgeComponent],
+  imports: [DatePipe, DecimalPipe, KeyValuePipe, RouterLink, StateBadgeComponent, ErrorFeedback],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './equipment-details.component.html',
   styleUrl: './equipment-details.component.scss',

@@ -1,0 +1,14 @@
+<div class="error-feedback" role="alert">
+  <div class="error-feedback__content">
+    @if (title()) {
+      <p class="error-feedback__title">{{ title() }}</p>
+    }
+    <p class="error-feedback__message">{{ message() }}</p>
+  </div>
+  <div class="error-feedback__actions">
+    @if (retryLabel(); as label) {
+      <button type="button" (click)="retry.emit()">{{ label }}</button>
+    }
+    <ng-content select="[errorAction]" />
+  </div>
+</div>

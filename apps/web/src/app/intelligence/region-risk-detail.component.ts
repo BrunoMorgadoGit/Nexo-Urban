@@ -1,12 +1,13 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, computed, input } from '@angular/core';
+import { ErrorFeedback } from '../shared/error-feedback/error-feedback';
 import type { IntelligenceRiskClassification, RegionIntelligenceDetail } from '@fogo/contracts';
 
 type TrendChartPoint = { referenceAt: string; riskScore: number; x: number; y: number };
 
 @Component({
   selector: 'app-region-risk-detail',
-  imports: [DatePipe, DecimalPipe],
+  imports: [DatePipe, DecimalPipe, ErrorFeedback],
   templateUrl: './region-risk-detail.component.html',
   styleUrl: './region-risk-detail.component.scss',
 })

@@ -56,5 +56,9 @@ export const routes: Routes = [
     path: 'maintenance',
     loadComponent: () => import('./maintenance/maintenance-list.component').then((module) => module.MaintenanceListComponent),
   },
-  { path: '**', redirectTo: 'equipments' },
+  {
+    path: 'not-found',
+    loadComponent: () => import('./shared/not-found/not-found').then((module) => module.NotFound),
+  },
+  { path: '**', redirectTo: 'not-found' },
 ];

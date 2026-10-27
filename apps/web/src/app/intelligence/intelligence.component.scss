@@ -415,24 +415,6 @@ app-intelligence {
     font-size: 0.62rem;
     line-height: 1.45;
   }
-  .error-banner {
-    display: flex;
-    justify-content: space-between;
-    gap: var(--space-3);
-    padding: 0.75rem 1rem;
-    border: 1px solid rgb(240 120 120 / 25%);
-    border-radius: var(--radius-sm);
-    background: rgb(240 120 120 / 7%);
-    color: var(--color-status-danger);
-    font-size: 0.76rem;
-  }
-  .error-banner button {
-    border: 0;
-    background: transparent;
-    color: inherit;
-    text-decoration: underline;
-    cursor: pointer;
-  }
   .loading-state {
     padding: var(--space-8);
     color: var(--color-text-muted);

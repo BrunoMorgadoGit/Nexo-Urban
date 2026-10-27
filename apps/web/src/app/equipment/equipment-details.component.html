@@ -2,7 +2,7 @@
   @if (loading()) {
     <div class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>Carregando equipamento…</div>
   } @else if (error() && !equipment()) {
-    <div class="feedback feedback--error" role="alert"><p>{{ error() }}</p><a class="button button--secondary" routerLink="/equipments">Voltar ao inventário</a></div>
+    <app-error-feedback [message]="error()" title="Não foi possível abrir o equipamento"><a errorAction class="button button--secondary" routerLink="/equipments">Voltar ao inventário</a></app-error-feedback>
   } @else if (equipment(); as item) {
     <header class="page-heading">
       <div>

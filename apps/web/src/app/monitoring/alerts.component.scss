@@ -42,24 +42,6 @@
   border-color: rgb(86 196 142 / 25%);
   color: var(--color-status-success);
 }
-.alerts-error {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid rgb(240 120 120 / 25%);
-  border-radius: var(--radius-sm);
-  background: rgb(240 120 120 / 7%);
-  color: var(--color-status-danger);
-  font-size: 0.78rem;
-}
-.alerts-error button {
-  border: 0;
-  background: none;
-  color: inherit;
-  text-decoration: underline;
-  cursor: pointer;
-}
 .alert-filters {
   display: flex;
   align-items: end;

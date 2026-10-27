@@ -66,6 +66,7 @@ export class App {
 
   private titleFor(url: string): string {
     const path = url.split(/[?#]/, 1)[0];
+    if (path === '/not-found') return 'Página não encontrada';
     if (path.startsWith('/intelligence')) return 'Análise Preventiva';
     if (path.startsWith('/live-map')) return 'Mapa Vivo';
     if (path.startsWith('/alerts')) return 'Alertas e Incidentes';
@@ -77,6 +78,7 @@ export class App {
 
   private subtitleFor(url: string): string {
     const path = url.split(/[?#]/, 1)[0];
+    if (path === '/not-found') return 'O endereço informado não corresponde a uma tela disponível.';
     if (path.startsWith('/intelligence')) return 'Riscos pelo histórico.';
     if (path.startsWith('/live-map')) return 'Localização dos recursos.';
     if (path.startsWith('/alerts')) return 'Ocorrências e atendimento.';

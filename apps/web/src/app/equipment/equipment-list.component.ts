@@ -3,14 +3,16 @@ import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import type { EquipmentContract, EquipmentTypeContract, InventorySummary, OrganizationContract, Page, RegionContract } from '@fogo/contracts';
-import { InventoryApiService, apiErrorMessage } from '../core/inventory-api.service';
+import { InventoryApiService } from '../core/inventory-api.service';
+import { apiErrorMessage } from '../core/api-error-message';
 import { StateBadgeComponent } from '../shared/state-badge.component';
+import { ErrorFeedback } from '../shared/error-feedback/error-feedback';
 import { catchError, map, of, Subject, switchMap } from 'rxjs';
 import type { EquipmentFilters } from '../core/inventory-api.service';
 
 @Component({
   selector: 'app-equipment-list',
-  imports: [DatePipe, RouterLink, StateBadgeComponent],
+  imports: [DatePipe, RouterLink, StateBadgeComponent, ErrorFeedback],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './equipment-list.component.html',
   styleUrl: './equipment-list.component.scss',

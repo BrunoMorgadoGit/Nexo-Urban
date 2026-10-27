@@ -11,7 +11,7 @@
   @if (loading()) {
     <div class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>Carregando formulário…</div>
   } @else if (loadError()) {
-    <div class="feedback feedback--error" role="alert">{{ error() }}</div>
+    <app-error-feedback [message]="error()" title="Não foi possível carregar o formulário" />
   } @else {
     <form class="editor-form" (submit)="save(); $event.preventDefault()" novalidate>
       <section class="form-section" aria-labelledby="identification-heading">
@@ -95,7 +95,7 @@
         </div>
       </section>
 
-      @if (error()) { <div class="feedback feedback--error" role="alert">{{ error() }}</div> }
+      @if (error()) { <app-error-feedback [message]="error()" title="Não foi possível salvar as informações" /> }
       <footer class="form-actions">
         <a class="button button--secondary" routerLink="/equipments">Cancelar</a>
         <button class="button button--primary" type="submit" [disabled]="saving()">{{ saving() ? 'Salvando…' : (id ? 'Salvar alterações' : 'Cadastrar equipamento') }}</button>

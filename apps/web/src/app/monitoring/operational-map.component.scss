@@ -36,15 +36,6 @@
   font-size: 0.9rem;
 }
 
-.map-error {
-  margin: 0;
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid rgb(240 120 120 / 25%);
-  border-radius: var(--radius-sm);
-  background: rgb(240 120 120 / 7%);
-  color: var(--color-status-danger);
-  font-size: 0.82rem;
-}
 .map-workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

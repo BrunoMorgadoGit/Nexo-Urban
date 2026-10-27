@@ -11,7 +11,7 @@
     </div>
 
     @if (success()) { <div class="feedback feedback--success" role="status">{{ success() }}</div> }
-    @if (error()) { <div class="feedback feedback--error" role="alert"><p>{{ error() }}</p><button class="button button--secondary" type="button" (click)="load()">Tentar novamente</button></div> }
+    @if (error()) { <app-error-feedback [message]="error()" title="Não foi possível carregar as manutenções" retryLabel="Tentar novamente" (retry)="load()" /> }
     @else if (loading()) { <div class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>Carregando manutenções…</div> }
     @else if (!page()?.items?.length) { <div class="empty-state"><span class="empty-state__icon" aria-hidden="true">—</span><h2>Nenhuma manutenção nesta lista</h2><p>Agende um serviço para acompanhar os próximos vencimentos e o histórico do inventário.</p><button class="button button--secondary" type="button" (click)="openCreateForm()">Agendar manutenção</button></div> }
     @else {

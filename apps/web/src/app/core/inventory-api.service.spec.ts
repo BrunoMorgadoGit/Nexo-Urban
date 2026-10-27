@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { InventoryApiService, apiErrorMessage, type AgentWriteInput, type EquipmentWriteInput, type MaintenanceWriteInput } from './inventory-api.service';
+import { InventoryApiService, type AgentWriteInput, type EquipmentWriteInput, type MaintenanceWriteInput } from './inventory-api.service';
 
 const equipmentInput: EquipmentWriteInput = {
   typeCode: 'speed_radar', serialNumber: 'TEST-101', brand: 'Teste', model: 'Radar',
@@ -127,12 +127,4 @@ describe('InventoryApiService', () => {
     resolve.flush({});
   });
 
-  it('turns server validation messages into readable feedback', () => {
-    expect(apiErrorMessage({ error: { message: ['CEP inválido.', 'Selecione o bairro.'] } })).toBe(
-      'CEP inválido. Selecione o bairro.',
-    );
-    expect(apiErrorMessage(new Error('private stack'))).toContain('Não foi possível');
-    expect(apiErrorMessage({ error: { message: 42 } })).toContain('Não foi possível');
-    expect(apiErrorMessage({ error: { message: ['válida', 42] } })).toContain('Não foi possível');
-  });
 });

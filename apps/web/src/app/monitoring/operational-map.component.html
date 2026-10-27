@@ -64,7 +64,7 @@
   }
 
   @if (error()) {
-    <p class="map-error" role="alert">{{ error() }}</p>
+    <app-error-feedback [message]="error()" title="Não foi possível carregar os recursos do mapa" />
   }
 
   <div class="map-workspace" [class.map-workspace--compact]="compact()" [class.map-workspace--selected]="!compact() && !!selected()">

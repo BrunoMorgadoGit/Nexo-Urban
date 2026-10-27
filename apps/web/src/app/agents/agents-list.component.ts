@@ -2,13 +2,15 @@ import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '
 import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import type { AgentContract, InventorySummary, OrganizationContract, Page } from '@fogo/contracts';
-import { InventoryApiService, apiErrorMessage, type AgentFilters } from '../core/inventory-api.service';
+import { InventoryApiService, type AgentFilters } from '../core/inventory-api.service';
+import { apiErrorMessage } from '../core/api-error-message';
+import { ErrorFeedback } from '../shared/error-feedback/error-feedback';
 import { StateBadgeComponent } from '../shared/state-badge.component';
 import { catchError, map, of, Subject, switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-agents-list',
-  imports: [RouterLink, StateBadgeComponent],
+  imports: [RouterLink, StateBadgeComponent, ErrorFeedback],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './agents-list.component.html',
   styleUrl: './agents-list.component.scss',

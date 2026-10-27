@@ -4,7 +4,7 @@
     <span class="realtime-indicator" [class.realtime-indicator--online]="realtime.state() === 'connected'" role="status">{{ realtime.state() === 'connected' ? 'Atualização ao vivo' : 'Reconectando fluxo' }}</span>
   </header>
 
-  @if (error()) { <div class="alerts-error" role="alert"><span>{{ error() }}</span><button type="button" (click)="reload()">Recarregar</button></div> }
+  @if (error()) { <app-error-feedback [message]="error()" title="Não foi possível carregar os alertas" retryLabel="Recarregar" (retry)="reload()" /> }
 
   <div class="alert-filters">
     <label>Gravidade

@@ -80,7 +80,7 @@ describe('EquipmentListComponent', () => {
     const root = fixture.nativeElement as HTMLElement;
     expect(root.querySelector('[role="alert"]')?.textContent).not.toContain('types failure');
 
-    root.querySelector<HTMLButtonElement>('.feedback--error button')?.click();
+    root.querySelector<HTMLButtonElement>('app-error-feedback button')?.click();
     await fixture.whenStable();
     expect(root.textContent).toContain('RAD-001');
 

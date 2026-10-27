@@ -2,7 +2,7 @@
   @if (loading()) {
     <div class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>Carregando agente…</div>
   } @else if (error()) {
-    <div class="feedback feedback--error" role="alert"><p>{{ error() }}</p><a class="button button--secondary" routerLink="/agents">Voltar aos agentes</a></div>
+    <app-error-feedback [message]="error()" title="Não foi possível abrir o cadastro do agente"><a errorAction class="button button--secondary" routerLink="/agents">Voltar aos agentes</a></app-error-feedback>
   } @else if (agent(); as item) {
     <header class="page-heading"><div><a class="back-link" routerLink="/agents">← Voltar aos agentes</a><p class="eyebrow">Agentes Operacionais</p><h2 id="page-title">{{ item.name }}</h2><p class="page-description">Identificação {{ item.identifier }} · {{ categoryLabel(item.category) }}</p></div><a class="button button--secondary" [routerLink]="['/agents', item.id, 'edit']">Editar agente</a></header>
     @if (notice()) { <div class="feedback feedback--success" role="status">{{ notice() }}</div> }

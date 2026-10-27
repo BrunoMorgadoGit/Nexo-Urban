@@ -236,14 +236,10 @@
   font-size: 0.68rem;
   line-height: 1.5;
 }
-.empty-copy,
-.inline-error {
+.empty-copy {
   color: var(--color-text-muted);
   font-size: 0.72rem;
   line-height: 1.5;
-}
-.inline-error {
-  color: var(--color-status-danger);
 }
 @media (max-width: 700px) {
   .detail-grid {

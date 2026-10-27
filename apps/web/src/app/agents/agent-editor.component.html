@@ -5,7 +5,7 @@
   @if (loading()) {
     <div class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>Carregando cadastro…</div>
   } @else if (loadError()) {
-    <div class="feedback feedback--error" role="alert">{{ error() }} <a routerLink="/agents">Voltar aos agentes</a></div>
+    <app-error-feedback [message]="error()" title="Não foi possível carregar o formulário"><a errorAction class="button button--secondary" routerLink="/agents">Voltar aos agentes</a></app-error-feedback>
   } @else {
     <form class="editor-form" (submit)="save(); $event.preventDefault()" novalidate>
       <section class="form-section" aria-labelledby="identity-title">
@@ -51,7 +51,7 @@
         }
       </section>
 
-      @if (error()) { <div class="feedback feedback--error" role="alert">{{ error() }}</div> }
+      @if (error()) { <app-error-feedback [message]="error()" title="Não foi possível salvar o cadastro" /> }
       <footer class="form-actions"><a class="button button--secondary" routerLink="/agents">Cancelar</a><button class="button button--primary" type="submit" [disabled]="saving()">{{ saving() ? 'Salvando…' : (id ? 'Salvar alterações' : 'Cadastrar agente') }}</button></footer>
     </form>
   }

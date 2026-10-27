@@ -98,7 +98,7 @@ describe('AgentsListComponent', () => {
     expect(root.querySelector('[role="alert"]')?.textContent?.trim()).toBeTruthy();
     expect(root.querySelector('[role="alert"]')?.textContent).not.toContain('lookup failure');
 
-    root.querySelector<HTMLButtonElement>('.feedback--error button')?.click();
+    root.querySelector<HTMLButtonElement>('app-error-feedback button')?.click();
     await fixture.whenStable();
     expect(root.textContent).toContain('Equipe demonstrativa');
 

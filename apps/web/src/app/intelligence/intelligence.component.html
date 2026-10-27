@@ -14,7 +14,7 @@
   </header>
 
   @if (error()) {
-    <div class="error-banner" role="alert"><span>{{ error() }}</span><button type="button" (click)="reload()">Tentar novamente</button></div>
+    <app-error-feedback [message]="error()" title="Não foi possível carregar a análise preventiva" retryLabel="Tentar novamente" (retry)="reload()" />
   }
 
   @if (loading() && !snapshot()) {

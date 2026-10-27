@@ -4,14 +4,16 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import type { MonitoringAlert, MonitoringAlertSeverity, Page } from '@fogo/contracts';
-import { apiErrorMessage, InventoryApiService } from '../core/inventory-api.service';
+import { InventoryApiService } from '../core/inventory-api.service';
+import { apiErrorMessage } from '../core/api-error-message';
 import { MonitoringRealtimeService } from '../core/monitoring-realtime.service';
+import { ErrorFeedback } from '../shared/error-feedback/error-feedback';
 
 @Component({
   selector: 'app-alerts',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, ErrorFeedback],
   templateUrl: './alerts.component.html',
   styleUrl: './alerts.component.scss',
 })

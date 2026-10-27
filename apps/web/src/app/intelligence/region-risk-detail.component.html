@@ -36,7 +36,7 @@
       @if (!detail().risk.factors.length) { <p class="empty-copy">Não há fatores calculáveis com a qualidade de dados atual.</p> }
     </section>
   </div>
-  @if (error()) { <p class="inline-error" role="alert">{{ error() }}</p> }
+  @if (error()) { <app-error-feedback [message]="error()" title="Não foi possível carregar os detalhes do risco" /> }
   @if (loading()) { <p class="quiet-note" role="status">Atualizando detalhe…</p> }
   <section class="recommendations" aria-labelledby="recommendation-title"><h4 id="recommendation-title">Ações recomendadas</h4><ul>@for (recommendation of detail().risk.recommendations; track recommendation) { <li>{{ recommendation }}</li> } @empty { <li>Sem recomendação disponível para os dados atuais.</li> }</ul></section>
 </section>

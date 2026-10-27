@@ -3,7 +3,9 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormField, applyWhen, form, max, maxLength, min, minLength, required, submit } from '@angular/forms/signals';
 import type { AgentAvailability, AgentCategory, AgentContract, EquipmentContract, OperationalBaseContract, OrganizationContract, RegionContract } from '@fogo/contracts';
-import { InventoryApiService, apiErrorMessage, type AgentWriteInput } from '../core/inventory-api.service';
+import { InventoryApiService, type AgentWriteInput } from '../core/inventory-api.service';
+import { apiErrorMessage } from '../core/api-error-message';
+import { ErrorFeedback } from '../shared/error-feedback/error-feedback';
 import { dateTimeToLocalInputValue, localDateTimeInputValue } from '../core/date-time';
 import { firstValueFrom, forkJoin, of } from 'rxjs';
 
@@ -47,7 +49,7 @@ function initialModel(): AgentEditorModel {
 
 @Component({
   selector: 'app-agent-editor',
-  imports: [FormField, RouterLink],
+  imports: [FormField, RouterLink, ErrorFeedback],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './agent-editor.component.html',
   styleUrl: './agent-editor.component.scss',

@@ -7,8 +7,10 @@ import type { EquipmentTypeContract, MapResourceContract, OrganizationContract, 
 import { ErrorEvent, GeoJSONSource, getVersion, Map as MapLibreMap, MapLayerMouseEvent, NavigationControl, setWorkerUrl } from 'maplibre-gl';
 import type { FeatureCollection, Point } from 'geojson';
 import { catchError, forkJoin, of, startWith } from 'rxjs';
-import { apiErrorMessage, InventoryApiService, type MonitoringMapFilters } from '../core/inventory-api.service';
+import { InventoryApiService, type MonitoringMapFilters } from '../core/inventory-api.service';
+import { apiErrorMessage } from '../core/api-error-message';
 import { MonitoringRealtimeService } from '../core/monitoring-realtime.service';
+import { ErrorFeedback } from '../shared/error-feedback/error-feedback';
 
 const tileAttribution = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap contributors</a>';
 setWorkerUrl(`/maplibre-gl-worker.mjs?v=${getVersion()}`);
@@ -17,7 +19,7 @@ setWorkerUrl(`/maplibre-gl-worker.mjs?v=${getVersion()}`);
   selector: 'app-operational-map',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, ErrorFeedback],
   templateUrl: './operational-map.component.html',
   styleUrl: './operational-map.component.scss',
 })

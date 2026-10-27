@@ -295,17 +295,3 @@ export class InventoryApiService {
     return params;
   }
 }
-
-export function apiErrorMessage(error: unknown): string {
-  const body = typeof error === 'object' && error !== null && 'error' in error
-    ? (error as { error?: unknown }).error
-    : undefined;
-  if (typeof body === 'object' && body !== null && 'message' in body) {
-    const message = (body as { message?: unknown }).message;
-    if (typeof message === 'string') return message;
-    if (Array.isArray(message) && message.every((item) => typeof item === 'string')) {
-      return message.join(' ');
-    }
-  }
-  return 'Não foi possível concluir a solicitação. Tente novamente.';
-}

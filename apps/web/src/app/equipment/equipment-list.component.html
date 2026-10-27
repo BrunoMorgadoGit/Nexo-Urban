@@ -61,10 +61,7 @@
     </div>
 
     @if (error()) {
-      <div class="feedback feedback--error" role="alert">
-        <p>{{ error() }}</p>
-        <button class="button button--secondary" type="button" (click)="load()">Tentar novamente</button>
-      </div>
+      <app-error-feedback [message]="error()" title="Não foi possível carregar os equipamentos" retryLabel="Tentar novamente" (retry)="load()" />
     } @else if (loading()) {
       <div class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>Carregando equipamentos…</div>
     } @else if (!page()?.items?.length) {

@@ -10,9 +10,11 @@ import type {
   RegionIntelligenceDetail,
   RegionalRiskAssessment,
 } from '@fogo/contracts';
-import { apiErrorMessage, InventoryApiService } from '../core/inventory-api.service';
+import { InventoryApiService } from '../core/inventory-api.service';
+import { apiErrorMessage } from '../core/api-error-message';
 import { RegionRiskDetailComponent } from './region-risk-detail.component';
 import { RegionRiskPanelComponent } from './region-risk-panel.component';
+import { ErrorFeedback } from '../shared/error-feedback/error-feedback';
 
 type IntelligenceSnapshot = {
   overview: IntelligenceOverview;
@@ -22,7 +24,7 @@ type IntelligenceSnapshot = {
 
 @Component({
   selector: 'app-intelligence',
-  imports: [DatePipe, PercentPipe, RouterLink, RegionRiskPanelComponent, RegionRiskDetailComponent],
+  imports: [DatePipe, PercentPipe, RouterLink, RegionRiskPanelComponent, RegionRiskDetailComponent, ErrorFeedback],
   templateUrl: './intelligence.component.html',
 })
 export class IntelligenceComponent {

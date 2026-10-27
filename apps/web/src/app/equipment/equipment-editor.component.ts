@@ -3,7 +3,9 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormField, applyWhen, form, max, maxLength, min, pattern, required, submit } from '@angular/forms/signals';
 import type { EquipmentContract, EquipmentStatus, EquipmentTypeContract, MaintenancePriority, OrganizationContract, RegionContract } from '@fogo/contracts';
-import { InventoryApiService, apiErrorMessage, type EquipmentWriteInput } from '../core/inventory-api.service';
+import { InventoryApiService, type EquipmentWriteInput } from '../core/inventory-api.service';
+import { apiErrorMessage } from '../core/api-error-message';
+import { ErrorFeedback } from '../shared/error-feedback/error-feedback';
 import { dateTimeToLocalInputValue, localDateTimeInputValue } from '../core/date-time';
 import { forkJoin, firstValueFrom, of } from 'rxjs';
 
@@ -89,7 +91,7 @@ function emptyModel(): EquipmentEditorModel {
 
 @Component({
   selector: 'app-equipment-editor',
-  imports: [FormField, RouterLink],
+  imports: [FormField, RouterLink, ErrorFeedback],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './equipment-editor.component.html',
   styleUrl: './equipment-editor.component.scss',
