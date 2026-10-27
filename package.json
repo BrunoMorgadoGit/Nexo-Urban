@@ -23,6 +23,8 @@
   },
   "scripts": {
     "preinstall": "node scripts/check-node.mjs",
+    "predev:api": "node scripts/check-node.mjs",
+    "predev:web": "node scripts/check-node.mjs",
     "setup": "npm run env:init && npm install",
     "env:init": "node scripts/init-env.mjs",
     "dev:web": "npm run build:contracts && npm --workspace fogo-web run start",

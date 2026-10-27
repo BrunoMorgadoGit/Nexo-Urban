@@ -131,15 +131,6 @@ h1 {
   min-width: 12rem;
   flex: 1;
 }
-.filters select {
-  width: 100%;
-  min-height: 2.5rem;
-  padding: 0 0.75rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-background);
-  color: var(--color-text-secondary);
-}
 .table-scroll {
   overflow-x: auto;
 }

@@ -75,14 +75,6 @@ h1 {
   color: var(--color-text-muted);
   font-size: 0.6875rem;
 }
-.filter-control select {
-  min-height: 2.5rem;
-  padding: 0 0.75rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-background);
-  color: var(--color-text-primary);
-}
 .table-scroll {
   overflow-x: auto;
 }
@@ -290,7 +282,6 @@ td small {
   color: var(--color-status-warning);
 }
 .field input,
-.field select,
 .field textarea {
   width: 100%;
   min-width: 0;
