@@ -91,6 +91,16 @@ describe('MonitoringRealtimeService', () => {
     expect(FakeEventSource.instances[0].closed).toBe(true);
   });
 
+  it('refreshes operational snapshots after an agent is deleted', () => {
+    const service = TestBed.inject(MonitoringRealtimeService);
+    service.acquire({ destroyed: false, onDestroy: () => () => undefined } as DestroyRef);
+    const source = FakeEventSource.instances[0];
+
+    source.emit('agent.deleted', 'agent-delete-1');
+
+    expect(service.refreshVersion()).toBe(1);
+  });
+
   it('ignores empty and malformed events without refreshing snapshots', () => {
     const service = TestBed.inject(MonitoringRealtimeService);
     service.acquire({ destroyed: false, onDestroy: () => () => undefined } as DestroyRef);

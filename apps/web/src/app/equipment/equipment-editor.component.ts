@@ -12,7 +12,9 @@ import { forkJoin, firstValueFrom, of } from 'rxjs';
 
 type EquipmentCharacteristicsForm = Record<string, string | number | boolean> & {
   speedLimitKmh: number; lanes: number; technology: string;
+  enforcementMode: string;
   resolution: string; nightVision: boolean; panTiltZoom: boolean;
+  imageMode: string;
   maxWeightKg: number; precisionKg: number;
   vehicleClass: string; plate: string; radioCode: string;
   laneCount: number; maxOpeningSeconds: number; accessMode: string;
@@ -44,7 +46,7 @@ type EquipmentEditorModel = {
 
 const booleanCharacteristicKeys = ['nightVision', 'panTiltZoom', 'accessible'] as const;
 const stringCharacteristicKeys = [
-  'technology', 'resolution', 'vehicleClass', 'plate', 'radioCode', 'accessMode', 'network',
+  'technology', 'enforcementMode', 'resolution', 'imageMode', 'vehicleClass', 'plate', 'radioCode', 'accessMode', 'network',
 ] as const;
 const numberCharacteristicKeys = [
   'speedLimitKmh', 'lanes', 'maxWeightKg', 'precisionKg', 'laneCount', 'maxOpeningSeconds',
@@ -69,8 +71,8 @@ function isNumberCharacteristicKey(key: string): key is NumberCharacteristicKey 
 
 function emptyCharacteristics(): EquipmentCharacteristicsForm {
   return {
-    speedLimitKmh: 50, lanes: 1, technology: '',
-    resolution: '', nightVision: false, panTiltZoom: false,
+    speedLimitKmh: 50, lanes: 1, technology: '', enforcementMode: '',
+    resolution: '', nightVision: false, panTiltZoom: false, imageMode: '',
     maxWeightKg: 1000, precisionKg: 1,
     vehicleClass: '', plate: '', radioCode: '',
     laneCount: 1, maxOpeningSeconds: 1, accessMode: '',
@@ -392,6 +394,14 @@ export class EquipmentEditorComponent {
       van: 'Van',
       bus: 'Ônibus',
       light_rail: 'VLT',
+      traffic_signal: 'Avanço de sinal',
+      prohibited_turn: 'Conversão proibida',
+      speed: 'Velocidade',
+      color: 'Colorida',
+      monochrome: 'Preto e branco',
+      taxi: 'Táxi',
+      motorcycle_taxi: 'Mototáxi',
+      school_bus: 'Transporte escolar',
       tag: 'Tag',
       plate: 'Placa',
       manual: 'Manual',
@@ -413,8 +423,9 @@ export class EquipmentEditorComponent {
       }
       const current = this.model();
       const characteristics: EquipmentWriteInput['characteristics'] = {};
-      for (const { key } of type.characteristics) {
-        characteristics[key] = current.characteristics[key];
+      for (const { key, required: isRequired } of type.characteristics) {
+        const value = current.characteristics[key];
+        if (isRequired || value !== '') characteristics[key] = value;
       }
       const input: EquipmentWriteInput = {
         typeCode: type.code,

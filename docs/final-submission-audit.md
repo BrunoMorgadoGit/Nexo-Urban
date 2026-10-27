@@ -237,4 +237,21 @@ Excluir do pacote de submissão: `.env` e outros segredos locais, `.aws`, `.code
 
 O roteiro de 2min50 em `demo-script.md` deve mostrar as três partes do desafio: inventário/localização, operação e análise preventiva. Mostre a conexão SSE; selecione o equipamento no mapa; provoque a falha pelo Mission Control; abra “Ver ocorrência”; reconheça e anote; restaure; confirme estado, resolução e timeline; encerre com prioridades e evidências históricas. Diga explicitamente que a falha foi simulada, que o histórico é sintético e que o índice 0–100 não é probabilidade calibrada nem prova de eficácia. Mantenha atribuição OSM visível e não mostre `.env`, terminal com URLs/credenciais ou dados pessoais. O vídeo ainda não foi gravado.
 
-**Classificação atual: PRONTO COM RESSALVAS para demonstração local e empacotamento após revisão final.** O override eliminou os findings do `npm audit`; instalação, build, lint, unitários, inicialização das telas e fluxo integrado passaram. As ressalvas restantes são: suíte E2E não executada; regulamento oficial ainda precisa ser confrontado literalmente; vídeo ainda não gravado (ponto extra); tamanho/integridade do ZIP ainda não validados; avisos CSS; tiles OSM dependem de internet; e a API sem autenticação só pode ser usada localmente. Não publique a API. Nenhum ZIP, commit ou publicação foi feito.
+**Classificação naquela fotografia de 24/10/2026: PRONTO COM RESSALVAS.** A atualização corrente abaixo substitui as pendências operacionais registradas neste parágrafo.
+
+## Revisão de qualidade e prontidão — 27/10/2026
+
+Esta é a evidência corrente após correções pontuais. Nenhuma migration ou dependência foi adicionada e nenhum banco operacional/demo foi alterado por esta etapa. A suíte API E2E utilizou somente o banco dedicado aceito pelo guard do runner.
+
+| Verificação | Resultado observado |
+| --- | --- |
+| Unitários | `npm test`: 169 testes web e 130 testes API passaram. |
+| API E2E | `npm run test:e2e`: 22 testes em quatro arquivos passaram no PostgreSQL E2E. Inclui agente em atividade localizado por base sem posição própria. |
+| Web E2E | `npm run test:web:e2e`: 8 cenários Chromium passaram. O retorno do detalhe do equipamento ao inventário foi exercitado no navegador com API interceptada. |
+| Lint/build | `npm run lint` e `npm run build` passaram. O Angular ainda apresenta nove avisos de orçamento CSS; o bundle lazy de mapa tem cerca de 1,09 MB bruto. |
+| Alterações | Mapa usa siglas por tipo/categoria com legenda, ignora respostas atrasadas de filtros, atualiza após exclusão de agente e compartilha a regra de localização regional com o mapa. O inventário ganhou variantes opcionais de radar/câmera e classes de transporte, com compatibilidade para registros existentes. |
+| Inteligência | Regras e métricas permanecem transparentes e sintéticas. O resultado top-1 é uma amostra exploratória pequena, sem comparação validada com baseline de ranking; não representa eficácia em cidade real. |
+| Instalação macOS | A checagem `npm ci --dry-run --ignore-scripts --offline --os=darwin --cpu=arm64` da atualização anterior aceitou o lockfile. Não equivale a instalação e execução nativa em macOS. |
+| Segurança/submissão | A aplicação não autentica usuários e deve permanecer local/loopback. O vídeo bônus ainda não foi gravado; tiles OSM dependem de internet. |
+
+**Estado corrente: pronto para demonstração local e revisão do pacote, com ressalvas.** Isso não garante classificação no evento nem comprova efetividade preditiva real. A revisão e o ZIP devem referir-se ao mesmo estado versionado; o registro desses artefatos será atualizado após sua geração.

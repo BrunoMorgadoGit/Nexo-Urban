@@ -13,6 +13,7 @@ export const equipmentTypeDefinitions: EquipmentTypeContract[] = [
       { key: 'speedLimitKmh', label: 'Limite (km/h)', kind: 'number', required: true, minimum: 20, maximum: 130 },
       { key: 'lanes', label: 'Faixas monitoradas', kind: 'number', required: true, minimum: 1, maximum: 8 },
       { key: 'technology', label: 'Tecnologia', kind: 'select', required: true, options: ['doppler', 'laser', 'sectional'] },
+      { key: 'enforcementMode', label: 'Fiscalização', kind: 'select', required: false, options: ['speed', 'traffic_signal', 'prohibited_turn'] },
     ],
   },
   {
@@ -23,6 +24,7 @@ export const equipmentTypeDefinitions: EquipmentTypeContract[] = [
       { key: 'resolution', label: 'Resolução', kind: 'select', required: true, options: ['1080p', '2k', '4k'] },
       { key: 'nightVision', label: 'Visão noturna', kind: 'boolean', required: true },
       { key: 'panTiltZoom', label: 'Pan, tilt e zoom', kind: 'boolean', required: true },
+      { key: 'imageMode', label: 'Imagem', kind: 'select', required: false, options: ['color', 'monochrome'] },
     ],
   },
   {
@@ -59,7 +61,7 @@ export const equipmentTypeDefinitions: EquipmentTypeContract[] = [
     label: 'Veículo de transporte',
     mobility: 'mobile',
     characteristics: [
-      { key: 'vehicleClass', label: 'Categoria', kind: 'select', required: true, options: ['bus', 'van', 'light_rail'] },
+      { key: 'vehicleClass', label: 'Categoria', kind: 'select', required: true, options: ['bus', 'van', 'light_rail', 'taxi', 'motorcycle_taxi', 'school_bus'] },
       { key: 'passengerCapacity', label: 'Capacidade de passageiros', kind: 'number', required: true, minimum: 1, maximum: 300 },
       { key: 'accessible', label: 'Acessível', kind: 'boolean', required: true },
     ],
@@ -109,11 +111,13 @@ const characteristicsSchemas: Record<string, z.ZodType<Record<string, string | n
     speedLimitKmh: z.number().int().min(20).max(130),
     lanes: z.number().int().min(1).max(8),
     technology: z.enum(['doppler', 'laser', 'sectional']),
+    enforcementMode: z.enum(['speed', 'traffic_signal', 'prohibited_turn']).optional(),
   }).strict(),
   surveillance_camera: z.object({
     resolution: z.enum(['1080p', '2k', '4k']),
     nightVision: z.boolean(),
     panTiltZoom: z.boolean(),
+    imageMode: z.enum(['color', 'monochrome']).optional(),
   }).strict(),
   weighbridge: z.object({
     maxWeightKg: z.number().int().min(1000).max(120000),
@@ -130,7 +134,7 @@ const characteristicsSchemas: Record<string, z.ZodType<Record<string, string | n
     accessMode: z.enum(['tag', 'plate', 'manual']),
   }).strict(),
   transit_vehicle: z.object({
-    vehicleClass: z.enum(['bus', 'van', 'light_rail']),
+    vehicleClass: z.enum(['bus', 'van', 'light_rail', 'taxi', 'motorcycle_taxi', 'school_bus']),
     passengerCapacity: z.number().int().min(1).max(300),
     accessible: z.boolean(),
   }).strict(),

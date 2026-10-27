@@ -33,6 +33,31 @@ describe('EquipmentDetailsComponent', () => {
     expect(content).toContain('Inspeção de rotina');
   });
 
+  it('shows a button-like link that returns from equipment details to inventory', async () => {
+    await TestBed.configureTestingModule({
+      imports: [EquipmentDetailsComponent],
+      providers: [
+        provideRouter([{ path: 'equipments', component: EquipmentsRouteStub }]),
+        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: testEquipment.id }) } } },
+        { provide: InventoryApiService, useValue: {
+          getEquipment: () => of(testEquipment), getEquipmentTypes: () => of([testEquipmentType]),
+          listMaintenance: () => of({ items: [], page: 1, pageSize: 50, total: 0, totalPages: 0 }),
+        } },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(EquipmentDetailsComponent);
+
+    await fixture.whenStable();
+
+    const backLink = (fixture.nativeElement as HTMLElement).querySelector<HTMLAnchorElement>('.back-link');
+    expect(backLink?.textContent).toContain('Voltar ao inventário');
+    expect(backLink?.classList.contains('button')).toBe(true);
+    backLink?.click();
+    await fixture.whenStable();
+
+    expect(TestBed.inject(Router).url).toBe('/equipments');
+  });
+
   it('reports deactivation failures and allows retrying the action', async () => {
     const deactivateEquipment = vi.fn(() => throwError(() => ({ status: 409, error: { message: 'Há uma manutenção em andamento.' } })));
     await TestBed.configureTestingModule({

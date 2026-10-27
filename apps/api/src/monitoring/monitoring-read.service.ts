@@ -96,11 +96,22 @@ export class MonitoringReadService {
         GROUP BY location.region_id
       `) as Promise<Array<{ region_id: string; registered: number; eligible: number; operational: number; stolen: number }>>,
       this.dataSource.query(`
-        SELECT position.region_id AS region_id, COUNT(agent.id)::int AS on_duty
-        FROM agent_positions position
-        JOIN agents agent ON agent.id = position.agent_id
-        WHERE agent.availability = 'on_duty' AND position.region_id IS NOT NULL
-        GROUP BY position.region_id
+        SELECT effective.region_id AS region_id, COUNT(agent.id)::int AS on_duty
+        FROM agents agent
+        LEFT JOIN agent_positions position ON position.agent_id = agent.id
+        LEFT JOIN equipment linked_equipment ON linked_equipment.id = agent.equipment_id
+        LEFT JOIN equipment_positions linked_position ON linked_position.equipment_id = linked_equipment.id
+        LEFT JOIN equipment_locations equipment_location ON equipment_location.equipment_id = linked_equipment.id
+        LEFT JOIN operational_bases base ON base.id = agent.operational_base_id
+        CROSS JOIN LATERAL (
+          SELECT CASE
+            WHEN position.id IS NOT NULL THEN position.region_id
+            WHEN linked_position.id IS NOT NULL THEN equipment_location.region_id
+            ELSE base.region_id
+          END AS region_id
+        ) effective
+        WHERE agent.availability = 'on_duty' AND effective.region_id IS NOT NULL
+        GROUP BY effective.region_id
       `) as Promise<Array<{ region_id: string; on_duty: number }>>,
     ]);
     const equipmentByRegion = new Map(equipmentCounts.map((row) => [row.region_id, row]));
@@ -237,6 +248,7 @@ export class MonitoringReadService {
         identifier: equipment.serialNumber,
         status: equipment.status,
         typeCode: equipment.type.code,
+        categoryCode: null,
         typeLabel: equipment.type.label,
         organizationId: equipment.organizationId,
         organizationName: equipment.organization.name,
@@ -302,6 +314,7 @@ export class MonitoringReadService {
         identifier: agent.identifier,
         status: agent.availability,
         typeCode: null,
+        categoryCode: agent.category,
         typeLabel: this.agentCategoryLabel(agent.category),
         organizationId: agent.organizationId,
         organizationName: agent.organization.name,

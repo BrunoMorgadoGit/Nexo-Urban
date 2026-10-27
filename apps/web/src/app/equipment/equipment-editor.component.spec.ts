@@ -182,19 +182,34 @@ describe('EquipmentEditorComponent', () => {
     expect(() => component.stringCharacteristicField('speedLimitKmh')).toThrow('Unsupported text characteristic field.');
     expect(() => component.numberCharacteristicField('technology')).toThrow('Unsupported numeric characteristic field.');
     expect(component.characteristicOptionLabel('doppler')).toBe('Doppler');
+    expect(component.characteristicOptionLabel('prohibited_turn')).toBe('Conversão proibida');
+    expect(component.characteristicOptionLabel('monochrome')).toBe('Preto e branco');
+    expect(component.characteristicOptionLabel('motorcycle_taxi')).toBe('Mototáxi');
+    expect(component.characteristicOptionLabel('school_bus')).toBe('Transporte escolar');
     expect(component.characteristicOptionLabel('unknown')).toBe('unknown');
   });
 
   it('populates and updates an existing equipment record', async () => {
     const editableEquipment = { ...testEquipment, characteristics: { speedLimitKmh: 50, technology: 'doppler' } };
-    const updateEquipment = vi.fn(() => of(editableEquipment));
+    let submittedCharacteristics: Record<string, string | number | boolean> | undefined;
+    const updateEquipment = vi.fn((_id: string, input: { characteristics: Record<string, string | number | boolean> }) => {
+      submittedCharacteristics = input.characteristics;
+      return of(editableEquipment);
+    });
+    const radarTypeWithOptionalMode: EquipmentTypeContract = {
+      ...testEquipmentType,
+      characteristics: [
+        ...testEquipmentType.characteristics,
+        { key: 'enforcementMode', label: 'Fiscalização', kind: 'select', required: false, options: ['speed', 'traffic_signal', 'prohibited_turn'] },
+      ],
+    };
     await TestBed.configureTestingModule({
       imports: [EquipmentEditorComponent],
       providers: [
         provideRouter([]),
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: testEquipment.id }) } } },
         { provide: InventoryApiService, useValue: {
-          getEquipmentTypes: () => of([testEquipmentType]), getOrganizations: () => of([testOrganization]),
+          getEquipmentTypes: () => of([radarTypeWithOptionalMode]), getOrganizations: () => of([testOrganization]),
           getRegions: () => of([testRegion]), getEquipment: () => of(editableEquipment), updateEquipment,
         } },
         { provide: ViaCepService, useValue: defaultMockViaCep },
@@ -211,6 +226,7 @@ describe('EquipmentEditorComponent', () => {
     expect(updateEquipment).toHaveBeenCalledWith(testEquipment.id, expect.objectContaining({
       typeCode: 'speed_radar', characteristics: { speedLimitKmh: 50, technology: 'doppler' },
     }));
+    expect(submittedCharacteristics).not.toHaveProperty('enforcementMode');
   });
 
   it('rejects an equipment type that is absent from lookup options', async () => {

@@ -3,7 +3,7 @@ import { AfterViewInit, ChangeDetectionStrategy, Component, DestroyRef, ElementR
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
-import type { EquipmentTypeContract, MapResourceContract, OrganizationContract, RegionContract } from '@fogo/contracts';
+import type { AgentCategory, EquipmentTypeContract, MapResourceContract, OrganizationContract, RegionContract } from '@fogo/contracts';
 import { ErrorEvent, GeoJSONSource, getVersion, Map as MapLibreMap, MapLayerMouseEvent, NavigationControl, setWorkerUrl } from 'maplibre-gl';
 import type { FeatureCollection, Point } from 'geojson';
 import { catchError, forkJoin, of, startWith } from 'rxjs';
@@ -42,6 +42,17 @@ export class OperationalMapComponent implements AfterViewInit, OnDestroy {
   protected readonly demoBusy = signal(false);
   protected readonly filters = signal<MonitoringMapFilters>({ resourceType: 'all' });
   protected readonly itemCountLabel = computed(() => `${this.items().length} recursos no mapa`);
+  protected readonly markerLegend = computed(() => {
+    const markers = new Map<string, { glyph: string; label: string }>();
+    for (const item of this.items()) {
+      const code = item.kind === 'agent' ? item.categoryCode : item.typeCode;
+      const glyph = item.kind === 'agent'
+        ? this.agentGlyph(item.categoryCode)
+        : this.equipmentGlyph(item.typeCode);
+      markers.set(`${item.kind}:${code ?? 'unknown'}`, { glyph, label: item.typeLabel });
+    }
+    return [...markers.values()].sort((left, right) => left.label.localeCompare(right.label, 'pt-BR'));
+  });
 
   private readonly document = inject(DOCUMENT);
   private readonly api = inject(InventoryApiService);
@@ -49,6 +60,7 @@ export class OperationalMapComponent implements AfterViewInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private map: MapLibreMap | null = null;
   private mapReady = false;
+  private resourceRequestId = 0;
   private themeObserver: MutationObserver | null = null;
   constructor() {
     this.realtime.acquire(this.destroyRef);
@@ -157,14 +169,16 @@ export class OperationalMapComponent implements AfterViewInit, OnDestroy {
   }
 
   private loadResources(): void {
+    const requestId = ++this.resourceRequestId;
     this.loading.set(true);
     this.api.getMonitoringMap(this.filters()).pipe(
       catchError((error: unknown) => {
-        this.error.set(apiErrorMessage(error));
+        if (requestId === this.resourceRequestId) this.error.set(apiErrorMessage(error));
         return of(null);
       }),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe((snapshot) => {
+      if (requestId !== this.resourceRequestId) return;
       this.loading.set(false);
       if (!snapshot) return;
       this.error.set('');
@@ -176,6 +190,21 @@ export class OperationalMapComponent implements AfterViewInit, OnDestroy {
       }
       this.syncGeoJson();
     });
+  }
+
+  private equipmentGlyph(typeCode: string | null): string {
+    return ({
+      speed_radar: 'RD', surveillance_camera: 'CM', weighbridge: 'BL', enforcement_vehicle: 'VF',
+      access_barrier: 'CA', transit_vehicle: 'TR', service_kiosk: 'TA', scooter: 'PT',
+      motorcycle: 'MT', patrol_vehicle: 'VT',
+    } as Record<string, string>)[typeCode ?? ''] ?? 'EQ';
+  }
+
+  private agentGlyph(category: AgentCategory | null): string {
+    return ({
+      traffic_agent: 'AT', municipal_guard: 'GM', police_officer: 'PO',
+      military_police_officer: 'PM', civil_police_officer: 'PC', other: 'OU',
+    } as Record<AgentCategory, string>)[category ?? 'other'];
   }
 
   private createMap(recreate = false): void {
@@ -355,7 +384,7 @@ export class OperationalMapComponent implements AfterViewInit, OnDestroy {
           stale: item.positionStale,
           problemSignal: item.kind === 'equipment' && (item.status === 'malfunctioning' || item.status === 'stolen'),
           selected: item.id === selectedId,
-          glyph: item.kind === 'agent' ? 'AG' : 'EQ',
+          glyph: item.kind === 'agent' ? this.agentGlyph(item.categoryCode) : this.equipmentGlyph(item.typeCode),
           sharedPosition: item.kind === 'agent'
             && item.positionSource === 'linked_equipment'
             && equipmentLocations.has(`${item.longitude}:${item.latitude}`),
