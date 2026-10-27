@@ -107,8 +107,8 @@ export class EquipmentEditorComponent {
 
   protected readonly cepLoading = signal(false);
   protected readonly cepFeedback = signal<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
-  protected readonly fallbackCity = signal('');
-  protected readonly fallbackState = signal('');
+  protected readonly resolvedCity = signal('');
+  protected readonly resolvedState = signal('');
   private lastSearchedCep = '';
 
   protected readonly model = signal(emptyModel());
@@ -251,11 +251,11 @@ export class EquipmentEditorComponent {
   }
 
   protected locationCity(): string {
-    return this.regions().find(({ id }) => id === this.model().location.regionId)?.city || this.fallbackCity();
+    return this.resolvedCity() || this.regions().find(({ id }) => id === this.model().location.regionId)?.city || '';
   }
 
   protected locationState(): string {
-    return this.regions().find(({ id }) => id === this.model().location.regionId)?.state || this.fallbackState();
+    return this.resolvedState() || this.regions().find(({ id }) => id === this.model().location.regionId)?.state || '';
   }
 
   protected onPostalCodeInput(event: Event): void {
@@ -285,6 +285,8 @@ export class EquipmentEditorComponent {
     this.lastSearchedCep = clean;
     this.cepLoading.set(true);
     this.cepFeedback.set(null);
+    this.resolvedCity.set('');
+    this.resolvedState.set('');
 
     this.viaCep.lookupCep(clean).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (result) => {
@@ -294,9 +296,9 @@ export class EquipmentEditorComponent {
           return;
         }
 
-        const matchedRegion = this.findMatchingRegion(result.neighborhood);
-        this.fallbackCity.set(result.city);
-        this.fallbackState.set(result.state);
+        const matchedRegion = this.findMatchingRegion(result.neighborhood, result.city, result.state);
+        this.resolvedCity.set(result.city);
+        this.resolvedState.set(result.state);
 
         const hasCoords = typeof result.latitude === 'number' && typeof result.longitude === 'number';
         const latitude = result.latitude ?? this.model().location.latitude;
@@ -355,12 +357,17 @@ export class EquipmentEditorComponent {
     });
   }
 
-  protected findMatchingRegion(neighborhood: string): RegionContract | undefined {
+  protected findMatchingRegion(neighborhood: string, city?: string, state?: string): RegionContract | undefined {
     if (!neighborhood) return undefined;
     const normalize = (value: string) =>
       value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
     const target = normalize(neighborhood);
-    const regions = this.regions();
+    const targetCity = city ? normalize(city) : '';
+    const targetState = state ? normalize(state) : '';
+    const regions = this.regions().filter((region) =>
+      (!targetCity || normalize(region.city) === targetCity) &&
+      (!targetState || normalize(region.state) === targetState),
+    );
 
     const exact = regions.find((region) => normalize(region.name) === target);
     if (exact) return exact;
@@ -424,8 +431,8 @@ export class EquipmentEditorComponent {
           street: current.location.street,
           reference: current.location.reference,
           regionId: region.id,
-          city: region.city,
-          state: region.state,
+          city: this.resolvedCity() || region.city,
+          state: this.resolvedState() || region.state,
           latitude: current.location.latitude,
           longitude: current.location.longitude,
           role: type.mobility === 'mobile' ? 'base' : 'fixed',
@@ -455,6 +462,8 @@ export class EquipmentEditorComponent {
 
   private populate(equipment: EquipmentContract): void {
     this.lastSearchedCep = this.viaCep.cleanCep(equipment.location.postalCode);
+    this.resolvedCity.set(equipment.location.city);
+    this.resolvedState.set(equipment.location.state);
     const characteristics = { ...emptyCharacteristics(), ...equipment.characteristics };
     this.model.set({
       typeCode: equipment.typeCode,

@@ -68,8 +68,8 @@ export class EquipmentService {
         reference: input.location.reference.trim(),
         regionId: related.region.id,
         region: related.region,
-        city: related.region.city,
-        state: related.region.state,
+        city: input.location.city,
+        state: input.location.state,
         latitude: input.location.latitude,
         longitude: input.location.longitude,
         role: input.location.role,
@@ -184,8 +184,8 @@ export class EquipmentService {
         street: input.location.street.trim(),
         reference: input.location.reference.trim(),
         regionId: related.region.id,
-        city: related.region.city,
-        state: related.region.state,
+        city: input.location.city,
+        state: input.location.state,
         latitude: input.location.latitude,
         longitude: input.location.longitude,
         role: input.location.role,
@@ -236,9 +236,6 @@ export class EquipmentService {
     if (!type) throw new BadRequestException('Tipo de equipamento inválido ou inativo.');
     if (!organization) throw new BadRequestException('Órgão responsável inválido ou inativo.');
     if (!region) throw new BadRequestException('Bairro ou região inválida.');
-    if (region.city !== input.location.city || region.state !== input.location.state) {
-      throw new BadRequestException('Cidade e UF precisam corresponder à região selecionada.');
-    }
     if (type.mobility === 'fixed' && input.location.role !== 'fixed') {
       throw new BadRequestException('Equipamento fixo exige localização fixa.');
     }

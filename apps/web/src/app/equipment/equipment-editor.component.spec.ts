@@ -32,7 +32,7 @@ type EquipmentEditorHarness = {
   typeChanged(): void;
   searchCep(explicitCep?: string): void;
   onPostalCodeInput(event: Event): void;
-  findMatchingRegion(neighborhood: string): unknown;
+  findMatchingRegion(neighborhood: string, city?: string, state?: string): unknown;
   characteristicField(key: string): unknown;
   booleanCharacteristicField(key: string): unknown;
   stringCharacteristicField(key: string): unknown;
@@ -519,6 +519,97 @@ describe('EquipmentEditorComponent', () => {
       await fixture.whenStable();
 
       expect(lookupCep).toHaveBeenCalledWith('13010000');
+    });
+
+    it('does not match a same-named neighborhood from another city and keeps the CEP city', async () => {
+      const mockResult: ViaCepResult = {
+        postalCode: '01001-000',
+        street: 'Praça da Sé',
+        neighborhood: 'Sousas',
+        city: 'São Paulo',
+        state: 'SP',
+        complement: '',
+        latitude: -23.55039,
+        longitude: -46.633081,
+      };
+      const lookupCep = vi.fn(() => of(mockResult));
+      const viaCepMock = { ...defaultMockViaCep, lookupCep };
+
+      await TestBed.configureTestingModule({
+        imports: [EquipmentEditorComponent],
+        providers: [
+          provideRouter([]),
+          { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({}) } } },
+          { provide: InventoryApiService, useValue: {
+            getEquipmentTypes: () => of([testEquipmentType]), getOrganizations: () => of([testOrganization]), getRegions: () => of([testRegion]),
+          } },
+          { provide: ViaCepService, useValue: viaCepMock },
+        ],
+      }).compileComponents();
+      const fixture = TestBed.createComponent(EquipmentEditorComponent);
+      await fixture.whenStable();
+      const component = fixture.componentInstance as unknown as EquipmentEditorHarness;
+
+      component.searchCep('01001-000');
+      await fixture.whenStable();
+
+      expect(component.model().location.regionId).toBe('');
+      expect(component.locationCity()).toBe('São Paulo');
+      expect(component.locationState()).toBe('SP');
+    });
+
+    it('saves the CEP city and state even when the selected region belongs to another city', async () => {
+      const createEquipment = vi.fn(() => of(testEquipment));
+      const mockResult: ViaCepResult = {
+        postalCode: '01001-000',
+        street: 'Praça da Sé',
+        neighborhood: 'Sé',
+        city: 'São Paulo',
+        state: 'SP',
+        complement: '',
+        latitude: -23.55039,
+        longitude: -46.633081,
+      };
+      const lookupCep = vi.fn(() => of(mockResult));
+      const viaCepMock = { ...defaultMockViaCep, lookupCep };
+
+      await TestBed.configureTestingModule({
+        imports: [EquipmentEditorComponent],
+        providers: [
+          provideRouter([]),
+          { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({}) } } },
+          { provide: InventoryApiService, useValue: {
+            getEquipmentTypes: () => of([testEquipmentType]), getOrganizations: () => of([testOrganization]),
+            getRegions: () => of([testRegion]), createEquipment,
+          } },
+          { provide: ViaCepService, useValue: viaCepMock },
+        ],
+      }).compileComponents();
+      const fixture = TestBed.createComponent(EquipmentEditorComponent);
+      await fixture.whenStable();
+      const component = fixture.componentInstance as unknown as EquipmentEditorHarness;
+      const current = component.model();
+      component.model.set({
+        ...current,
+        typeCode: testEquipmentType.code,
+        serialNumber: 'RAD-900',
+        brand: 'Marca',
+        model: 'Modelo',
+        organizationId: testOrganization.id,
+        characteristics: { ...current.characteristics, speedLimitKmh: 50, technology: 'doppler' },
+        location: {
+          postalCode: '01001-000', street: 'Praça da Sé', reference: '100',
+          regionId: testRegion.id, latitude: -23.55039, longitude: -46.633081,
+        },
+      });
+      component.searchCep('01001-000');
+      await fixture.whenStable();
+      component.save();
+      await fixture.whenStable();
+
+      expect(createEquipment).toHaveBeenCalledWith(expect.objectContaining({
+        location: expect.objectContaining({ city: 'São Paulo', state: 'SP', regionId: testRegion.id }),
+      }));
     });
   });
 });

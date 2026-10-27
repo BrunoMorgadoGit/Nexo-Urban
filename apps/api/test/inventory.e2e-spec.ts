@@ -11,6 +11,7 @@ import { AppModule } from '../src/app.module.js';
 import { ApiExceptionFilter } from '../src/common/api-exception.filter.js';
 import { addCalendarDays, operationalDateKey } from '../src/common/operational-date.js';
 import { EquipmentEntity } from '../src/equipment/equipment.entity.js';
+import { EquipmentLocationEntity } from '../src/locations/equipment-location.entity.js';
 import { MaintenanceEntity } from '../src/maintenance/maintenance.entity.js';
 import { OrganizationEntity } from '../src/organizations/organization.entity.js';
 import { RegionEntity } from '../src/regions/region.entity.js';
@@ -26,6 +27,7 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
   let serialNumber: string;
   let agentIdentifier: string;
   let equipmentId: string;
+  let crossCityEquipmentId: string;
   let mobileEquipmentId: string;
   let agentId: string;
   let unlocatedAgentId: string;
@@ -51,12 +53,12 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
 
   afterAll(async () => {
     if (dataSource?.isInitialized) {
-      for (const id of [equipmentId, mobileEquipmentId].filter((value): value is string => Boolean(value))) {
+      for (const id of [equipmentId, crossCityEquipmentId, mobileEquipmentId].filter((value): value is string => Boolean(value))) {
         await dataSource.getRepository(MaintenanceEntity).delete({ equipmentId: id });
         await dataSource.getRepository(EquipmentEntity).delete({ id });
       }
       for (const id of maintenanceIds) await dataSource.getRepository(MaintenanceEntity).delete({ id });
-      const resourceIds = [equipmentId, mobileEquipmentId, agentId, unlocatedAgentId, linkedAgentId, ...maintenanceIds]
+      const resourceIds = [equipmentId, crossCityEquipmentId, mobileEquipmentId, agentId, unlocatedAgentId, linkedAgentId, ...maintenanceIds]
         .filter((value): value is string => Boolean(value));
       const relatedAlerts = resourceIds.length
         ? await dataSource.getRepository(OperationalAlertEntity).find({ where: { resourceId: In(resourceIds) } })
@@ -110,6 +112,23 @@ describe('Inventory API (e2e, PostgreSQL)', () => {
     expect(response.body.location.role).toBe('fixed');
     const persisted = await dataSource.getRepository(EquipmentEntity).findOneByOrFail({ id: equipmentId });
     expect(persisted.characteristics).toEqual({ speedLimitKmh: 50, lanes: 2, technology: 'doppler' });
+  });
+
+  it('persists the address city and state instead of overwriting them with the region city', async () => {
+    const input = equipmentInput(`E2E-${randomUUID().slice(0, 12).toUpperCase()}`);
+    input.location.city = 'São Paulo';
+    const response = await request(app.getHttpServer())
+      .post('/api/v1/equipments')
+      .send(input)
+      .expect(201);
+    crossCityEquipmentId = response.body.id as string;
+    expect(response.body.location.city).toBe('São Paulo');
+    expect(response.body.location.state).toBe('SP');
+    const persisted = await dataSource
+      .getRepository(EquipmentLocationEntity)
+      .findOneByOrFail({ equipmentId: crossCityEquipmentId });
+    expect(persisted.city).toBe('São Paulo');
+    expect(persisted.state).toBe('SP');
   });
 
   it('rolls back the resource when recording its operational event fails', async () => {
