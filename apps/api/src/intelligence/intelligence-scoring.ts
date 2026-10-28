@@ -24,6 +24,18 @@ export type HistoricalIntelligenceEvent = {
   details: Record<string, unknown>;
 };
 
+export function indexEventsByRegion(
+  events: readonly HistoricalIntelligenceEvent[],
+): Map<string, HistoricalIntelligenceEvent[]> {
+  const eventsByRegion = new Map<string, HistoricalIntelligenceEvent[]>();
+  for (const event of events) {
+    const regionEvents = eventsByRegion.get(event.regionId);
+    if (regionEvents) regionEvents.push(event);
+    else eventsByRegion.set(event.regionId, [event]);
+  }
+  return eventsByRegion;
+}
+
 export function summarizeIntelligenceSources(events: HistoricalIntelligenceEvent[]): IntelligenceSourceComposition {
   return {
     syntheticObservations: events.filter((event) => event.eventType === 'status_observation' && event.details.origin !== 'manual').length,

@@ -1,4 +1,4 @@
-import { calculateRegionalRisk, prioritizeMaintenance, summarizeIntelligenceSources, type HistoricalIntelligenceEvent } from './intelligence-scoring.js';
+import { calculateRegionalRisk, indexEventsByRegion, prioritizeMaintenance, summarizeIntelligenceSources, type HistoricalIntelligenceEvent } from './intelligence-scoring.js';
 
 const referenceAt = new Date('2026-10-23T12:00:00.000Z');
 const region = { id: 'region-1', code: 'centro', name: 'Centro', zone: 'Central', city: 'Campinas', state: 'SP' };
@@ -22,6 +22,18 @@ function event(
 }
 
 describe('intelligence scoring', () => {
+  it('indexes regional history once while preserving event order', () => {
+    const centerFailure = event(2, 'failure', 'center-equipment');
+    const northObservation = { ...event(3, 'status_observation', 'north-equipment'), regionId: 'region-2' };
+    const centerObservation = event(4, 'status_observation', 'center-equipment');
+
+    const eventsByRegion = indexEventsByRegion([centerFailure, northObservation, centerObservation]);
+
+    expect(eventsByRegion.get(region.id)).toEqual([centerFailure, centerObservation]);
+    expect(eventsByRegion.get('region-2')).toEqual([northObservation]);
+    expect(eventsByRegion.has('region-3')).toBe(false);
+  });
+
   it('reports operational observations separately from synthetic history', () => {
     const events = [
       event(0, 'status_observation', 'manual-equipment', { status: 'operational', origin: 'manual' }),

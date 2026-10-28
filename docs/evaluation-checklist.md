@@ -10,12 +10,12 @@ Esta seção prevalece sobre fotografias históricas abaixo. Os testes E2E de AP
 
 | Verificação | Evidência corrente |
 | --- | --- |
-| Unitários | `npm test`: 169 testes web e 130 testes API passaram. |
+| Unitários | `npm test`: 169 testes web e 131 testes API passaram. |
 | E2E PostgreSQL | `npm run test:e2e`: 22 testes passaram em quatro arquivos, incluindo localização de agente pela base operacional. |
 | E2E web | `npm run test:web:e2e`: 8 cenários Chromium passaram; um valida o retorno do detalhe do equipamento ao inventário. |
 | Lint/build | `npm run lint` e `npm run build` passaram. O build mantém nove avisos de orçamento CSS, sem erro de compilação. |
 | Inteligência | Regras explicáveis e backtest permanecem demonstrativos. O histórico é sintético; métricas não comprovam eficácia em operação real. |
-| Demonstração | O vídeo bônus ainda precisa ser gravado e assistido. O mapa depende de tiles OSM e a aplicação não oferece autenticação; mantenha a API em loopback. |
+| Demonstração | O vídeo bônus foi gravado; falta revisá-lo e incluí-lo na submissão. O mapa depende de tiles OSM e a aplicação não oferece autenticação; mantenha a API em loopback. |
 
 ## Parte 1 — Inventário Inteligente da Cidade
 

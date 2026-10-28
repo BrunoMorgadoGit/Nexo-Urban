@@ -255,3 +255,17 @@ Esta é a evidência corrente após correções pontuais. Nenhuma migration ou d
 | Segurança/submissão | A aplicação não autentica usuários e deve permanecer local/loopback. O vídeo bônus ainda não foi gravado; tiles OSM dependem de internet. |
 
 **Estado corrente: pronto para demonstração local e revisão do pacote, com ressalvas.** As correções estão na branch `feature/event-readiness-polish` e na [PR #2 para `main`](https://github.com/BrunoMorgadoGit/Nexo-Urban/pull/2), aberta e sem conflitos no momento desta atualização. O ZIP de entrega foi gerado separadamente em `/tmp/FOGO-Entrega-2026-10-27.zip` a partir do mesmo snapshot revisado; ele não é versionado. Isso não garante classificação no evento nem comprova efetividade preditiva real.
+
+## Atualização final de submissão — 27/10/2026
+
+Esta atualização substitui o estado de branch, vídeo e pacote descrito na fotografia anterior.
+
+| Verificação | Estado nesta entrega |
+| --- | --- |
+| Código | Checkout `main`, sincronizado com `origin/main`, com cinco alterações locais incluídas no pacote: índice regional do histórico, teste correspondente e atualização das checklists e auditoria final. |
+| Testes/build/lint | `npm test`: 169 testes web e 131 API passaram. `npm run build:api`, lint da API e `git diff --check` passaram. Os E2E PostgreSQL e navegador não foram repetidos após a otimização localizada. |
+| Pacote fonte | `/tmp/FOGO-Entrega-2026-10-27-final.zip`, gerado de `HEAD` mais o diff local; cerca de 2,7 MB. `unzip -t` passou. Contém `.env.example` e as alterações atuais; não contém `.env`, `.aws`, `.codex`, `node_modules`, `dist` ou `.git`. |
+| Vídeo | O participante informou que foi gravado. O arquivo não está neste checkout; revisar a reprodução e anexá-lo separadamente à submissão. |
+| Operação | A API demonstrativa não tem autenticação; manter execução local/loopback. Tiles do OpenStreetMap precisam de internet. |
+
+**Estado:** pacote de código pronto para envio. Antes de submeter, revisar o vídeo e anexá-lo junto com o ZIP. As ressalvas de dados sintéticos e validação preditiva continuam válidas.

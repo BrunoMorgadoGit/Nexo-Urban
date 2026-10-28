@@ -20,6 +20,7 @@ import { operationalDateKey } from '../common/operational-date.js';
 import {
   calculateRegionalRisk,
   HISTORY_WINDOW_DAYS,
+  indexEventsByRegion,
   INTELLIGENCE_METHOD_VERSION,
   prioritizeMaintenance,
   summarizeIntelligenceSources,
@@ -102,6 +103,7 @@ export class IntelligenceService {
 
   async validation(sourceScope: IntelligenceSourceScope): Promise<IntelligenceBacktest> {
     const { regionEntities, events, referenceAt } = await this.snapshot(sourceScope);
+    const eventsByRegion = indexEventsByRegion(events);
     const firstCutoff = new Date(referenceAt.getTime() - 89 * dayMs);
     const lastCutoff = new Date(referenceAt.getTime() - eventHorizonMs);
     const periods = new Map<string, { start: Date; end: Date; windows: number; incidents: number; modelFlags: number; baselineFlags: number }>();
@@ -126,7 +128,7 @@ export class IntelligenceService {
       period.end = cutoff;
       const rankedWindows: Array<{ regionId: string; score: number; incident: boolean }> = [];
       for (const region of regionEntities) {
-        const regionEvents = events.filter((event) => event.regionId === region.id);
+        const regionEvents = eventsByRegion.get(region.id) ?? [];
         const pastEvents = regionEvents.filter((event) => event.occurredAt <= cutoff);
         const seenEquipment = new Set(pastEvents.filter((event) => event.eventType === 'status_observation').map((event) => event.equipmentId));
         const risk = calculateRegionalRisk({
@@ -317,9 +319,10 @@ export class IntelligenceService {
       equipmentByRegion.set(asset.location.regionId, bucket);
     }
     const sourceComposition: IntelligenceSourceComposition = this.sourceComposition(selectedEvents);
+    const eventsByRegion = indexEventsByRegion(selectedEvents);
     const riskRows = regions.map((region) => {
       const members = equipmentByRegion.get(region.id) ?? [];
-      const regionalEvents = selectedEvents.filter((event) => event.regionId === region.id);
+      const regionalEvents = eventsByRegion.get(region.id) ?? [];
       const eligible = members.filter((asset) => !['not_installed', 'deactivated'].includes(asset.status)).length;
       const today = operationalDateKey(referenceAt);
       const pendingMaintenanceCount = members.reduce((total, asset) => total + asset.maintenances.filter((maintenance) =>
