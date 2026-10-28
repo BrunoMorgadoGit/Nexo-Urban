@@ -262,8 +262,9 @@ Esta atualização substitui o estado de branch, vídeo e pacote descrito na fot
 
 | Verificação | Estado nesta entrega |
 | --- | --- |
-| Código | Checkout `main`, sincronizado com `origin/main`, com cinco alterações locais incluídas no pacote: índice regional do histórico, teste correspondente e atualização das checklists e auditoria final. |
-| Testes/build/lint | `npm test`: 169 testes web e 131 API passaram. `npm run build:api`, lint da API e `git diff --check` passaram. Os E2E PostgreSQL e navegador não foram repetidos após a otimização localizada. |
+| Código | Checkout `main`, no commit `073bf36` sincronizado com `origin/main`, com três alterações locais incluídas no pacote: ajuste das colisões de marcadores, teste correspondente e atualização desta auditoria. O índice regional do histórico já está versionado no commit atual. |
+| Testes/build/lint | `npm test`: 169 testes web e 131 API passaram. Build e lint de web e API passaram; o build Angular mantém avisos de orçamento CSS. `npm run test:web:e2e`: 8 cenários passaram. O E2E PostgreSQL não foi repetido após as alterações locais. |
+| Mapa | O agrupamento foi estendido até o zoom 17 e agentes próximos ao mesmo ponto de equipamento recebem deslocamento visual maior. O teste verifica agrupamento, detecção de coordenadas próximas e deslocamento das camadas. Captura Chromium 1440×900 da rota Mapa Vivo confirmou o mapa e os agrupamentos; o inventário exibido nessa captura não tinha marcadores individuais próximos para validar o deslocamento visual no zoom máximo. |
 | Pacote fonte | `/tmp/FOGO-Entrega-2026-10-27-final.zip`, gerado de `HEAD` mais o diff local; cerca de 2,7 MB. `unzip -t` passou. Contém `.env.example` e as alterações atuais; não contém `.env`, `.aws`, `.codex`, `node_modules`, `dist` ou `.git`. |
 | Vídeo | O participante informou que foi gravado. O arquivo não está neste checkout; revisar a reprodução e anexá-lo separadamente à submissão. |
 | Operação | A API demonstrativa não tem autenticação; manter execução local/loopback. Tiles do OpenStreetMap precisam de internet. |

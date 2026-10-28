@@ -295,8 +295,8 @@ export class OperationalMapComponent implements AfterViewInit, OnDestroy {
       type: 'geojson',
       data: this.asFeatureCollection(),
       cluster: true,
-      clusterMaxZoom: 14,
-      clusterRadius: 40,
+      clusterMaxZoom: 17,
+      clusterRadius: 56,
       clusterProperties: {
         problem_count: ['+', ['case', ['boolean', ['get', 'problemSignal'], false], 1, 0]],
       },
@@ -339,7 +339,7 @@ export class OperationalMapComponent implements AfterViewInit, OnDestroy {
         'circle-opacity': ['case', ['boolean', ['get', 'stale'], false], 0.52, 0.96],
         'circle-stroke-color': '#ffffff',
         'circle-stroke-width': ['case', ['boolean', ['get', 'selected'], false], 3, 2.5],
-        'circle-translate': [18, -14],
+        'circle-translate': [24, -20],
         'circle-translate-anchor': 'viewport',
       },
     });
@@ -355,7 +355,7 @@ export class OperationalMapComponent implements AfterViewInit, OnDestroy {
       layout: { 'text-field': ['get', 'glyph'], 'text-size': 10, 'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'], 'text-allow-overlap': true, 'text-ignore-placement': true },
       paint: {
         'text-color': '#ffffff', 'text-halo-color': '#13202a', 'text-halo-width': 0.75,
-        'text-translate': [18, -14], 'text-translate-anchor': 'viewport',
+        'text-translate': [24, -20], 'text-translate-anchor': 'viewport',
       },
     });
   }
@@ -368,9 +368,10 @@ export class OperationalMapComponent implements AfterViewInit, OnDestroy {
 
   private asFeatureCollection(): FeatureCollection<Point> {
     const selectedId = this.selectedId();
+    const positionKey = (longitude: number, latitude: number) => `${longitude.toFixed(4)}:${latitude.toFixed(4)}`;
     const equipmentLocations = new Set(this.items()
       .filter((item) => item.kind === 'equipment')
-      .map((item) => `${item.longitude}:${item.latitude}`));
+      .map((item) => positionKey(item.longitude, item.latitude)));
     return {
       type: 'FeatureCollection',
       features: this.items().map((item) => ({
@@ -386,8 +387,7 @@ export class OperationalMapComponent implements AfterViewInit, OnDestroy {
           selected: item.id === selectedId,
           glyph: item.kind === 'agent' ? this.agentGlyph(item.categoryCode) : this.equipmentGlyph(item.typeCode),
           sharedPosition: item.kind === 'agent'
-            && item.positionSource === 'linked_equipment'
-            && equipmentLocations.has(`${item.longitude}:${item.latitude}`),
+            && equipmentLocations.has(positionKey(item.longitude, item.latitude)),
           identifier: item.identifier,
         },
       })),

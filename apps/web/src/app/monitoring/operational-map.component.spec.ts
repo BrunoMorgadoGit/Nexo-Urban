@@ -1,6 +1,8 @@
 const mapRuntime = vi.hoisted(() => ({
   instance: null as unknown,
   lastGeoJson: null as unknown,
+  sourceOptions: null as unknown,
+  layers: new Map<string, unknown>(),
   clusterFeature: null as unknown,
   rejectSetData: false,
   easeTo: vi.fn(),
@@ -28,8 +30,8 @@ vi.mock('maplibre-gl', () => {
     trigger(event: string, ...args: unknown[]): void { this.listeners.get(event)?.(...args); }
     getLayer(id: string): boolean { return id === 'openstreetmap-raster' || id.startsWith('resource-'); }
     setPaintProperty(): void {}
-    addSource(): void { this.hasResourceSource = true; }
-    addLayer(): void {}
+    addSource(_id: string, options: unknown): void { mapRuntime.sourceOptions = options; this.hasResourceSource = true; }
+    addLayer(layer: { id: string }): void { mapRuntime.layers.set(layer.id, layer); }
     getSource(): typeof this.source | undefined { return this.hasResourceSource ? this.source : undefined; }
     getCanvas(): HTMLCanvasElement { return this.canvas; }
     queryRenderedFeatures(): unknown[] { return mapRuntime.clusterFeature ? [mapRuntime.clusterFeature] : []; }
@@ -65,6 +67,7 @@ const agentResource: MapResourceContract = {
   ...resource,
   id: 'agent-1', kind: 'agent', label: 'Agente demonstrativo', identifier: 'AG-DEMO-001',
   status: 'on_duty', typeCode: null, categoryCode: 'traffic_agent', typeLabel: 'Agente de trânsito',
+  latitude: -22.90003, longitude: -47.06002,
   positionSource: 'agent_base', detailPath: '/agents/agent-1',
 };
 
@@ -72,6 +75,8 @@ describe('OperationalMapComponent', () => {
   beforeEach(() => {
     mapRuntime.instance = null;
     mapRuntime.lastGeoJson = null;
+    mapRuntime.sourceOptions = null;
+    mapRuntime.layers.clear();
     mapRuntime.clusterFeature = null;
     mapRuntime.rejectSetData = false;
     mapRuntime.easeTo.mockClear();
@@ -127,9 +132,12 @@ describe('OperationalMapComponent', () => {
     expect(root.textContent).toContain('Localização fixa');
     expect(root.textContent).toContain('1 agente(s) sem posição conhecida');
     expect(mapRuntime.setData).toHaveBeenCalled();
+    expect(mapRuntime.sourceOptions).toMatchObject({ clusterMaxZoom: 17, clusterRadius: 56 });
+    expect(mapRuntime.layers.get('resource-linked-agent-points')).toMatchObject({ paint: { 'circle-translate': [24, -20] } });
+    expect(mapRuntime.layers.get('resource-linked-agent-glyphs')).toMatchObject({ paint: { 'text-translate': [24, -20] } });
     expect(mapRuntime.lastGeoJson).toMatchObject({ type: 'FeatureCollection', features: [
       { geometry: { coordinates: [-47.06, -22.9] }, properties: { glyph: 'RD' } },
-      { properties: { glyph: 'AT' } },
+      { properties: { glyph: 'AT', sharedPosition: true } },
     ] });
     expect(root.textContent).toContain('Radar de velocidade');
     expect(root.textContent).toContain('Agente de trânsito');
